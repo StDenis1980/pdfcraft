@@ -45,8 +45,11 @@ mod updates;
 #[path = "windows_manifest.rs"]
 mod windows_manifest;
 
-/// Freedesktop app id: the `.desktop` file name and the hicolor icon name.
-const APP_ID: &str = pdfcraft_engine::brand::APP_ID;
+/// Freedesktop app id: the `.desktop` file name and the hicolor icon name. The Linux packages
+/// (`packaging/linux`) still install the release's desktop entry and icons under the release's id,
+/// so a rebranded build keeps that id as its window class until they are generated from
+/// `brand::APP_ID`; otherwise docks could not match the window to its launcher and icon.
+const APP_ID: &str = pdfcraft_engine::brand::UPSTREAM_APP_ID;
 
 /// The app icon (assets/app-icon/README.md). macOS gets the version on Apple's icon grid, with a
 /// transparent margin; Windows and Linux get the full-bleed tile.
