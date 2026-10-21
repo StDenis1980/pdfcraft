@@ -300,7 +300,7 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                         app.dialog = Some(Dialog::Shortcuts);
                     }
                     // One click to the community, from anywhere in the app.
-                    let community = if pdfcraft_engine::brand::REBRANDED { tl!("Help") } else { "Discord" };
+                    let community = if pdfcraft_engine::brand::REBRANDED { tl!("Support") } else { "Discord" };
                     if widgets::ghost_button_sized(ui, "messages-square", community, tab_h).on_hover_text(pdfcraft_engine::links::DISCORD).clicked() {
                         app.execute("help.discord");
                     }
