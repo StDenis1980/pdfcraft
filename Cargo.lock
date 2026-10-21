@@ -4017,6 +4017,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfcraft-brand"
+version = "0.10.1"
+
+[[package]]
 name = "pdfcraft-cli"
 version = "0.10.1"
 dependencies = [
@@ -4065,6 +4069,7 @@ dependencies = [
  "encoding_rs",
  "hayro-syntax",
  "image",
+ "pdfcraft-brand",
  "pdfcraft-cos",
  "pdfcraft-fonts",
  "pdfcraft-model",
@@ -4113,6 +4118,7 @@ dependencies = [
  "pdfcraft-a11y",
  "pdfcraft-annot",
  "pdfcraft-audit",
+ "pdfcraft-brand",
  "pdfcraft-compare",
  "pdfcraft-cos",
  "pdfcraft-create",
@@ -4337,6 +4343,7 @@ dependencies = [
  "p521",
  "pbkdf2",
  "pdfcraft-annot",
+ "pdfcraft-brand",
  "pdfcraft-cos",
  "pdfcraft-fonts",
  "rc2",

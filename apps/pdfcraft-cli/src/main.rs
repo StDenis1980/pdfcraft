@@ -80,7 +80,7 @@ pdfcraft-cli run    --script steps.json [--root DIR] [--report]
     "\
 pdfcraft-cli ui     --control FILE <method> [key=value …] [--out shot.png]
                                                            drive a running app started with --control FILE
-help and feedback: https://discord.gg/artcraft"
+help and feedback: "
 );
 
 fn main() -> ExitCode {
@@ -91,8 +91,8 @@ fn main() -> ExitCode {
         _ => args.first().map(String::as_str),
     };
     let result = match command {
-        Some("--help" | "-h" | "help") => stdout_line(format_args!("{USAGE}")),
-        None => Err(format!("usage:\n{USAGE}").into()),
+        Some("--help" | "-h" | "help") => stdout_line(format_args!("{USAGE}{}", pdfcraft_engine::links::DISCORD)),
+        None => Err(format!("usage:\n{USAGE}{}", pdfcraft_engine::links::DISCORD).into()),
         Some("info") => info(&args[1..]),
         Some("render") => render(&args[1..]),
         Some("text") => text(&args[1..]),

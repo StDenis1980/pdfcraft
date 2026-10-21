@@ -12,14 +12,16 @@ use egui::{Align, Layout};
 use crate::{PdfCraftApp, theme, widgets};
 
 /// Where every PdfCraft release is listed.
-pub const RELEASES_PAGE: &str = "https://github.com/storytold/pdfcraft/releases";
+pub fn releases_page() -> &'static str {
+    pdfcraft_engine::brand::releases_page()
+}
 
 /// The latest published release.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Release {
     /// Its version tag, such as `v0.2.0`.
     pub version: String,
-    /// Its page on [`RELEASES_PAGE`], where the downloads are.
+    /// Its page on [`releases_page`], where the downloads are.
     pub url: String,
 }
 
@@ -66,7 +68,7 @@ impl PdfCraftApp {
     /// Help ▸ Check for updates: ask for the latest release and show the outcome.
     pub fn check_for_updates(&mut self) {
         let Some(source) = self.update_source.clone() else {
-            self.open_url(RELEASES_PAGE);
+            self.open_url(releases_page());
             return;
         };
         #[cfg(not(target_arch = "wasm32"))]
@@ -89,7 +91,7 @@ impl PdfCraftApp {
         #[cfg(target_arch = "wasm32")]
         {
             let _ = source;
-            self.open_url(RELEASES_PAGE);
+            self.open_url(releases_page());
         }
     }
 
@@ -154,7 +156,7 @@ pub(crate) fn dialog(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 ui.label(
                     egui::RichText::new(crate::i18n::fmt(
                         tl!("You have version {c}. All releases are listed at {page}."),
-                        &[("c", current), ("page", RELEASES_PAGE)],
+                        &[("c", current), ("page", releases_page())],
                     ))
                     .color(t.text_muted),
                 );

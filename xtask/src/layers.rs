@@ -30,6 +30,7 @@ impl Class {
 /// Every workspace crate (package name without the `pdfcraft-` prefix) and its layer.
 pub const TABLE: &[(&str, Class)] = &[
     // L0 foundation (standalone, publishable)
+    ("brand", Class::Standalone(0)),
     ("geom", Class::Standalone(0)),
     ("filters", Class::Standalone(0)),
     ("crypt", Class::Standalone(0)),

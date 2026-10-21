@@ -7,10 +7,12 @@ use std::path::{Path, PathBuf};
 /// The app's name in ArtCraft URLs (`getartcraft.com/apps/{APP}`, `github.com/storytold/{APP}`).
 pub const APP: &str = "pdfcraft";
 
-pub const DISCORD: &str = "https://discord.gg/artcraft";
+/// Where people get help: the ArtCraft Discord in the release, the build's own page in a
+/// rebranded build ([`pdfcraft_brand::SUPPORT`]).
+pub const DISCORD: &str = pdfcraft_brand::SUPPORT;
 pub const WEBSITE: &str = "https://getartcraft.com";
-pub const APP_PAGE: &str = "https://getartcraft.com/apps/pdfcraft";
-pub const GITHUB: &str = "https://github.com/storytold/pdfcraft";
+pub const APP_PAGE: &str = pdfcraft_brand::APP_PAGE;
+pub const GITHUB: &str = pdfcraft_brand::GITHUB;
 
 /// A link and the registry command that opens it.
 #[derive(Clone, Copy, Debug)]
@@ -23,12 +25,28 @@ pub struct Link {
 }
 
 /// In the order they are shown. Discord comes first: it is where people get help fastest.
-pub const LINKS: &[Link] = &[
+/// A rebranded build keeps the ArtCraft website as a plain credit to the original project and
+/// drops the community link (`docs/brand/LICENSE-brand.txt`).
+pub const LINKS: &[Link] = if pdfcraft_brand::REBRANDED { REBRANDED_LINKS } else { RELEASE_LINKS };
+
+const RELEASE_LINKS: &[Link] = &[
     Link { command: "help.discord", label: "Join the ArtCraft Discord", url: DISCORD, icon: "messages-square" },
     Link { command: "help.app_page", label: "PdfCraft web page", url: APP_PAGE, icon: "globe" },
     Link { command: "help.github", label: "PdfCraft on GitHub", url: GITHUB, icon: "code-xml" },
     Link { command: "help.website", label: "ArtCraft website", url: WEBSITE, icon: "external-link" },
 ];
+
+const REBRANDED_LINKS: &[Link] = &[
+    Link { command: "help.discord", label: SUPPORT_LABEL, url: DISCORD, icon: "messages-square" },
+    Link { command: "help.app_page", label: "PdfCraft web page", url: APP_PAGE, icon: "globe" },
+    Link { command: "help.github", label: "PdfCraft on GitHub", url: GITHUB, icon: "code-xml" },
+    Link { command: "help.website", label: ORIGIN_LABEL, url: WEBSITE, icon: "external-link" },
+];
+
+/// `help.discord` in a rebranded build.
+pub const SUPPORT_LABEL: &str = "Get help and support";
+/// `help.website` in a rebranded build: the project it is based on.
+pub const ORIGIN_LABEL: &str = "Original project (ArtCraft)";
 
 pub fn for_command(id: &str) -> Option<&'static Link> {
     LINKS.iter().find(|l| l.command == id)
@@ -555,8 +573,11 @@ mod tests {
 
     #[test]
     fn urls_follow_the_artcraft_scheme() {
-        assert_eq!(super::APP_PAGE, format!("{}/apps/{}", super::WEBSITE, super::APP));
-        assert_eq!(super::GITHUB, format!("https://github.com/storytold/{}", super::APP));
+        // A rebranded build has addresses of its own (pdfcraft_brand).
+        if !pdfcraft_brand::REBRANDED {
+            assert_eq!(super::APP_PAGE, format!("{}/apps/{}", super::WEBSITE, super::APP));
+            assert_eq!(super::GITHUB, format!("https://github.com/storytold/{}", super::APP));
+        }
         for l in super::LINKS {
             assert!(l.url.starts_with("https://"), "{}", l.url);
             assert!(crate::commands::command(l.command).is_some(), "{} is a registered command", l.command);
