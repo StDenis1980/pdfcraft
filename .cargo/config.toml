@@ -1,2 +1,12 @@
 [alias]
 xtask = "run -p xtask --"
+
+# IberOffice: this fork's builds are "Iber PDF" (see crates/brand). The ArtCraft
+# marks may not be used by redistributed builds (docs/brand/LICENSE-brand.txt).
+[env]
+PDFCRAFT_BRAND_NAME = "Iber PDF"
+PDFCRAFT_BRAND_SLUG = "iber-pdf"
+PDFCRAFT_BRAND_APP_ID = "io.github.stdenis1980.iberpdf"
+PDFCRAFT_BRAND_PUBLISHER = "IberOffice"
+PDFCRAFT_BRAND_WEBSITE = "https://github.com/StDenis1980/pdfcraft"
+PDFCRAFT_BRAND_GITHUB = "https://github.com/StDenis1980/pdfcraft"
