@@ -37,11 +37,19 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 .show(ui, |ui| {
                     ui.set_width(ui.available_width());
                     ui.horizontal(|ui| {
-                        widgets::artcraft_mark(ui, 28.0);
-                        ui.vertical(|ui| {
-                            ui.label(egui::RichText::new(tl!("Join the ArtCraft community")).font(theme::semibold(15.0)));
-                            ui.label(egui::RichText::new(tl!("Get help, share feedback and follow development on Discord.")).color(t.text_muted));
-                        });
+                        // The ArtCraft marks and community are only for the release (docs/brand/LICENSE-brand.txt).
+                        if pdfcraft_engine::brand::REBRANDED {
+                            ui.vertical(|ui| {
+                                ui.label(egui::RichText::new(tl!("Help and support")).font(theme::semibold(15.0)));
+                                ui.label(egui::RichText::new(tl!("Get help, share feedback and follow development.")).color(t.text_muted));
+                            });
+                        } else {
+                            widgets::artcraft_mark(ui, 28.0);
+                            ui.vertical(|ui| {
+                                ui.label(egui::RichText::new(tl!("Join the ArtCraft community")).font(theme::semibold(15.0)));
+                                ui.label(egui::RichText::new(tl!("Get help, share feedback and follow development on Discord.")).color(t.text_muted));
+                            });
+                        }
                     });
                     ui.add_space(8.0);
                     if let Some(cmd) = widgets::community_links(ui) {

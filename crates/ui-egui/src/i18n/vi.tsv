@@ -2687,3 +2687,8 @@ key	Space	Space
 # Historical snapshot notice bar (View signed version / View revision).
 	You are viewing the signed version of “{from}” (revision {rev}). It is a snapshot: changes here won't affect the original.	Bạn đang xem phiên bản đã ký của “{from}” (bản sửa đổi {rev}). Đây là ảnh nhanh: các thay đổi ở đây không được áp dụng đến bản gốc.
 	You are viewing revision {rev} of “{from}”. It is a snapshot: changes here won't affect the original.	Bạn đang xem bản sửa đổi {rev} của “{from}”. Đây là ảnh nhanh: các thay đổi ở đây không được áp dụng đến bản gốc.
+	Help and support	Trợ giúp và hỗ trợ
+	Get help, share feedback and follow development.	Nhận trợ giúp, chia sẻ phản hồi và theo dõi quá trình phát triển.
+	Get help and support	Nhận trợ giúp và hỗ trợ
+	Original project (ArtCraft)	Dự án gốc (ArtCraft)
+	Support	Hỗ trợ

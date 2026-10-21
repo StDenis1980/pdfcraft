@@ -11,6 +11,9 @@ mod windows_manifest;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    // The product name and publisher (pdfcraft-brand); unset, the release's.
+    println!("cargo:rerun-if-env-changed=PDFCRAFT_BRAND_NAME");
+    println!("cargo:rerun-if-env-changed=PDFCRAFT_BRAND_PUBLISHER");
     println!("cargo:rerun-if-changed=../../assets/app-icon/pdfcraft.ico");
     println!("cargo:rerun-if-changed=../../assets/app-icon/pdfcraft-document.ico");
     println!("cargo:rerun-if-changed=src/windows_manifest.rs");
@@ -18,13 +21,20 @@ fn main() {
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
+    let brand = |var: &str, release: &str| std::env::var(var).ok().filter(|v| !v.is_empty()).unwrap_or_else(|| release.to_owned());
+    let name = brand("PDFCRAFT_BRAND_NAME", "PdfCraft");
+    // The code's copyright stays with its contributors (MIT OR Apache-2.0); a publisher adds to it.
+    let copyright = match std::env::var("PDFCRAFT_BRAND_PUBLISHER").ok().filter(|v| !v.is_empty()) {
+        Some(publisher) => format!("{publisher} and the PdfCraft contributors"),
+        None => "the PdfCraft contributors".to_owned(),
+    };
     let mut res = winresource::WindowsResource::new();
     res.set_icon("../../assets/app-icon/pdfcraft.ico")
         .set_icon_with_id("../../assets/app-icon/pdfcraft-document.ico", "2")
         .set_manifest(windows_manifest::WINDOWS_MANIFEST)
-        .set("ProductName", "PdfCraft")
-        .set("FileDescription", "PdfCraft PDF workbench")
-        .set("LegalCopyright", "Copyright (c) the PdfCraft contributors. MIT OR Apache-2.0.")
+        .set("ProductName", &name)
+        .set("FileDescription", &format!("{name} PDF workbench"))
+        .set("LegalCopyright", &format!("Copyright (c) {copyright}. MIT OR Apache-2.0."))
         .set("OriginalFilename", "pdfcraft.exe")
         .set("InternalName", "pdfcraft");
     if let Err(e) = res.compile() {

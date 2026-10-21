@@ -3,6 +3,7 @@
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
+use pdfcraft_engine::brand::{REBRANDED, rebrand};
 use pdfcraft_engine::links;
 use pdfcraft_ui_egui::{Dialog, PdfCraftApp};
 
@@ -20,14 +21,28 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
 #[test]
 fn discord_button_in_the_top_bar_opens_discord() {
     let mut h = harness(|_| {});
-    h.get_by_label("Discord").click();
+    h.get_by_label(if REBRANDED { "Support" } else { "Discord" }).click();
     h.run_steps(2);
     assert_eq!(h.state().last_opened_url.as_deref(), Some(links::DISCORD));
-    assert_eq!(links::DISCORD, "https://discord.gg/artcraft");
+    if !REBRANDED {
+        assert_eq!(links::DISCORD, "https://discord.gg/artcraft");
+    }
 }
 
 #[test]
 fn home_screen_links() {
+    if REBRANDED {
+        // A rebranded build shows its own support links, without the ArtCraft community card.
+        for l in links::LINKS {
+            let mut h = harness(|_| {});
+            h.get_by_label("Help and support");
+            assert_eq!(h.query_all_by_label("Join the ArtCraft community").count(), 0);
+            h.get_by_label(&rebrand(l.label)).click();
+            h.run_steps(2);
+            assert_eq!(h.state().last_opened_url.as_deref(), Some(l.url), "{}", l.label);
+        }
+        return;
+    }
     for (label, url) in [
         ("Join our Discord", links::DISCORD),
         ("PdfCraft web page", "https://getartcraft.com/apps/pdfcraft"),
@@ -50,8 +65,16 @@ fn about_dialog_shows_the_brand_and_links() {
         app.open_bytes("one.pdf", None, pdf.to_vec()).unwrap();
         app.dialog = Some(Dialog::About);
     });
-    assert!(h.query_all_by_label("ArtCraft").count() >= 2, "the mark and the wordmark (alt text)");
-    h.get_by_label("Join our Discord").click();
+    if REBRANDED {
+        // No ArtCraft marks (docs/brand/LICENSE-brand.txt), only the plain-text credit.
+        assert_eq!(h.query_all_by_label("ArtCraft").count(), 0, "no ArtCraft mark or logo");
+        h.get_by_label("Based on PdfCraft by the ArtCraft team.");
+        h.get_by_label(pdfcraft_engine::brand::NAME);
+        h.get_by_label(links::SUPPORT_LABEL).click();
+    } else {
+        assert!(h.query_all_by_label("ArtCraft").count() >= 2, "the mark and the wordmark (alt text)");
+        h.get_by_label("Join our Discord").click();
+    }
     h.run_steps(2);
     assert_eq!(h.state().last_opened_url.as_deref(), Some(links::DISCORD));
 }

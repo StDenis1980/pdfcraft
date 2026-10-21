@@ -2,22 +2,21 @@
 
 use std::time::Duration;
 
-use pdfcraft_ui_egui::updates::{RELEASES_PAGE, Release};
-
-const LATEST: &str = "https://api.github.com/repos/storytold/pdfcraft/releases/latest";
+use pdfcraft_ui_egui::updates::{Release, releases_page};
 
 /// The latest release. The answer is untrusted: its size is capped, and only a page under
-/// [`RELEASES_PAGE`] is ever offered for download (anything else falls back to that list).
+/// [`releases_page`] is ever offered for download (anything else falls back to that list).
 pub fn latest_release() -> Result<Release, String> {
     let agent = ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(10)))
         .tls_config(ureq::tls::TlsConfig::builder().root_certs(os_roots()?).build())
         .build()
         .new_agent();
+    let latest = pdfcraft_engine::brand::latest_release_api().ok_or("this build has no GitHub releases to check")?;
     let mut response = agent
-        .get(LATEST)
+        .get(&latest)
         .header("Accept", "application/vnd.github+json")
-        .header("User-Agent", concat!("PdfCraft/", env!("CARGO_PKG_VERSION")))
+        .header("User-Agent", format!("{}/{}", pdfcraft_engine::brand::NAME.replace(' ', ""), env!("CARGO_PKG_VERSION")))
         // Read error statuses ourselves: a 403 from GitHub usually means its anonymous
         // rate limit ran out, and the retry time rides along in a response header.
         .config()
@@ -74,8 +73,8 @@ fn parse(body: &str) -> Result<Release, String> {
     let version = v["tag_name"].as_str().filter(|t| !t.is_empty() && t.len() <= 64).ok_or("no release found")?.to_string();
     let url = v["html_url"]
         .as_str()
-        .filter(|u| u.strip_prefix(RELEASES_PAGE).is_some_and(|rest| rest.starts_with('/') && !rest.contains(['?', '#', '\\'])))
-        .unwrap_or(RELEASES_PAGE)
+        .filter(|u| u.strip_prefix(releases_page()).is_some_and(|rest| rest.starts_with('/') && !rest.contains(['?', '#', '\\'])))
+        .unwrap_or(releases_page())
         .to_string();
     Ok(Release { version, url })
 }
@@ -90,7 +89,7 @@ mod tests {
         assert_eq!(r, Release { version: "v0.2.0".into(), url: "https://github.com/storytold/pdfcraft/releases/tag/v0.2.0".into() });
         for elsewhere in ["https://example.com/pdfcraft.exe", "https://github.com/storytold/pdfcraft/releases.evil/x", "javascript:alert(1)"] {
             let r = parse(&format!(r#"{{"tag_name":"v9.9.9","html_url":"{elsewhere}"}}"#)).unwrap();
-            assert_eq!(r.url, RELEASES_PAGE, "{elsewhere}");
+            assert_eq!(r.url, releases_page(), "{elsewhere}");
         }
         assert!(parse(r#"{"message":"Not Found"}"#).is_err());
         assert!(parse("<html>").is_err());
@@ -122,6 +121,6 @@ mod tests {
     fn github_answers_with_the_latest_release() {
         let r = latest_release().unwrap();
         assert!(pdfcraft_ui_egui::updates::is_newer(&r.version, "0.0.0"), "{r:?}");
-        assert!(r.url.starts_with(RELEASES_PAGE), "{r:?}");
+        assert!(r.url.starts_with(releases_page()), "{r:?}");
     }
 }

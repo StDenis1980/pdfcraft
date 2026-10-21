@@ -224,6 +224,9 @@ impl LangInfo {
             for error in errors {
                 log::warn!("{} interface catalog: {error}; that entry shows in English", self.code);
             }
+            if pdfcraft_engine::brand::REBRANDED {
+                catalog.map_translations(|s| pdfcraft_engine::brand::rebrand(s).into_owned());
+            }
             if self.rtl {
                 catalog.map_translations(crate::bidi::display_rtl);
             }
@@ -481,7 +484,21 @@ pub fn key_name(s: &str) -> &str {
 
 /// Translate an English UI string; unknown strings come back unchanged.
 pub fn tr(lang: Lang, s: &str) -> &str {
-    lang.catalog().plain(s).unwrap_or(s)
+    lang.catalog().plain(s).unwrap_or_else(|| branded(s))
+}
+
+/// An English source string with the product name of this build ([`pdfcraft_engine::brand`]).
+/// Translations get theirs when their catalog loads; the English text is the source, so a
+/// rebranded build keeps one copy of each English string that names the product.
+fn branded(s: &str) -> &str {
+    use pdfcraft_engine::brand;
+    if !brand::REBRANDED || !s.contains(brand::UPSTREAM_NAME) {
+        return s;
+    }
+    static SEEN: OnceLock<std::sync::Mutex<std::collections::HashMap<String, &'static str>>> = OnceLock::new();
+    let mut seen = SEEN.get_or_init(Default::default).lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    // The interface's own strings are a fixed set, so this holds at most one copy of each.
+    seen.entry(s.to_owned()).or_insert_with(|| Box::leak(brand::rebrand(s).into_owned().into_boxed_str()))
 }
 
 /// How the layers below say their own sentences in the current language.
@@ -597,7 +614,7 @@ pub fn menu_label(id: &str, label: &str) -> String {
 /// A plural-aware message: `one`/`other` are the English forms (with `{n}` where the count goes).
 pub fn trn(lang: Lang, n: u64, one: &str, other: &str) -> String {
     let idx = (lang.0.plural)(n);
-    let text = lang.catalog().plural(one, other, idx).unwrap_or(if n == 1 { one } else { other });
+    let text = lang.catalog().plural(one, other, idx).unwrap_or_else(|| branded(if n == 1 { one } else { other }));
     fmt(text, &[("n", &n.to_string())])
 }
 
@@ -3313,7 +3330,7 @@ mod tests {
         // "حفظ باسم…" as typed; the ellipsis ends the phrase on the left.
         assert_eq!(tr(ar, "Save as…"), "…باسم حفظ");
         // Latin names keep their own direction inside the phrase.
-        assert_eq!(tr(ar, "About PdfCraft"), "PdfCraft حول");
+        assert_eq!(tr(ar, "About PdfCraft"), format!("{} حول", pdfcraft_engine::brand::NAME));
         // A caption's colon stays beside the widget on its right.
         assert_eq!(tr(ar, "Name:"), "الاسم:");
         assert_eq!(tr(ar, "Issued by: "), "عن صادرة: ");

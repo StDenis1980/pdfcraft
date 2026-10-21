@@ -1,0 +1,11 @@
+[package]
+name = "pdfcraft-brand"
+description = "What a PdfCraft build calls itself and where it points people (compile-time branding)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
