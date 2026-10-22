@@ -85,9 +85,12 @@ mod tests {
 
     #[test]
     fn answers_are_read_and_only_our_release_pages_are_offered() {
-        let r = parse(r#"{"tag_name":"v0.2.0","html_url":"https://github.com/storytold/pdfcraft/releases/tag/v0.2.0"}"#).unwrap();
-        assert_eq!(r, Release { version: "v0.2.0".into(), url: "https://github.com/storytold/pdfcraft/releases/tag/v0.2.0".into() });
-        for elsewhere in ["https://example.com/pdfcraft.exe", "https://github.com/storytold/pdfcraft/releases.evil/x", "javascript:alert(1)"] {
+        // This build's own releases (crates/brand: the release's, or a rebranded build's).
+        let page = format!("{}/tag/v0.2.0", releases_page());
+        let r = parse(&format!(r#"{{"tag_name":"v0.2.0","html_url":"{page}"}}"#)).unwrap();
+        assert_eq!(r, Release { version: "v0.2.0".into(), url: page });
+        let lookalike = format!("{}.evil/x", releases_page());
+        for elsewhere in ["https://example.com/pdfcraft.exe", lookalike.as_str(), "javascript:alert(1)"] {
             let r = parse(&format!(r#"{{"tag_name":"v9.9.9","html_url":"{elsewhere}"}}"#)).unwrap();
             assert_eq!(r.url, releases_page(), "{elsewhere}");
         }

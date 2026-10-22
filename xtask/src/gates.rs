@@ -559,8 +559,11 @@ mod tests {
     #[test]
     fn macos_bundle_id_matches_app_id() {
         assert!(read("packaging/macos/Info.plist.in").contains("<string>ai.storyteller.pdfcraft</string>"), "bundle id");
+        // The window uses the release's id from crates/brand, which the packaging still installs.
         let main = read("apps/pdfcraft/src/main.rs");
-        assert!(main.contains(r#"const APP_ID: &str = "ai.storyteller.pdfcraft""#), "APP_ID drifted from the bundle id");
+        assert!(main.contains("const APP_ID: &str = pdfcraft_engine::brand::UPSTREAM_APP_ID;"), "APP_ID drifted from the bundle id");
+        let brand = read("crates/brand/src/lib.rs");
+        assert!(brand.contains(r#"pub const UPSTREAM_APP_ID: &str = "ai.storyteller.pdfcraft";"#), "brand id drifted from the bundle id");
     }
 
     // Committed file with `<!-- -->` comments stripped, so a commented-out claim cannot pass.
