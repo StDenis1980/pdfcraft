@@ -1,35 +1,38 @@
-# PdfCraft app icon
+# Iber PDF app icon
 
-<img src="pdfcraft-small.svg" alt="PdfCraft app icon: an engraved lion's head on green" width="128">
+<img src="pdfcraft.svg" alt="Iber PDF app icon: an ivory azulejo tile with red corners and a red page" width="128">
 
-**Creature:** a lion, in a frontal head-and-shoulders portrait, mane running off the bottom of the tile.
+**Design:** the IberOffice "azulejo" tile. An ivory rounded square with a quarter circle in each corner,
+like a glazed wall tile, and the app's glyph in the middle: for Iber PDF, a page with a folded corner.
+The four IberOffice apps share the tile and differ by colour and glyph; the suite mark carries all four
+colours.
 
-**Style:** an engraving (woodcut-weight line work) portrait in the Crafting Apps "owl template" framing:
-a full-bleed colour field, no frame or roundel, the animal looking at the viewer and filling the tile.
-
-**Palette:** exactly three colours.
+**Palette:**
 
 | Colour | Hex | Used for |
 |---|---|---|
-| Ink | `#0b0b0c` | line work and the figure's contour |
-| Paper | `#efe9dc` | the figure (the lion's silhouette) |
-| PdfCraft green (app colour) | `#12a58a` | the full-bleed field |
+| Ivory | `#F3EDE1` | the tile |
+| Edge | `#D8CBB2` | the 1.5 px tile outline |
+| Iber PDF red (app colour) | `#B03A2E` | the corners and the page |
+| Fold | `#E7B3AB` | the page's folded corner (large sizes only) |
 
-**Tile:** `viewBox="0 0 512 512"`, a rounded square with `rx=112` that clips everything. Windows and Linux
-icons use the full-bleed tile. macOS icons put it on Apple's grid (an 824 px body centred on a transparent
-1024 px canvas).
+The other apps use `#2D4BA0` (Iber Texto), `#4F7A28` (Iber Calculo) and `#C7780F` (Iber Presenta).
 
-**Provenance:** the project owner's original drawing, made in ArtCraft (2880 px, keyed to the palette), then
-vectorised with craftrules `assets/logo-options/_tools/vectorize_tile.py` (potrace; no filtering or
-warping). The source drawing is kept in craftrules at `assets/app-icons/pdfcraft/source.png`, not here.
+**Tile:** `viewBox="0 0 512 512"`, a rounded square with `rx=112`, full bleed. Windows and Linux icons use
+the full-bleed tile. macOS icons put it on Apple's grid (an 824 px body centred on a transparent 1024 px
+canvas). At 32 px and below the simplified tile (`pdfcraft-small.svg`) is used: smaller corners and a
+bolder glyph without the fold, so it stays legible at 16 px.
+
+**Provenance:** original artwork for IberOffice, drawn in code by
+[`packaging/iberoffice-icons.py`](../../packaging/iberoffice-icons.py); no third-party material.
 Licence: [LICENSE.txt](LICENSE.txt) (`MIT OR Apache-2.0`, like the repo).
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `pdfcraft.svg` | the master vector (traced at 2048 px); every PNG, `.ico` and `.icns` is rendered from it |
-| `pdfcraft-small.svg` | a lighter vector (traced at 1024 px) for places where size matters, such as this README |
+| `pdfcraft.svg` | the master vector, full-bleed tile; the PNGs above 32 px, the `.icns` and the large `.ico` entries match it |
+| `pdfcraft-small.svg` | the simplified tile used at 32 px and below (hicolor 16–32, small `.ico` entries) |
 | `pdfcraft-1024.png` | 1024 px on Apple's grid; also the runtime Dock icon on macOS |
 | `pdfcraft.icns` | macOS icon (16–1024 px) |
 | `pdfcraft.ico` | Windows icon (16–256 px), embedded in `pdfcraft.exe` by `apps/pdfcraft/build.rs` |
@@ -51,6 +54,6 @@ sidecar. This provides a file type icon; first-page thumbnails still need a thum
 ## Regenerate
 
 ```sh
-packaging/icons.sh        # needs resvg and python3; iconutil (macOS) for the .icns
+packaging/icons.sh        # needs python3 with cairosvg and Pillow, and resvg for the document icon
 cargo xtask assets        # then update the sha256 values in ATTRIBUTION.toml and run with --write
 ```
