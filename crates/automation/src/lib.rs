@@ -86,7 +86,7 @@ struct OcrReview {
 pub struct Automation {
     session: Session,
     root: Option<PathBuf>,
-    /// The read and write folders of `--automation-read-root` / `--automation-write-root`.
+    /// The read and write folders of `--automation-read-root` / `--automation-write-root` (each may be repeated).
     roots: Option<Arc<file_access::AutomationRoots>>,
     /// Synchronous renderers, rebuilt when a document's working bytes change.
     renderers: HashMap<DocId, (Arc<Vec<u8>>, PageRenderer)>,
