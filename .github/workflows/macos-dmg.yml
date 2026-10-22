@@ -1,0 +1,51 @@
+# IberOffice: build the Iber PDF macOS installer (a universal .dmg, Intel + Apple silicon) on demand.
+#
+# Unsigned for now: the app is ad-hoc signed (packaging/macos/package.sh without
+# MACOS_SIGN_IDENTITY), so on first launch macOS asks to confirm with right-click > Open. Signing and
+# notarization need an Apple Developer ID; release.yml (the upstream release pipeline) does that.
+# Download the .dmg from the run's artifacts.
+name: macOS installer
+
+on:
+  workflow_dispatch:
+  # A test build on PRs that change the macOS packaging.
+  pull_request:
+    paths: ["packaging/macos/**", "assets/app-icon/**", ".github/workflows/macos-dmg.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-dmg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dmg:
+    name: macOS universal .dmg
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out craft-fonts
+        uses: storytold/craft-common-actions/actions/checkout-craft-fonts@main
+        with:
+          ref: 3d9ab3a132ed0eff457e424226a435a901da30d3
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: iber-macos-universal
+      - name: Build the .dmg (ad-hoc signed)
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: packaging/macos/package.sh --arch universal
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: iber-pdf-macos
+          path: dist/release/*
+          if-no-files-found: error
