@@ -555,10 +555,14 @@ mod tests {
         assert!(pdf.contains("<key>CFBundleTypeIconFile</key>"), "declares document icon file for Finder");
     }
 
-    // The bundle id must match the app id the binary uses; renames change both (#174).
+    // The macOS bundle id is the build's brand id (.cargo/config.toml `PDFCRAFT_BRAND_APP_ID`);
+    // renames change both (#174).
     #[test]
     fn macos_bundle_id_matches_app_id() {
-        assert!(read("packaging/macos/Info.plist.in").contains("<string>ai.storyteller.pdfcraft</string>"), "bundle id");
+        let config = read(".cargo/config.toml");
+        let brand_id =
+            config.lines().find_map(|l| l.trim().strip_prefix("PDFCRAFT_BRAND_APP_ID = ")).map_or("ai.storyteller.pdfcraft", |v| v.trim_matches('"'));
+        assert!(read("packaging/macos/Info.plist.in").contains(&format!("<string>{brand_id}</string>")), "bundle id");
         // The window uses the release's id from crates/brand, which the packaging still installs.
         let main = read("apps/pdfcraft/src/main.rs");
         assert!(main.contains("const APP_ID: &str = pdfcraft_engine::brand::UPSTREAM_APP_ID;"), "APP_ID drifted from the bundle id");
