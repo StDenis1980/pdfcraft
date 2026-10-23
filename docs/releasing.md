@@ -44,10 +44,10 @@ published (`gh workflow run release.yml --ref <branch>`).
 
 | Platform | Artifacts | Built on |
 |---|---|---|
-| macOS 11+ (universal: Apple silicon + Intel) | `pdfcraft-<v>-macos-universal.dmg`, `pdfcraft-cli-<v>-macos-universal.zip` | `macos-15` |
-| Windows 10+ x64 | `pdfcraft-<v>-windows-x64.msi`, `pdfcraft-<v>-windows-x64-portable.zip` | `windows-latest` |
-| Windows 10+ x86 (32-bit) | `pdfcraft-<v>-windows-x86.msi`, `pdfcraft-<v>-windows-x86-portable.zip` | `windows-latest` |
-| Windows 11 on ARM64 | `pdfcraft-<v>-windows-arm64.msi`, `pdfcraft-<v>-windows-arm64-portable.zip` | `windows-latest` (cross-compiled) |
+| macOS 11+ (universal: Apple silicon + Intel) | `iber-pdf-<v>-macos-universal.dmg`, `pdfcraft-cli-<v>-macos-universal.zip` | `macos-15` |
+| Windows 10+ x64 | `iber-pdf-<v>-windows-x64.msi`, `iber-pdf-<v>-windows-x64-portable.zip` | `windows-latest` |
+| Windows 10+ x86 (32-bit) | `iber-pdf-<v>-windows-x86.msi`, `iber-pdf-<v>-windows-x86-portable.zip` | `windows-latest` |
+| Windows 11 on ARM64 | `iber-pdf-<v>-windows-arm64.msi`, `iber-pdf-<v>-windows-arm64-portable.zip` | `windows-latest` (cross-compiled) |
 | Linux x86_64 | `pdfcraft-<v>-linux-x86_64.{AppImage,AppImage.zsync,deb,rpm,tar.gz}`, `pdfcraft-cli-<v>-linux-x86_64.tar.gz` | `ubuntu-22.04` |
 | Linux aarch64 | `pdfcraft-<v>-linux-aarch64.{AppImage,AppImage.zsync,deb,rpm,tar.gz}`, `pdfcraft-cli-<v>-linux-aarch64.tar.gz` | `ubuntu-22.04-arm` |
 | Linux riscv64 | `pdfcraft-<v>-linux-riscv64.tar.gz`, `pdfcraft-cli-<v>-linux-riscv64.tar.gz` (glibc 2.39+) | `ubuntu-24.04` (cross-compiled; CLI smoke-tested under QEMU) |
@@ -111,40 +111,45 @@ neither the MSI nor the portable zip needs the Visual C++ redistributable.
 - Before packaging, it reads both executables' PE headers: the machine type must match `-Arch`, and
   `pdfcraft.exe` must be a GUI-subsystem program (no console window, #57) while `pdfcraft-cli.exe`
   stays a console program.
-- `pdfcraft.wxs` (WiX v5) installs per machine into Program Files with a Start Menu shortcut, a
+- `pdfcraft.wxs` (WiX v5) installs Iber PDF per machine into `Program Files\IberOffice\Iber PDF`
+  with a Start Menu shortcut, a
   desktop shortcut (on by default) and an App Paths entry. Both shortcuts are plain links to
   `pdfcraft.exe`, not advertised MSI shortcuts (#107, #143). The MSI version is the numeric `X.Y.Z`
   (MSI has no pre-release field), and same-version upgrades are allowed so release candidates replace
   each other. Icon ids end in `.ico` or `.exe` (Windows Installer requires it); packaging-lint checks
-  this.
+  this. This IberOffice build has its own product name, manufacturer (IberOffice), UpgradeCode,
+  component GUIDs, ProgID (`IberPDF.Document`), shell verbs (`IberPDF.*`) and registry keys
+  (`HKLM\Software\IberOffice\Iber PDF`), so it installs beside upstream PdfCraft without upgrading or
+  removing it; the executables keep their upstream names.
 - `installer-ui.wxs` supplies native welcome, maintenance, progress, files-in-use and outcome
   dialogs. Full UI confirms success with Finish; failures and cancellations have distinct messages.
-  The welcome dialog has a "Create a desktop shortcut" checkbox and an "Edit with PdfCraft"
+  The welcome dialog has a "Create a desktop shortcut" checkbox and an "Edit with Iber PDF"
   right-click menu checkbox, both ticked by default. `/qn` and `/qb` stay unattended and create
   both unless `INSTALLDESKTOPSHORTCUT=0` or `INSTALLPDFCONTEXTMENU=0` is passed;
   `INSTALLIMAGECONTEXTMENU=0` (no checkbox) leaves out the image menu. An update (the launcher runs
-  `msiexec /passive` with no properties) keeps the desktop shortcut only if `PdfCraft.lnk` is still
+  `msiexec /passive` with no properties) keeps the desktop shortcut only if `Iber PDF.lnk` is still
   on the all-users desktop, so deleting it once keeps it away (#1058), and keeps each menu only if
   its key path is still in HKLM (#305). Both are AppSearch results read before the old version is
   removed. An update from a release that didn't have a menu yet (before 0.7.1 for the PDF menu,
   before 0.4.0 for the image menu, found by `OnlyDetect` Upgrade rows) adds it like a first install.
   A value given on the command line wins.
 - The PDF right-click entry (#682) is a classic verb under
-  `HKLM\Software\Classes\SystemFileAssociations\.pdf\shell\PdfCraft.Edit`, so it shows whichever app
+  `HKLM\Software\Classes\SystemFileAssociations\.pdf\shell\IberPDF.Edit`, so it shows whichever app
   is the default for `.pdf` and never changes that default. Several selected PDFs (up to 15, the
   limit for a `Document` verb) start one `pdfcraft.exe "<file>"` each, and the single-instance
   hand-off opens them as tabs. On Windows 11 it is under "Show more options"; a first-level entry
   needs an `IExplorerCommand` handler and package identity (a sparse MSIX package), which the MSI
   doesn't have.
-- The image right-click entry (#190) is the same kind of verb, `PdfCraft.CreatePdf`, for ten image
+- The image right-click entry (#190) is the same kind of verb, `IberPDF.CreatePdf`, for ten image
   types, in its own component (`PdfcraftImageContextMenu`) since it became optional. Its rows moved
   out of `PdfcraftApp`; that's safe because `MajorUpgrade` removes the old version before installing
   the new one (`afterInstallValidate`), which `test-msi.ps1` checks.
 - `test-msi.ps1 <file.msi>` checks the compiled shortcut, context-menu and dialog tables, and
   evaluates the first-install and update conditions of the desktop shortcut and both menus. Packaging
-  runs it in a child process before signing, so the MSI isn't held open when signtool runs. The ARM64 install
-  smoke test checks that both all-users shortcuts point at the installed `pdfcraft.exe` and are
-  removed on uninstall, and that `INSTALLDESKTOPSHORTCUT=0` skips the desktop one.
+  runs it in a child process before signing, so the MSI isn't held open when signtool runs, and
+  `.github/workflows/windows-msi.yml` builds the unsigned x64 MSI and portable zip and runs it again.
+  The upstream ARM64 install smoke test (`windows-arm64.yml`) can't find this build's install folder,
+  so it only runs on demand here.
 - The portable zip holds both executables, the README, the licences, the OFL licence of each
   embedded craft-fonts family, and `portable.txt`. That marker beside `pdfcraft.exe` keeps the
   settings, logs, crash recovery and new digital IDs in `PdfCraftData\` next to the exe instead of
@@ -241,7 +246,7 @@ a match of the `CobaltStrikeBeacon` family rule.
    - `NotTrusted` or `UnknownError`: a signature exists but did not validate on this machine. Compare
      the signer and the hash with the release.
 3. **Extract the payloads without running them.** Scan the executables inside the MSI and the
-   portable zip, not only the outer installer. `7z x -oDIR pdfcraft-<version>-windows-x64.msi`
+   portable zip, not only the outer installer. `7z x -oDIR iber-pdf-<version>-windows-x64.msi`
    extracts them. The payload names are WiX-internal, so tell the executables apart by their file
    type. Don't install or run the MSI or the extracted files.
 4. **Scan with YARA and keep every match.** Use your own copies of YARA and the rule. PdfCraft

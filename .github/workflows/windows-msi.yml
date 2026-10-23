@@ -1,0 +1,64 @@
+# IberOffice: build the Iber PDF Windows installer (.msi) and portable .zip (x64) on demand.
+#
+# Unsigned for now: packaging/windows/sign.ps1 leaves the files unsigned without WINDOWS_CERTIFICATE
+# or the AZURE_* secrets, so Windows SmartScreen warns on first run ("Windows protected your PC" >
+# More info > Run anyway). Signing needs a code-signing certificate; release.yml (the upstream release
+# pipeline) does that. Download the .msi and .zip from the run's artifacts.
+name: Windows installer
+
+on:
+  workflow_dispatch:
+  # A test build on PRs that change the Windows packaging.
+  pull_request:
+    paths: ["packaging/windows/**", "assets/app-icon/**", ".github/workflows/windows-msi.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-msi-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  msi:
+    name: Windows x64 .msi and portable .zip
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out craft-fonts
+        uses: storytold/craft-common-actions/actions/checkout-craft-fonts@main
+        with:
+          ref: 3d9ab3a132ed0eff457e424226a435a901da30d3
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: iber-windows-x64
+      # pdfcraft.wxs and installer-ui.wxs use only the core WiX schema: no extensions needed.
+      - name: Install WiX
+        shell: pwsh
+        run: dotnet tool install --global wix --version 5.0.2
+      - name: Build the .msi and portable .zip (unsigned)
+        shell: pwsh
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: pwsh packaging/windows/package.ps1 -Arch x64
+      - name: Check the built .msi
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem dist/release/iber-pdf-*-windows-x64.msi
+          if (@($msi).Count -ne 1) { throw "expected one iber-pdf .msi in dist/release, found $(@($msi).Count)" }
+          if (-not (Get-ChildItem dist/release/iber-pdf-*-windows-x64-portable.zip)) { throw 'no iber-pdf portable .zip in dist/release' }
+          pwsh -NoProfile -File packaging/windows/test-msi.ps1 $msi.FullName
+          if ($LASTEXITCODE -ne 0) { throw "test-msi.ps1 exited $LASTEXITCODE" }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: iber-pdf-windows
+          path: dist/release/*
+          if-no-files-found: error
