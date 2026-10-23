@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-  Build, sign and package Iber PDF (the IberOffice build of PdfCraft) for Windows.
+  Build, sign and package Tinta PDF (the Tinta Office build of PdfCraft) for Windows.
 
 .DESCRIPTION
   Produces, in $env:DIST (default: dist/release):
-    iber-pdf-<version>-windows-<arch>.msi            per-machine installer (WiX v5)
-    iber-pdf-<version>-windows-<arch>-portable.zip   pdfcraft.exe + pdfcraft-cli.exe + models\ + portable.txt
+    tinta-pdf-<version>-windows-<arch>.msi            per-machine installer (WiX v5)
+    tinta-pdf-<version>-windows-<arch>-portable.zip   pdfcraft.exe + pdfcraft-cli.exe + models\ + portable.txt
 
   The product name and file-name slug are this build's brand ($AppTitle, $AppSlug below; keep them
   in sync with pdfcraft.wxs, test-msi.ps1 and the brand values in .cargo/config.toml). The
@@ -29,10 +29,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-# Product identity of this IberOffice build (PDFCRAFT_BRAND_NAME / PDFCRAFT_BRAND_SLUG in
+# Product identity of this Tinta Office build (PDFCRAFT_BRAND_NAME / PDFCRAFT_BRAND_SLUG in
 # .cargo/config.toml).
-$AppTitle = 'Iber PDF'
-$AppSlug = 'iber-pdf'
+$AppTitle = 'Tinta PDF'
+$AppSlug = 'tinta-pdf'
 
 function Invoke-Native([string] $What, [scriptblock] $Block) {
   Write-Output "==> $What"

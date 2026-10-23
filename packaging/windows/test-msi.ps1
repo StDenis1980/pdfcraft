@@ -2,7 +2,7 @@
 .SYNOPSIS
   Check the compiled MSI's install scope, publisher, shortcuts, native UI and OCR models, without installing it.
 .EXAMPLE
-  pwsh packaging/windows/test-msi.ps1 dist/release/iber-pdf-0.2.1-windows-x64.msi
+  pwsh packaging/windows/test-msi.ps1 dist/release/tinta-pdf-0.2.1-windows-x64.msi
 #>
 param([Parameter(Mandatory)] [string] $Path)
 $ErrorActionPreference = 'Stop'
@@ -35,7 +35,7 @@ function Assert-NoRow([string] $Sql, [string] $What) {
 # Test the compiled condition with Windows Installer's evaluator, in a restricted session that
 # cannot change machine state. Normal installs/repairs work, per-user overrides fail, and removal
 # of an older incorrectly scoped installation remains possible (#305).
-$scopeMessage = 'Iber PDF must be installed for all users. Run setup with administrator privileges and ALLUSERS=1; per-user installation is not supported.'
+$scopeMessage = 'Tinta PDF must be installed for all users. Run setup with administrator privileges and ALLUSERS=1; per-user installation is not supported.'
 $scopeCondition = Read-Row ('SELECT `Condition` FROM `LaunchCondition` WHERE `Description` = ''' + $scopeMessage + '''') 1
 $Installer.UILevel = 2
 $session = $null
@@ -68,16 +68,16 @@ foreach ($sequence in @('InstallUISequence', 'InstallExecuteSequence')) {
   }
 }
 $manufacturer = Read-Row 'SELECT `Value` FROM `Property` WHERE `Property` = ''Manufacturer''' 1
-Assert-Equal $manufacturer[0] 'IberOffice' 'MSI manufacturer'
-# This build's identity (IberOffice): its own name, install folder and links, apart from upstream PdfCraft's.
+Assert-Equal $manufacturer[0] 'Tinta Office' 'MSI manufacturer'
+# This build's identity (Tinta Office): its own name, install folder and links, apart from upstream PdfCraft's.
 $productName = Read-Row 'SELECT `Value` FROM `Property` WHERE `Property` = ''ProductName''' 1
-Assert-Equal $productName[0] 'Iber PDF' 'MSI product name'
+Assert-Equal $productName[0] 'Tinta PDF' 'MSI product name'
 $installDir = Read-Row 'SELECT `Directory_Parent`, `DefaultDir` FROM `Directory` WHERE `Directory` = ''INSTALLFOLDER''' 2
 Assert-Equal $installDir[0] 'ManufacturerFolder' 'Install folder parent'
-if ($installDir[1] -notmatch '(^|\|)Iber PDF$') { throw "Install folder name: '$($installDir[1])'" }
+if ($installDir[1] -notmatch '(^|\|)Tinta PDF$') { throw "Install folder name: '$($installDir[1])'" }
 $vendorDir = Read-Row 'SELECT `Directory_Parent`, `DefaultDir` FROM `Directory` WHERE `Directory` = ''ManufacturerFolder''' 2
 Assert-Equal $vendorDir[0] 'ProgramFiles6432Folder' 'Manufacturer folder parent'
-if ($vendorDir[1] -notmatch '(^|\|)IberOffice$') { throw "Manufacturer folder name: '$($vendorDir[1])'" }
+if ($vendorDir[1] -notmatch '(^|\|)Tinta Office$') { throw "Manufacturer folder name: '$($vendorDir[1])'" }
 foreach ($link in @(@('ARPURLINFOABOUT', 'https://github.com/StDenis1980/pdfcraft'),
                     @('ARPURLUPDATEINFO', 'https://github.com/StDenis1980/pdfcraft/releases'),
                     @('ARPHELPLINK', 'https://github.com/StDenis1980/pdfcraft/issues'))) {
@@ -89,13 +89,13 @@ $ownUpgradeCode = Read-Row 'SELECT `Value` FROM `Property` WHERE `Property` = ''
 if ($ownUpgradeCode[0] -eq $upstreamUpgradeCode) { throw 'UpgradeCode is upstream PdfCraft''s: an install would replace it' }
 foreach ($name in @('StartMenuShortcut', 'DesktopShortcut')) {
   $row = Read-Row ('SELECT `Name` FROM `Shortcut` WHERE `Shortcut` = ''' + $name + '''') 1
-  # Name is `Iber PDF`, or `SHORT|Iber PDF` with a generated 8.3 name.
-  if ($row[0] -notmatch '(^|\|)Iber PDF$') { throw "$name name: '$($row[0])'" }
+  # Name is `Tinta PDF`, or `SHORT|Tinta PDF` with a generated 8.3 name.
+  if ($row[0] -notmatch '(^|\|)Tinta PDF$') { throw "$name name: '$($row[0])'" }
 }
-$progId = Read-Row 'SELECT `Value`, `Component_` FROM `Registry` WHERE `Key` = ''Software\IberOffice\Iber PDF\Capabilities\FileAssociations'' AND `Name` = ''.pdf''' 2
-Assert-Equal $progId[0] 'IberPDF.Document' 'PDF ProgID'
-$registered = Read-Row 'SELECT `Value` FROM `Registry` WHERE `Key` = ''Software\RegisteredApplications'' AND `Name` = ''Iber PDF''' 1
-Assert-Equal $registered[0] 'Software\IberOffice\Iber PDF\Capabilities' 'RegisteredApplications entry'
+$progId = Read-Row 'SELECT `Value`, `Component_` FROM `Registry` WHERE `Key` = ''Software\Tinta Office\Tinta PDF\Capabilities\FileAssociations'' AND `Name` = ''.pdf''' 2
+Assert-Equal $progId[0] 'TintaPDF.Document' 'PDF ProgID'
+$registered = Read-Row 'SELECT `Value` FROM `Registry` WHERE `Key` = ''Software\RegisteredApplications'' AND `Name` = ''Tinta PDF''' 1
+Assert-Equal $registered[0] 'Software\Tinta Office\Tinta PDF\Capabilities' 'RegisteredApplications entry'
 Assert-NoRow 'SELECT `Registry` FROM `Registry` WHERE `Key` = ''Software\RegisteredApplications'' AND `Name` = ''PdfCraft''' 'upstream RegisteredApplications name'
 $status = Read-Row 'SELECT `Text` FROM `Control` WHERE `Dialog_` = ''InstallProgress'' AND `Control` = ''Status''' 1
 Assert-Equal $status[0] 'Please wait while setup completes.' 'Persistent progress message'
@@ -159,7 +159,7 @@ function Assert-KeptOnUpdate([string] $Property, [string] $Release, [string] $Fo
     if ($session) { [void] [Runtime.InteropServices.Marshal]::FinalReleaseComObject($session) }
   }
 }
-Assert-KeptOnUpdate 'INSTALLDESKTOPSHORTCUT' 'WIX_UPGRADE_DETECTED' 'EXISTINGDESKTOPSHORTCUT' 'C:\Users\Public\Desktop\Iber PDF.lnk' 'PdfcraftDesktopShortcut' 'Desktop shortcut'
+Assert-KeptOnUpdate 'INSTALLDESKTOPSHORTCUT' 'WIX_UPGRADE_DETECTED' 'EXISTINGDESKTOPSHORTCUT' 'C:\Users\Public\Desktop\Tinta PDF.lnk' 'PdfcraftDesktopShortcut' 'Desktop shortcut'
 $secure = Read-Row 'SELECT `Value` FROM `Property` WHERE `Property` = ''SecureCustomProperties''' 1
 if (($secure[0] -split ';') -notcontains 'INSTALLDESKTOPSHORTCUT') { throw "INSTALLDESKTOPSHORTCUT is not secure: '$($secure[0])'" }
 $checkbox = Read-Row 'SELECT `Type`, `Property`, `Text` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''DesktopShortcut''' 3
@@ -205,11 +205,11 @@ if ([int] $remove[0] -le [int] $validate[0] -or [int] $remove[0] -ge [int] $init
 # Image context menu (#190) opens the DPI chooser. Its own component, gated by INSTALLIMAGECONTEXTMENU
 # (on for a first install, kept on update only while present, secure), with the .png label as key
 # path so uninstall removes every row. No image default association is changed.
-$imageKey = 'Software\Classes\SystemFileAssociations\.png\shell\IberPDF.CreatePdf'
+$imageKey = 'Software\Classes\SystemFileAssociations\.png\shell\TintaPDF.CreatePdf'
 foreach ($ext in @('png', 'jpg', 'jpeg', 'tif', 'tiff', 'gif', 'bmp', 'jp2', 'j2k', 'jpx')) {
-  $key = 'Software\Classes\SystemFileAssociations\.' + $ext + '\shell\IberPDF.CreatePdf'
+  $key = 'Software\Classes\SystemFileAssociations\.' + $ext + '\shell\TintaPDF.CreatePdf'
   $menu = Read-Row ('SELECT `Value`, `Component_`, `Root` FROM `Registry` WHERE `Key` = ''' + $key + ''' AND `Name` IS NULL') 3
-  Assert-Equal $menu[0] 'Create PDF with Iber PDF…' "$ext context menu label"
+  Assert-Equal $menu[0] 'Create PDF with Tinta PDF…' "$ext context menu label"
   Assert-Equal $menu[1] 'PdfcraftImageContextMenu' "$ext context menu component"
   Assert-Equal $menu[2] '2' "$ext context menu HKLM root"
   $command = Read-Row ('SELECT `Value`, `Component_` FROM `Registry` WHERE `Key` = ''' + $key + '\command''') 2
@@ -223,7 +223,7 @@ $view = $Database.OpenView('SELECT `Key` FROM `Registry` WHERE `Component_` = ''
 try {
   [void] $view.Execute()
   while ($record = $view.Fetch()) {
-    if ($record.StringData(1) -match 'IberPDF\.CreatePdf') { throw "image menu row left in PdfcraftApp: $($record.StringData(1))" }
+    if ($record.StringData(1) -match 'TintaPDF\.CreatePdf') { throw "image menu row left in PdfcraftApp: $($record.StringData(1))" }
   }
 } finally { [void] $view.Close() }
 $imageKeyPath = Read-Row ('SELECT `Registry` FROM `Registry` WHERE `Key` = ''' + $imageKey + ''' AND `Name` IS NULL') 1
@@ -231,18 +231,18 @@ $imageComponent = Read-Row 'SELECT `KeyPath`, `Attributes` FROM `Component` WHER
 Assert-Equal $imageComponent[0] $imageKeyPath[0] 'Image context menu key path'
 # msidbComponentAttributesRegistryKeyPath (4).
 if (([int] $imageComponent[1] -band 4) -eq 0) { throw "Image context menu key path is not a registry value: attributes $($imageComponent[1])" }
-Assert-KeptOnUpdate 'INSTALLIMAGECONTEXTMENU' 'IMAGECONTEXTMENURELEASE' 'EXISTINGIMAGECONTEXTMENU' 'Create PDF with Iber PDF…' 'PdfcraftImageContextMenu' 'Image context menu'
+Assert-KeptOnUpdate 'INSTALLIMAGECONTEXTMENU' 'IMAGECONTEXTMENURELEASE' 'EXISTINGIMAGECONTEXTMENU' 'Create PDF with Tinta PDF…' 'PdfcraftImageContextMenu' 'Image context menu'
 Assert-MenuSearch 'EXISTINGIMAGECONTEXTMENU' $imageKey 'IMAGECONTEXTMENURELEASE' '0.4.0' 'Image context menu'
 if (($secure[0] -split ';') -notcontains 'INSTALLIMAGECONTEXTMENU') { throw "INSTALLIMAGECONTEXTMENU is not secure: '$($secure[0])'" }
 
-# PDF context menu (#682): "Edit with Iber PDF" opens the file in Iber PDF. Its own component, gated
+# PDF context menu (#682): "Edit with Tinta PDF" opens the file in Tinta PDF. Its own component, gated
 # by INSTALLPDFCONTEXTMENU (on for a first install, kept on update only while present, secure, welcome
 # checkbox), with its menu value as key path so uninstall removes it. Several selected PDFs each start pdfcraft.exe "%1" (Document), which the
 # single-instance hand-off opens as tabs. The .pdf default is never set, so the user's default app
 # stays.
-$pdfKey = 'Software\Classes\SystemFileAssociations\.pdf\shell\IberPDF.Edit'
+$pdfKey = 'Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit'
 $pdfMenu = Read-Row ('SELECT `Registry`, `Value`, `Component_`, `Root` FROM `Registry` WHERE `Key` = ''' + $pdfKey + ''' AND `Name` IS NULL') 4
-Assert-Equal $pdfMenu[1] 'Edit with Iber PDF' 'PDF context menu label'
+Assert-Equal $pdfMenu[1] 'Edit with Tinta PDF' 'PDF context menu label'
 Assert-Equal $pdfMenu[2] 'PdfcraftPdfContextMenu' 'PDF context menu component'
 Assert-Equal $pdfMenu[3] '2' 'PDF context menu HKLM root'
 foreach ($value in @(@('Icon', '"[#PdfcraftExe]",0'), @('MultiSelectModel', 'Document'))) {
@@ -256,13 +256,13 @@ Assert-Equal $pdfCommand[1] 'PdfcraftPdfContextMenu' 'PDF context menu command c
 $pdfComponent = Read-Row 'SELECT `Condition`, `KeyPath` FROM `Component` WHERE `Component` = ''PdfcraftPdfContextMenu''' 2
 Assert-Equal $pdfComponent[0] 'INSTALLPDFCONTEXTMENU = 1' 'PDF context menu condition'
 Assert-Equal $pdfComponent[1] $pdfMenu[0] 'PDF context menu key path'
-Assert-KeptOnUpdate 'INSTALLPDFCONTEXTMENU' 'PDFCONTEXTMENURELEASE' 'EXISTINGPDFCONTEXTMENU' 'Edit with Iber PDF' 'PdfcraftPdfContextMenu' 'PDF context menu'
+Assert-KeptOnUpdate 'INSTALLPDFCONTEXTMENU' 'PDFCONTEXTMENURELEASE' 'EXISTINGPDFCONTEXTMENU' 'Edit with Tinta PDF' 'PdfcraftPdfContextMenu' 'PDF context menu'
 Assert-MenuSearch 'EXISTINGPDFCONTEXTMENU' $pdfKey 'PDFCONTEXTMENURELEASE' '0.7.1' 'PDF context menu'
 if (($secure[0] -split ';') -notcontains 'INSTALLPDFCONTEXTMENU') { throw "INSTALLPDFCONTEXTMENU is not secure: '$($secure[0])'" }
 $pdfCheckbox = Read-Row 'SELECT `Type`, `Property`, `Text` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''PdfContextMenu''' 3
 Assert-Equal $pdfCheckbox[0] 'CheckBox' 'Welcome PDF context-menu control'
 Assert-Equal $pdfCheckbox[1] 'INSTALLPDFCONTEXTMENU' 'Welcome PDF context-menu property'
-if ($pdfCheckbox[2] -notmatch 'Edit with Iber PDF') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
+if ($pdfCheckbox[2] -notmatch 'Edit with Tinta PDF') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
 $pdfChecked = Read-Row 'SELECT `Value` FROM `CheckBox` WHERE `Property` = ''INSTALLPDFCONTEXTMENU''' 1
 Assert-Equal $pdfChecked[0] '1' 'Welcome PDF context-menu value'
 Assert-NoRow 'SELECT `Registry` FROM `Registry` WHERE `Key` = ''Software\Classes\.pdf'' AND `Name` IS NULL' '.pdf default app'
@@ -297,4 +297,4 @@ $rm = Read-Row 'SELECT `Dialog` FROM `Dialog` WHERE `Dialog` = ''MsiRMFilesInUse
 Assert-Equal $rm[0] 'MsiRMFilesInUse' 'Files-in-use dialog'
 [void] [Runtime.InteropServices.Marshal]::FinalReleaseComObject($Database)
 [void] [Runtime.InteropServices.Marshal]::FinalReleaseComObject($Installer)
-Write-Output 'ok MSI: per-machine scope guard, Iber PDF identity (name, publisher, folder, links, UpgradeCode, ProgID), persistent progress text, Start Menu shortcut, optional desktop shortcut and PDF and image context menus (on for a first install, kept on update only while present; checkboxes for the first two), icon/key path, full-UI success/cancel/error and Finish controls, files-in-use dialog, OCR models'
+Write-Output 'ok MSI: per-machine scope guard, Tinta PDF identity (name, publisher, folder, links, UpgradeCode, ProgID), persistent progress text, Start Menu shortcut, optional desktop shortcut and PDF and image context menus (on for a first install, kept on update only while present; checkboxes for the first two), icon/key path, full-UI success/cancel/error and Finish controls, files-in-use dialog, OCR models'

@@ -16,10 +16,10 @@ set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 HERE="$ROOT/packaging/macos"
-# Product identity of this IberOffice build (keep in sync with Info.plist.in, dmg/generate.py and
+# Product identity of this Tinta Office build (keep in sync with Info.plist.in, dmg/generate.py and
 # the brand values in .cargo/config.toml).
-APP_TITLE="Iber PDF"
-APP_SLUG="iber-pdf"
+APP_TITLE="Tinta PDF"
+APP_SLUG="tinta-pdf"
 
 ARCH=universal
 SKIP_BUILD=0

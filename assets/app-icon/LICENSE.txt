@@ -1,8 +1,8 @@
-Iber PDF app icon (pdfcraft.svg, pdfcraft-small.svg and every file derived from them in this
+Tinta PDF app icon (pdfcraft.svg, pdfcraft-small.svg and every file derived from them in this
 directory: pdfcraft-1024.png, pdfcraft.icns, pdfcraft.ico, hicolor/).
 
-Original artwork made for IberOffice by its contributors, drawn in code by
-packaging/iberoffice-icons.py (no third-party material). Licensed like the rest of the project,
+Original artwork made for Tinta Office by its contributors, drawn in code by
+packaging/tinta-icons.py (no third-party material). Licensed like the rest of the project,
 under either of
 
   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)

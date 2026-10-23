@@ -15,7 +15,7 @@
   timestamp server, ...). Optional overrides: WINDOWS_TIMESTAMP_URL, SIGNTOOL (path to signtool.exe).
 
 .EXAMPLE
-  pwsh packaging/windows/sign.ps1 dist/pdfcraft.exe dist/iber-pdf.msi
+  pwsh packaging/windows/sign.ps1 dist/pdfcraft.exe dist/tinta-pdf.msi
 #>
 param(
   [Parameter(Mandatory = $true, ValueFromRemainingArguments = $true)]
@@ -56,8 +56,8 @@ if (-not $haveCert -and -not $haveAzure) {
 
 $script:SignTool = Find-SignTool
 # The description and URL shown in the signature: this build's brand (.cargo/config.toml).
-$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'Iber PDF', '/du', 'https://github.com/StDenis1980/pdfcraft')
-$tmp = Join-Path ([IO.Path]::GetTempPath()) "iber-pdf-sign-$PID"
+$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'Tinta PDF', '/du', 'https://github.com/StDenis1980/pdfcraft')
+$tmp = Join-Path ([IO.Path]::GetTempPath()) "tinta-pdf-sign-$PID"
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
 try {

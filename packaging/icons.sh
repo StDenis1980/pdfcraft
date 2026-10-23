@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Regenerate the app icons and the Windows PDF file icon.
 #
-# The app icon (the IberOffice azulejo tile: pdfcraft.svg, pdfcraft-small.svg, the PNGs, .ico and
-# .icns) is drawn in code by packaging/iberoffice-icons.py, which needs python3 with cairosvg and
+# The app icon (the Tinta Office azulejo tile: pdfcraft.svg, pdfcraft-small.svg, the PNGs, .ico and
+# .icns) is drawn in code by packaging/tinta-icons.py, which needs python3 with cairosvg and
 # Pillow. The PDF file icon is rendered from its master vector assets/app-icon/pdfcraft-document.svg
 # with resvg. The outputs are committed, so building and packaging never need these tools. After
 # running it, update the sha256 values in ATTRIBUTION.toml, then `cargo xtask assets --write`.
@@ -14,7 +14,7 @@ DIR="$ROOT/assets/app-icon"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-python3 "$ROOT/packaging/iberoffice-icons.py" apply "$ROOT" pdf pdfcraft
+python3 "$ROOT/packaging/tinta-icons.py" apply "$ROOT" pdf pdfcraft
 
 command -v resvg >/dev/null || { echo "error: resvg not found (brew install resvg)" >&2; exit 1; }
 render() { resvg -w "$2" -h "$2" "$1" "$3" </dev/null; }

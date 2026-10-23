@@ -2,9 +2,9 @@
 # x64 runner, unsigned here), then install that MSI on a Windows 11 ARM64 runner and run it, and
 # run the test suite natively on ARM64.
 #
-# IberOffice: manual runs only. The upstream reusable workflow looks for the installed program in
-# %ProgramFiles%\<app-dir>, and its app-dir input must be a single folder name, but Iber PDF
-# installs into %ProgramFiles%\IberOffice\Iber PDF (packaging/windows/pdfcraft.wxs), so its install
+# Tinta Office: manual runs only. The upstream reusable workflow looks for the installed program in
+# %ProgramFiles%\<app-dir>, and its app-dir input must be a single folder name, but Tinta PDF
+# installs into %ProgramFiles%\Tinta Office\Tinta PDF (packaging/windows/pdfcraft.wxs), so its install
 # check can't pass for this fork. It also checks out craft-i18n. Until the fork has its own ARM64
 # install test, build the ARM64 MSI with `packaging/windows/package.ps1 -Arch arm64`;
 # windows-msi.yml builds and checks the x64 installer.

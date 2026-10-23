@@ -1,10 +1,10 @@
-Iber PDF portable mode
+Tinta PDF portable mode
 
-While this file sits next to pdfcraft.exe, Iber PDF keeps its settings, log files, crash-recovery
+While this file sits next to pdfcraft.exe, Tinta PDF keeps its settings, log files, crash-recovery
 autosaves and new digital IDs in the PdfCraftData folder beside it, and writes nothing to
-%APPDATA% or %LOCALAPPDATA%. Copy the whole folder to move Iber PDF with its settings.
+%APPDATA% or %LOCALAPPDATA%. Copy the whole folder to move Tinta PDF with its settings.
 (The folder keeps its upstream PdfCraft name in this build.)
 
-Delete this file to use the normal per-user folders (%APPDATA%\Iber PDF and
-%LOCALAPPDATA%\Iber PDF) instead. If PdfCraftData can't be written (for example on a read-only
-drive), Iber PDF says so and uses the per-user folders instead.
+Delete this file to use the normal per-user folders (%APPDATA%\Tinta PDF and
+%LOCALAPPDATA%\Tinta PDF) instead. If PdfCraftData can't be written (for example on a read-only
+drive), Tinta PDF says so and uses the per-user folders instead.

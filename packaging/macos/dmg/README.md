@@ -7,18 +7,18 @@ scripting on CI, nothing extra installed in the signing job).
 
 | File | What |
 |---|---|
-| `background.svg` | Source of the background: an IberOffice azulejo tile wall in the Iber PDF colour on the left, the wordmark and the install hint on the right. Its text (Sora, OFL-1.1) is outlined, so rendering it needs no fonts. Written by `background.py` (needs the Sora font file, which is not committed). |
+| `background.svg` | Source of the background: an Tinta Office azulejo tile wall in the Tinta PDF colour on the left, the wordmark and the install hint on the right. Its text (Sora, OFL-1.1) is outlined, so rendering it needs no fonts. Written by `background.py` (needs the Sora font file, which is not committed). |
 | `background.tiff` | The background at 1x (660 × 400 px, 72 dpi) and 2x (1320 × 800 px, 144 dpi) in one HiDPI TIFF (16-colour palette, Deflate, sRGB). Goes to `.background/background.tiff`. |
-| `dmg-layout.DS_Store` | Finder's view settings for the volume: window size, icon size 128, Iber PDF.app at (326, 205), `Applications` at (574, 205), and the background. Goes to `.DS_Store` in the image; named so it isn't mistaken for (or ignored like) a Finder-generated `.DS_Store`. |
-| `background.py` | Writes `background.svg` (IberOffice azulejo design) with its text outlined. |
+| `dmg-layout.DS_Store` | Finder's view settings for the volume: window size, icon size 128, Tinta PDF.app at (326, 205), `Applications` at (574, 205), and the background. Goes to `.DS_Store` in the image; named so it isn't mistaken for (or ignored like) a Finder-generated `.DS_Store`. |
+| `background.py` | Writes `background.svg` (Tinta Office azulejo design) with its text outlined. |
 | `generate.py` | Writes `background.tiff` and `dmg-layout.DS_Store` from the SVG and the layout above. |
 
 ## The volume name has no version
 
-The mounted volume is called `Iber PDF`, not `Iber PDF <version>`. The layout points at the background
+The mounted volume is called `Tinta PDF`, not `Tinta PDF <version>`. The layout points at the background
 through an alias that includes the volume name, and Finder resolves it by that name: with a
 versioned name the window keeps its size and icon positions but shows no background (tested).
-The DMG file name (`iber-pdf-<version>-macos-<arch>.dmg`) still carries the version.
+The DMG file name (`tinta-pdf-<version>-macos-<arch>.dmg`) still carries the version.
 
 ## Rules
 

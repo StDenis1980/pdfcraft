@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Iber PDF MSI (WiX Toolset v5: `dotnet tool install -g wix`), the IberOffice build of PdfCraft.
+  Tinta PDF MSI (WiX Toolset v5: `dotnet tool install -g wix`), the Tinta Office build of PdfCraft.
   Built by package.ps1:
 
     wix build pdfcraft.wxs installer-ui.wxs -arch x64 -d Version=1.2.3 -d BinDir=... -d ModelsDir=... -d IconPath=... -o out.msi
 
-  Per-machine install into Program Files\IberOffice\Iber PDF, a Start Menu shortcut, a desktop shortcut (on by default,
-  optional, and an update keeps it only if it is still there), an App Paths entry, Iber PDF registered as a PDF handler (offered under "Open with"
-  and in Default apps, never forced as the default), "Edit with Iber PDF" on PDF files'
-  right-click menu and "Create PDF with Iber PDF…" on image files' right-click menu (both on by
+  Per-machine install into Program Files\Tinta Office\Tinta PDF, a Start Menu shortcut, a desktop shortcut (on by default,
+  optional, and an update keeps it only if it is still there), an App Paths entry, Tinta PDF registered as a PDF handler (offered under "Open with"
+  and in Default apps, never forced as the default), "Edit with Tinta PDF" on PDF files'
+  right-click menu and "Create PDF with Tinta PDF…" on image files' right-click menu (both on by
   default, optional, and an update keeps the installed version's choice). Files opened with
-  Iber PDF arrive on its command line.
+  Tinta PDF arrive on its command line.
 
-  IberOffice: the product name, manufacturer, UpgradeCode, component GUIDs, install folder,
-  ProgID (IberPDF.Document), shell verbs (IberPDF.*) and registry keys (Software\IberOffice\Iber PDF)
+  Tinta Office: the product name, manufacturer, UpgradeCode, component GUIDs, install folder,
+  ProgID (TintaPDF.Document), shell verbs (TintaPDF.*) and registry keys (Software\Tinta Office\Tinta PDF)
   differ from upstream PdfCraft's, so the two can be installed side by side and neither upgrades
   or removes the other. The executables keep their names (pdfcraft.exe, pdfcraft-cli.exe), so the
   App Paths and Applications\pdfcraft.exe entries are shared with an upstream install. Keep the
@@ -21,22 +21,22 @@
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
-      Name="Iber PDF"
-      Manufacturer="IberOffice"
+      Name="Tinta PDF"
+      Manufacturer="Tinta Office"
       Version="$(var.Version)"
       UpgradeCode="F75DB16F-AC4D-4401-BC78-57232279E982"
       Scope="perMachine"
       Compressed="yes"
       Language="1033">
-    <SummaryInformation Description="Iber PDF, open-source PDF workbench" Manufacturer="IberOffice" />
+    <SummaryInformation Description="Tinta PDF, open-source PDF workbench" Manufacturer="Tinta Office" />
     <!-- HKLM registrations must never point into a per-user installation (#305). Allow removal
          of an existing installation even if an older MSI let it install per-user. -->
     <Launch Condition="ALLUSERS = 1 OR (Installed AND REMOVE = &quot;ALL&quot;)"
-        Message="Iber PDF must be installed for all users. Run setup with administrator privileges and ALLUSERS=1; per-user installation is not supported." />
+        Message="Tinta PDF must be installed for all users. Run setup with administrator privileges and ALLUSERS=1; per-user installation is not supported." />
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
     <MajorUpgrade AllowSameVersionUpgrades="yes"
-        DowngradeErrorMessage="A newer version of Iber PDF is already installed." />
+        DowngradeErrorMessage="A newer version of Tinta PDF is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <!-- Windows Installer requires an Icon id ending in .ico or .exe, or advertised shortcuts and
@@ -55,21 +55,21 @@
     <Property Id="INSTALLDESKTOPSHORTCUT" Secure="yes" />
     <Property Id="EXISTINGDESKTOPSHORTCUT">
       <DirectorySearch Id="DesktopSearch" Path="[DesktopFolder]" Depth="0">
-        <FileSearch Name="Iber PDF.lnk" />
+        <FileSearch Name="Tinta PDF.lnk" />
       </DirectorySearch>
     </Property>
     <SetProperty Id="INSTALLDESKTOPSHORTCUT" Value="1" After="AppSearch" Sequence="first"
         Condition="NOT INSTALLDESKTOPSHORTCUT AND (NOT WIX_UPGRADE_DETECTED OR EXISTINGDESKTOPSHORTCUT)" />
-    <!-- The File Explorer menus: "Edit with Iber PDF" for PDF files (#682) and "Create PDF with
-         Iber PDF…" for images (#190). Each is on by default for a first install and has a property
+    <!-- The File Explorer menus: "Edit with Tinta PDF" for PDF files (#682) and "Create PDF with
+         Tinta PDF…" for images (#190). Each is on by default for a first install and has a property
          to leave it out of unattended installs: INSTALLPDFCONTEXTMENU=0 (also a welcome-dialog
          checkbox) and INSTALLIMAGECONTEXTMENU=0. Secure, like the desktop shortcut's.
          An update keeps the installed version's choice (#305) by looking for the menu's registry
          key, the way the desktop shortcut looks for its file: AppSearch runs before the old version
          is removed. Releases from before a menu existed (the PDF one came in 0.7.1, the image one in
          0.4.0) never had the key, so updating from one of them counts as a first install; the
-         OnlyDetect rows below tell them apart (under this build's own UpgradeCode every Iber PDF
-         release had both menus, so they match any installed Iber PDF). A value given on the
+         OnlyDetect rows below tell them apart (under this build's own UpgradeCode every Tinta PDF
+         release had both menus, so they match any installed Tinta PDF). A value given on the
          command line wins. -->
     <Upgrade Id="F75DB16F-AC4D-4401-BC78-57232279E982">
       <UpgradeVersion Minimum="0.7.1" IncludeMinimum="yes" OnlyDetect="yes" Property="PDFCONTEXTMENURELEASE" />
@@ -77,21 +77,21 @@
     </Upgrade>
     <Property Id="INSTALLPDFCONTEXTMENU" Secure="yes" />
     <Property Id="EXISTINGPDFCONTEXTMENU">
-      <RegistrySearch Id="PdfContextMenuSearch" Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\IberPDF.Edit" Type="raw" />
+      <RegistrySearch Id="PdfContextMenuSearch" Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit" Type="raw" />
     </Property>
     <SetProperty Id="INSTALLPDFCONTEXTMENU" Value="1" After="AppSearch" Sequence="first"
         Condition="NOT INSTALLPDFCONTEXTMENU AND (NOT PDFCONTEXTMENURELEASE OR EXISTINGPDFCONTEXTMENU)" />
     <Property Id="INSTALLIMAGECONTEXTMENU" Secure="yes" />
     <Property Id="EXISTINGIMAGECONTEXTMENU">
-      <RegistrySearch Id="ImageContextMenuSearch" Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\IberPDF.CreatePdf" Type="raw" />
+      <RegistrySearch Id="ImageContextMenuSearch" Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\TintaPDF.CreatePdf" Type="raw" />
     </Property>
     <SetProperty Id="INSTALLIMAGECONTEXTMENU" Value="1" After="AppSearch" Sequence="first"
         Condition="NOT INSTALLIMAGECONTEXTMENU AND (NOT IMAGECONTEXTMENURELEASE OR EXISTINGIMAGECONTEXTMENU)" />
     <UIRef Id="PdfcraftInstallerUI" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="ManufacturerFolder" Name="IberOffice">
-        <Directory Id="INSTALLFOLDER" Name="Iber PDF">
+      <Directory Id="ManufacturerFolder" Name="Tinta Office">
+        <Directory Id="INSTALLFOLDER" Name="Tinta PDF">
           <Directory Id="ModelsFolder" Name="models" />
         </Directory>
       </Directory>
@@ -99,7 +99,7 @@
     <StandardDirectory Id="ProgramMenuFolder" />
     <StandardDirectory Id="DesktopFolder" />
 
-    <Feature Id="Main" Title="Iber PDF" Level="1">
+    <Feature Id="Main" Title="Tinta PDF" Level="1">
       <ComponentGroupRef Id="PdfcraftFiles" />
       <ComponentGroupRef Id="PdfcraftModels" />
     </Feature>
@@ -112,32 +112,32 @@
 
         <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\pdfcraft.exe" Value="[#PdfcraftExe]" Type="string" />
 
-        <!-- PDF files (#107): Iber PDF is offered under "Open with" and in Settings ▸ Default
+        <!-- PDF files (#107): Tinta PDF is offered under "Open with" and in Settings ▸ Default
              apps, through Windows' Default Programs registration (a ProgID, OpenWithProgids,
              Capabilities and RegisteredApplications). It never takes over an existing default:
              .pdf's own default value is left alone, and the user chooses. Without this, the only
-             Iber PDF entry to pick was the advertised Start Menu shortcut, which Windows can't
+             Tinta PDF entry to pick was the advertised Start Menu shortcut, which Windows can't
              run as a file handler ("This app can't run on your PC"). -->
-        <RegistryValue Root="HKLM" Key="Software\Classes\IberPDF.Document" Value="PDF Document" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\TintaPDF.Document" Value="PDF Document" Type="string" />
         <!-- A negative index selects the stable icon resource ID, rather than its position.
              Resource 1 is the app icon; resource 2 is the PDF document (build.rs). -->
-        <RegistryValue Root="HKLM" Key="Software\Classes\IberPDF.Document\DefaultIcon" Value="&quot;[#PdfcraftExe]&quot;,-2" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\IberPDF.Document\shell\open\command" Value="&quot;[#PdfcraftExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\TintaPDF.Document\DefaultIcon" Value="&quot;[#PdfcraftExe]&quot;,-2" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\TintaPDF.Document\shell\open\command" Value="&quot;[#PdfcraftExe]&quot; &quot;%1&quot;" Type="string" />
         <!-- No overlay on thumbnails and in the preview pane: without TypeOverlay, Windows paints
              the default program's icon (the app icon) over the lower-right corner of every PDF
              thumbnail, covering part of the page. An empty string means none ("Thumbnail
              Handlers", Microsoft Learn). -->
-        <RegistryValue Root="HKLM" Key="Software\Classes\IberPDF.Document" Name="TypeOverlay" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\.pdf\OpenWithProgids" Name="IberPDF.Document" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\pdfcraft.exe" Name="FriendlyAppName" Value="Iber PDF" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\TintaPDF.Document" Name="TypeOverlay" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\.pdf\OpenWithProgids" Name="TintaPDF.Document" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\pdfcraft.exe" Name="FriendlyAppName" Value="Tinta PDF" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\pdfcraft.exe\DefaultIcon" Value="&quot;[#PdfcraftExe]&quot;,-2" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\pdfcraft.exe\SupportedTypes" Name=".pdf" Value="" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\pdfcraft.exe\shell\open\command" Value="&quot;[#PdfcraftExe]&quot; &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\IberOffice\Iber PDF\Capabilities" Name="ApplicationName" Value="Iber PDF" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\IberOffice\Iber PDF\Capabilities" Name="ApplicationDescription" Value="Open-source PDF workbench" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\IberOffice\Iber PDF\Capabilities" Name="ApplicationIcon" Value="[#PdfcraftExe],0" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\IberOffice\Iber PDF\Capabilities\FileAssociations" Name=".pdf" Value="IberPDF.Document" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\RegisteredApplications" Name="Iber PDF" Value="Software\IberOffice\Iber PDF\Capabilities" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Capabilities" Name="ApplicationName" Value="Tinta PDF" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Capabilities" Name="ApplicationDescription" Value="Open-source PDF workbench" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Capabilities" Name="ApplicationIcon" Value="[#PdfcraftExe],0" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Capabilities\FileAssociations" Name=".pdf" Value="TintaPDF.Document" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\RegisteredApplications" Name="Tinta PDF" Value="Software\Tinta Office\Tinta PDF\Capabilities" Type="string" />
       </Component>
 
       <!-- Shortcuts (#143) are plain links to pdfcraft.exe, not advertised MSI shortcuts: advertised
@@ -146,19 +146,19 @@
            (#143). Each has its own component with an HKLM key path, so Windows Installer removes it
            on uninstall; in this per-machine package both folders are the all-users ones. -->
       <Component Id="PdfcraftStartMenuShortcut" Directory="ProgramMenuFolder" Guid="CA07DC02-5F76-41E8-B4FC-646E79E88E01">
-        <Shortcut Id="StartMenuShortcut" Name="Iber PDF" Description="Open-source PDF workbench"
+        <Shortcut Id="StartMenuShortcut" Name="Tinta PDF" Description="Open-source PDF workbench"
             Target="[#PdfcraftExe]" WorkingDirectory="INSTALLFOLDER" Icon="PdfcraftIcon.ico" IconIndex="0" />
-        <RegistryValue Root="HKLM" Key="Software\IberOffice\Iber PDF\Shortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Shortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
       </Component>
 
       <Component Id="PdfcraftDesktopShortcut" Directory="DesktopFolder" Guid="0FC90F94-C01B-4BF3-9476-611C28F9218E"
           Condition="INSTALLDESKTOPSHORTCUT = 1">
-        <Shortcut Id="DesktopShortcut" Name="Iber PDF" Description="Open-source PDF workbench"
+        <Shortcut Id="DesktopShortcut" Name="Tinta PDF" Description="Open-source PDF workbench"
             Target="[#PdfcraftExe]" WorkingDirectory="INSTALLFOLDER" Icon="PdfcraftIcon.ico" IconIndex="0" />
-        <RegistryValue Root="HKLM" Key="Software\IberOffice\Iber PDF\Shortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Shortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
       </Component>
 
-      <!-- PDF context menu (#682): "Edit with Iber PDF" opens the file in Iber PDF whichever app is
+      <!-- PDF context menu (#682): "Edit with Tinta PDF" opens the file in Tinta PDF whichever app is
            the default for .pdf, which it leaves alone (SystemFileAssociations, like the image
            menu). Several PDFs selected (up to 15, Windows' limit for this kind of entry) start one
            launch each, and the single-instance hand-off opens them as tabs of one window. On
@@ -167,49 +167,49 @@
            INSTALLPDFCONTEXTMENU=0 leaves it out and uninstall removes it. -->
       <Component Id="PdfcraftPdfContextMenu" Guid="8978F3CF-7848-49B4-9540-895B5CC421F9"
           Condition="INSTALLPDFCONTEXTMENU = 1">
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\IberPDF.Edit" Value="Edit with Iber PDF" Type="string" KeyPath="yes" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\IberPDF.Edit" Name="Icon" Value="&quot;[#PdfcraftExe]&quot;,0" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\IberPDF.Edit" Name="MultiSelectModel" Value="Document" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\IberPDF.Edit\command" Value="&quot;[#PdfcraftExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit" Value="Edit with Tinta PDF" Type="string" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit" Name="Icon" Value="&quot;[#PdfcraftExe]&quot;,0" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit" Name="MultiSelectModel" Value="Document" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit\command" Value="&quot;[#PdfcraftExe]&quot; &quot;%1&quot;" Type="string" />
       </Component>
 
-      <!-- Image context menu (#190): "Create PDF with Iber PDF…" opens the DPI chooser, without
+      <!-- Image context menu (#190): "Create PDF with Tinta PDF…" opens the DPI chooser, without
            changing image file defaults. Its own component with an HKLM key path, so
            INSTALLIMAGECONTEXTMENU=0 leaves it out and uninstall removes it. These rows were in
            PdfcraftApp up to 0.7.1; moving them is safe because MajorUpgrade removes the old version
            before installing (afterInstallValidate), so no old row is left behind. -->
       <Component Id="PdfcraftImageContextMenu" Guid="6845B608-C75E-46C1-9FAC-E216BF5D0586"
           Condition="INSTALLIMAGECONTEXTMENU = 1">
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" KeyPath="yes" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\IberPDF.CreatePdf" Value="Create PDF with Iber PDF…" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\IberPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\IberPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\TintaPDF.CreatePdf" Value="Create PDF with Tinta PDF…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\TintaPDF.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\TintaPDF.CreatePdf\command" Value="&quot;[#PdfcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
       </Component>
 
       <Component Id="PdfcraftCli">
