@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Write background.svg, the IberOffice macOS DMG window background (660 x 400 pt).
+"""Write background.svg, the Tinta Office macOS DMG window background (660 x 400 pt).
 
-The text is outlined with Sora (OFL-1.1, the IberOffice wordmark font), so the SVG renders the same
+The text is outlined with Sora (OFL-1.1, the Tinta Office wordmark font), so the SVG renders the same
 everywhere without fonts. Fonts are never committed here: pass the Sora variable font
 (Sora[wght].ttf from Google Fonts / craft-fonts). Needs `pip install fonttools`.
 
     python3 packaging/macos/dmg/background.py KIND NAME packaging/macos/dmg/background.svg Sora.ttf
 
-KIND is pdf, texto, calculo or presenta; NAME is the part after "Iber" (PDF, Texto, ...).
+KIND is pdf, texto, calculo or presenta; NAME is the part after "Tinta" (PDF, Texto, ...).
 Then run generate.py to render background.tiff.
 """
 import sys
@@ -64,13 +64,13 @@ def background(kind, name):
             tiles.append(f'<rect x="{cx - 9}" y="{cy - 9}" width="18" height="18" rx="3" transform="rotate(45 {cx} {cy})" fill="{c}"/>')
     out.append(f'<g clip-path="url(#panel)">{"".join(tiles)}</g>')
     out.append(f'<line x1="232.5" y1="0" x2="232.5" y2="400" stroke="{INK}" stroke-width="1.2"/>')
-    # Title: "Iber" bold + app name regular, as the wordmark.
-    a, w = text("Iber", 267, 72, 30, 700, INK)
+    # Title: "Tinta" bold + app name regular, as the wordmark.
+    a, w = text("Tinta", 267, 72, 30, 700, INK)
     b, _ = text(name, 267 + w + 8, 72, 30, 400, INK)
     out += [a, b]
     out.append(f'<line x1="267" y1="88.5" x2="624" y2="88.5" stroke="{INK}" stroke-width="0.6"/>')
     out.append(f'<circle cx="271" cy="88.5" r="4.5" fill="{c}"/>')
-    s, _ = text("IberOffice", 267, 110, 11, 400, MUTED, tracking=0.6)
+    s, _ = text("Tinta Office", 267, 110, 11, 400, MUTED, tracking=0.6)
     out.append(s)
     # Arrow between the app (326, 205) and Applications (574, 205), outside both icon boxes.
     out.append(f'<rect x="408" y="197" width="78" height="16" rx="8" fill="{c}" fill-opacity="0.35"/>'

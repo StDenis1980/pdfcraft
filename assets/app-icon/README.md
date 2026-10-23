@@ -1,10 +1,10 @@
-# Iber PDF app icon
+# Tinta PDF app icon
 
-<img src="pdfcraft.svg" alt="Iber PDF app icon: an ivory azulejo tile with red corners and a red page" width="128">
+<img src="pdfcraft.svg" alt="Tinta PDF app icon: an ivory azulejo tile with red corners and a red page" width="128">
 
-**Design:** the IberOffice "azulejo" tile. An ivory rounded square with a quarter circle in each corner,
-like a glazed wall tile, and the app's glyph in the middle: for Iber PDF, a page with a folded corner.
-The four IberOffice apps share the tile and differ by colour and glyph; the suite mark carries all four
+**Design:** the Tinta Office "azulejo" tile. An ivory rounded square with a quarter circle in each corner,
+like a glazed wall tile, and the app's glyph in the middle: for Tinta PDF, a page with a folded corner.
+The four Tinta Office apps share the tile and differ by colour and glyph; the suite mark carries all four
 colours.
 
 **Palette:**
@@ -13,18 +13,18 @@ colours.
 |---|---|---|
 | Ivory | `#F3EDE1` | the tile |
 | Edge | `#D8CBB2` | the 1.5 px tile outline |
-| Iber PDF red (app colour) | `#B03A2E` | the corners and the page |
+| Tinta PDF red (app colour) | `#B03A2E` | the corners and the page |
 | Fold | `#E7B3AB` | the page's folded corner (large sizes only) |
 
-The other apps use `#2D4BA0` (Iber Texto), `#4F7A28` (Iber Calculo) and `#C7780F` (Iber Presenta).
+The other apps use `#2D4BA0` (Tinta Texto), `#4F7A28` (Tinta Calculo) and `#C7780F` (Tinta Presenta).
 
 **Tile:** `viewBox="0 0 512 512"`, a rounded square with `rx=112`, full bleed. Windows and Linux icons use
 the full-bleed tile. macOS icons put it on Apple's grid (an 824 px body centred on a transparent 1024 px
 canvas). At 32 px and below the simplified tile (`pdfcraft-small.svg`) is used: smaller corners and a
 bolder glyph without the fold, so it stays legible at 16 px.
 
-**Provenance:** original artwork for IberOffice, drawn in code by
-[`packaging/iberoffice-icons.py`](../../packaging/iberoffice-icons.py); no third-party material.
+**Provenance:** original artwork for Tinta Office, drawn in code by
+[`packaging/tinta-icons.py`](../../packaging/tinta-icons.py); no third-party material.
 Licence: [LICENSE.txt](LICENSE.txt) (`MIT OR Apache-2.0`, like the repo).
 
 ## Files
