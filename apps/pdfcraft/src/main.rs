@@ -47,10 +47,9 @@ mod updates;
 mod windows_manifest;
 
 /// Freedesktop app id: the `.desktop` file name and the hicolor icon name. The Linux packages
-/// (`packaging/linux`) still install the release's desktop entry and icons under the release's id,
-/// so a rebranded build keeps that id as its window class until they are generated from
-/// `brand::APP_ID`; otherwise docks could not match the window to its launcher and icon.
-const APP_ID: &str = pdfcraft_engine::brand::UPSTREAM_APP_ID;
+/// install the desktop entry and icons under `brand::APP_ID` (packaging/linux/tinta-brand.sh
+/// renames the release's files), so docks match the window to its launcher and icon.
+const APP_ID: &str = pdfcraft_engine::brand::APP_ID;
 
 /// The app icon (assets/app-icon/README.md). macOS gets the version on Apple's icon grid, with a
 /// transparent margin; Windows and Linux get the full-bleed tile.
@@ -345,7 +344,7 @@ fn native_options(integrated: bool, app_frame: bool, renderer: eframe::Renderer)
         .with_inner_size([1440.0, 920.0])
         .with_min_inner_size([820.0, 520.0])
         .with_drag_and_drop(true)
-        // Wayland app id: matches packaging/linux/ai.storyteller.pdfcraft.desktop.
+        // Wayland app id: matches the packaged desktop entry (packaging/linux/tinta-brand.sh).
         .with_app_id(APP_ID);
     // Dock, taskbar, Alt-Tab and launcher icon when running unbundled.
     match eframe::icon_data::from_png_bytes(APP_ICON_PNG) {
@@ -1440,9 +1439,13 @@ mod tests {
     /// so it has to be the class the window carries: the app id, on Wayland and X11 alike.
     #[test]
     fn the_desktop_entry_names_the_window_class() {
+        // The source entry carries the release's id; packaging/linux/tinta-brand.sh rewrites
+        // every occurrence of it to brand::APP_ID, the window class, when it stages the packages.
         let entry = include_str!("../../../packaging/linux/ai.storyteller.pdfcraft.desktop");
         let class = entry.lines().find_map(|line| line.strip_prefix("StartupWMClass="));
-        assert_eq!(class, Some(super::APP_ID));
+        assert_eq!(class, Some(pdfcraft_engine::brand::UPSTREAM_APP_ID));
+        let script = include_str!("../../../packaging/linux/tinta-brand.sh");
+        assert!(script.contains(r#"-e "s|$UPSTREAM_ID|$BRAND_ID|g""#));
     }
 
     // Regression test for #246: `eprintln!` panics when standard error is a broken pipe (a GUI
