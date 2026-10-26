@@ -159,7 +159,7 @@ fn plural_sl(n: u64) -> usize {
 }
 
 /// The registry. English first: it is the fallback and the source language.
-pub static LANGUAGES: [LangInfo; 35] = [
+pub static LANGUAGES: [LangInfo; 37] = [
     LangInfo { code: "en", name: "English", source: "", plural: plural_one_other, rtl: false, catalog: OnceLock::new() },
     LangInfo { code: "ja", name: "日本語", source: include_str!("ja.tsv"), plural: plural_none, rtl: false, catalog: OnceLock::new() },
     // Simplified Chinese; `zh`, `zh-CN`, `zh-SG` and `zh-Hans-*` locales resolve here (see `candidates`).
@@ -243,6 +243,10 @@ pub static LANGUAGES: [LangInfo; 35] = [
     LangInfo { code: "th", name: "ไทย", source: include_str!("th.tsv"), plural: plural_none, rtl: false, catalog: OnceLock::new() },
     // Catalan; every `ca-*` locale (`ca-ES`, `ca_ES.UTF-8`, `ca_ES@valencia`) resolves here.
     LangInfo { code: "ca", name: "Català", source: include_str!("ca.tsv"), plural: plural_one_other, rtl: false, catalog: OnceLock::new() },
+    // Galician; every `gl-*` locale (`gl-ES`, `gl_ES.UTF-8`) resolves here. One/other plural, like English.
+    LangInfo { code: "gl", name: "Galego", source: include_str!("gl.tsv"), plural: plural_one_other, rtl: false, catalog: OnceLock::new() },
+    // Basque; every `eu-*` locale (`eu-ES`, `eu_ES.UTF-8`) resolves here. One/other plural, like English.
+    LangInfo { code: "eu", name: "Euskara", source: include_str!("eu.tsv"), plural: plural_one_other, rtl: false, catalog: OnceLock::new() },
     // Romanian; every `ro-*` locale (`ro-RO`, `ro_RO.UTF-8`, `ro-MD`) resolves here. Three plural forms (one, few, other).
     LangInfo { code: "ro", name: "Română", source: include_str!("ro.tsv"), plural: plural_ro, rtl: false, catalog: OnceLock::new() },
     // Lao; every `lo-*` locale (`lo-LA`, `lo_LA.UTF-8` ...) resolves here.
@@ -382,6 +386,8 @@ impl Lang {
             "sq" => "Albanian",
             "th" => "Thai",
             "ca" => "Catalan",
+            "gl" => "Galician",
+            "eu" => "Basque",
             "ro" => "Romanian",
             "lo" => "Lao",
             "hi" => "Hindi",
@@ -1559,6 +1565,33 @@ mod tests {
         assert_eq!(restored.language, "ca");
         assert!(restored.set_option("language", "xx").is_err());
         assert_eq!(restored.language, "ca");
+    }
+
+    #[test]
+    fn galician_and_basque_are_registered_and_persist() {
+        for (code, name, tags, sample) in [
+            ("gl", "Galego", ["gl", "gl-ES", "gl_ES.UTF-8", "GL-es"], ("Gardar", "Páxina {n}")),
+            ("eu", "Euskara", ["eu", "eu-ES", "eu_ES.UTF-8", "EU-es"], ("Gorde", "{n}. orria")),
+        ] {
+            let lang = Lang::from_code(code).expect("registered");
+            assert_eq!(lang.name(), name);
+            assert_eq!(normalize_pref(&code.to_uppercase()), Some(code));
+            for tag in tags {
+                assert_eq!(lang_from_tag(tag), Some(lang), "{tag}");
+            }
+            assert_eq!(first_supported(&format!("{code}-ES\r\nes-ES")), Some(lang));
+            assert_eq!((0..=3).map(|n| (lang.0.plural)(n)).collect::<Vec<_>>(), [1, 0, 1, 1]);
+            let (catalog, errors) = Catalog::parse(lang.0.source, lang.0.plural_forms());
+            assert!(errors.is_empty(), "{code}: {errors:?}");
+            assert_eq!(catalog.plain("Save"), Some(sample.0), "{code}");
+            assert_eq!(catalog.plain("Page {n}"), Some(sample.1), "{code}");
+            let mut app = crate::PdfCraftApp::default();
+            app.set_option("language", &code.to_uppercase()).unwrap();
+            assert_eq!(app.language, code);
+            let mut restored = crate::PdfCraftApp::default();
+            restored.restore(&app.persist());
+            assert_eq!(restored.language, code);
+        }
     }
 
     #[test]

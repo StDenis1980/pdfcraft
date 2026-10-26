@@ -63,7 +63,7 @@ const CKB_DAYS: [&str; 7] = ["یەکشەممە", "دووشەممە", "سێشەم
 
 /// The languages month and weekday names can be written in (Preferences ▸ Date format ▸ Language):
 /// the interface languages, in the same order and with the same names.
-pub static DATE_LANGUAGES: [DateLanguage; 35] = [
+pub static DATE_LANGUAGES: [DateLanguage; 37] = [
     DateLanguage {
         code: "en",
         name: "English",
@@ -514,6 +514,40 @@ pub static DATE_LANGUAGES: [DateLanguage; 35] = [
         days: ["diumenge", "dilluns", "dimarts", "dimecres", "dijous", "divendres", "dissabte"],
         days_short: ["dg.", "dl.", "dt.", "dx.", "dj.", "dv.", "ds."],
     },
+    // Galician: lowercase names; after a day the month takes "de" (`7 de marzo`).
+    DateLanguage {
+        code: "gl",
+        name: "Galego",
+        months: ["xaneiro", "febreiro", "marzo", "abril", "maio", "xuño", "xullo", "agosto", "setembro", "outubro", "novembro", "decembro"],
+        months_with_day: Some([
+            "de xaneiro",
+            "de febreiro",
+            "de marzo",
+            "de abril",
+            "de maio",
+            "de xuño",
+            "de xullo",
+            "de agosto",
+            "de setembro",
+            "de outubro",
+            "de novembro",
+            "de decembro",
+        ]),
+        months_short: ["xan.", "feb.", "mar.", "abr.", "maio", "xuño", "xul.", "ago.", "set.", "out.", "nov.", "dec."],
+        days: ["domingo", "luns", "martes", "mércores", "xoves", "venres", "sábado"],
+        days_short: ["dom.", "luns", "mar.", "mér.", "xov.", "ven.", "sáb."],
+    },
+    // Basque: lowercase names. Basque dates put the year first (`2026ko martxoaren 7a`), which the
+    // patterns express with their own order; the month keeps its plain form here.
+    DateLanguage {
+        code: "eu",
+        name: "Euskara",
+        months: ["urtarrila", "otsaila", "martxoa", "apirila", "maiatza", "ekaina", "uztaila", "abuztua", "iraila", "urria", "azaroa", "abendua"],
+        months_with_day: None,
+        months_short: ["urt.", "ots.", "mar.", "api.", "mai.", "eka.", "uzt.", "abu.", "ira.", "urr.", "aza.", "abe."],
+        days: ["igandea", "astelehena", "asteartea", "asteazkena", "osteguna", "ostirala", "larunbata"],
+        days_short: ["ig.", "al.", "ar.", "az.", "og.", "or.", "lr."],
+    },
     // Romanian: month and weekday names are lowercase, also standing alone (`noiembrie 2023`).
     DateLanguage {
         code: "ro",
@@ -934,6 +968,8 @@ mod tests {
     fn catalan_months_elide_the_preposition_after_a_day() {
         assert_eq!(in_lang("dddd d mmmm \\de yyyy", "ca"), "dissabte 7 de març de 2026");
         assert_eq!(in_lang("mmmm yyyy", "ca"), "març 2026");
+        assert_eq!(in_lang("dddd d mmmm \\de yyyy", "gl"), "sábado 7 de marzo de 2026");
+        assert_eq!(in_lang("yyyy mmmm d, dddd", "eu"), "2026 martxoa 7, larunbata");
         let ca = date_language("ca").unwrap();
         assert_eq!(format_day("d mmmm \\de yyyy", (2026, 4, 23), ca), "23 d'abril de 2026");
         assert_eq!(format_day("d mmmm", (2026, 8, 1), ca), "1 d'agost");

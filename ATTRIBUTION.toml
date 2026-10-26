@@ -3529,3 +3529,23 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Catalan UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
+
+[[asset]]
+path = "crates/ui-egui/src/i18n/gl.tsv"
+title = "Galician interface translation catalog"
+author = "Denys Mishchenko (Tinta Office fork), with AI assistance"
+source = "Contributor-original: clean-room translations of PdfCraft's English UI labels, written from their meaning with AI assistance (2026-10-26); no proprietary localisation resources; not yet reviewed by a native speaker"
+licence = "MIT OR Apache-2.0"
+licence_file = "LICENSE-MIT"
+kind = "translation"
+usage = "Galician UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
+
+[[asset]]
+path = "crates/ui-egui/src/i18n/eu.tsv"
+title = "Basque interface translation catalog"
+author = "Denys Mishchenko (Tinta Office fork), with AI assistance"
+source = "Contributor-original: clean-room translations of PdfCraft's English UI labels, written from their meaning with AI assistance (2026-10-26); no proprietary localisation resources; not yet reviewed by a native speaker"
+licence = "MIT OR Apache-2.0"
+licence_file = "LICENSE-MIT"
+kind = "translation"
+usage = "Basque UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
