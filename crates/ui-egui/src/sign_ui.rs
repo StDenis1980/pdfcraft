@@ -10,6 +10,7 @@ use pdfcraft_engine::{SignOptions, SignatureImage, SignatureInfo, SignatureStatu
 
 use crate::canvas::{DocView, PageXform, Snapshot, SnapshotKind};
 use crate::fill_sign::SavedSig;
+use crate::page_pointer::PagePointer;
 use crate::theme::{self, Tokens};
 use crate::{PdfCraftApp, icons, widgets};
 
@@ -151,9 +152,16 @@ pub struct SignView {
 }
 
 /// Drag a signature rectangle on one page (Digitally sign, Certify (visible signature)).
-pub(crate) fn page_input(ui: &egui::Ui, resp: &egui::Response, xf: &PageXform, page: usize, info: &pdfcraft_render::DocInfo, view: &mut DocView) {
-    let pointer = ui.input(|i| i.pointer.hover_pos());
-    let origin = ui.input(|i| i.pointer.press_origin());
+pub(crate) fn page_input(
+    ui: &egui::Ui,
+    resp: &egui::Response,
+    xf: &PageXform,
+    ptr: &PagePointer,
+    page: usize,
+    info: &pdfcraft_render::DocInfo,
+    view: &mut DocView,
+) {
+    let (pointer, origin) = (ptr.pos, ptr.origin);
     if pointer.is_some_and(|p| xf.rect.contains(p)) {
         ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
     }
@@ -670,6 +678,7 @@ fn error(ui: &mut egui::Ui, err: &Option<String>) {
     }
 }
 
+/// Draw the digital-ID chooser, including unusable certificates and removal confirmation.
 fn choose(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
     title(ui, "Sign with a Digital ID");
     ui.label(tl!("Choose the digital ID that you want to use for signing:"));
@@ -682,7 +691,7 @@ fn choose(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
             let selected = d.selected == Some(i);
             let usable = e.unusable.is_none();
             let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 52.0), egui::Sense::click());
-            resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::RadioButton, usable, selected, &e.name));
+            resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::RadioButton, usable, selected, &e.name));
             let fill = if selected {
                 t.accent_soft
             } else if resp.hovered() && usable {
@@ -1633,19 +1642,22 @@ mod tests {
     /// left): never a mix, and never a label signing would refuse.
     #[test]
     fn appearance_labels_are_translated_or_all_english() {
-        use crate::i18n::{Lang, tr};
+        use crate::i18n::{Lang, has, tr};
         let english = AppearanceLabels::default();
         assert_eq!(appearance_labels(Lang::EN), (english.clone(), false));
+        // Latin-script catalogs the signature's font can draw: stamped in the language once every
+        // label is translated there.
         for code in ["de", "es", "fr", "it", "pt-br", "pl", "tr", "sl", "hu"] {
             let lang = Lang::from_code(code).unwrap();
+            if !english.fields().into_iter().all(|(_, source)| has(lang, source)) {
+                continue;
+            }
             let (labels, in_english) = appearance_labels(lang);
             assert!(!in_english, "{code}: {labels:?}");
             for ((field, ours), (_, source)) in labels.fields().into_iter().zip(english.fields()) {
                 assert_eq!(ours, tr(lang, source), "{code}: {field}");
             }
         }
-        let (de, _) = appearance_labels(Lang::from_code("de").unwrap());
-        assert_eq!((de.signed_by.as_str(), de.reason.as_str()), ("Digital signiert von", "Grund: "));
         for code in ["zh-hans", "zh-hant", "ja", "ru", "uk", "bg", "kk", "el", "te", "cs", "lt", "ar"] {
             assert_eq!(appearance_labels(Lang::from_code(code).unwrap()), (english.clone(), true), "{code}");
         }

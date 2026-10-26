@@ -4,7 +4,13 @@
 .EXAMPLE
   pwsh packaging/windows/test-msi.ps1 dist/release/tinta-pdf-0.2.1-windows-x64.msi
 #>
-param([Parameter(Mandatory)] [string] $Path)
+param(
+  [Parameter(Mandatory)] [string] $Path,
+  # 1 when package.ps1 staged craft-fonts OFL notices, 0 when the binaries embed no craft-fonts.
+  # -1 (the default) skips the check when the MSI is inspected by hand.
+  [int] $CraftFontLicences = -1,
+  [string] $ExpectedFontNoticesDirectory
+)
 $ErrorActionPreference = 'Stop'
 $Installer = New-Object -ComObject WindowsInstaller.Installer
 $Database = $Installer.OpenDatabase((Resolve-Path -LiteralPath $Path).Path, 0)
@@ -97,6 +103,30 @@ Assert-Equal $progId[0] 'TintaPDF.Document' 'PDF ProgID'
 $registered = Read-Row 'SELECT `Value` FROM `Registry` WHERE `Key` = ''Software\RegisteredApplications'' AND `Name` = ''Tinta PDF''' 1
 Assert-Equal $registered[0] 'Software\Tinta Office\Tinta PDF\Capabilities' 'RegisteredApplications entry'
 Assert-NoRow 'SELECT `Registry` FROM `Registry` WHERE `Key` = ''Software\RegisteredApplications'' AND `Name` = ''PdfCraft''' 'upstream RegisteredApplications name'
+
+# Embedded craft-fonts must ship their OFL notices; a build without them must not claim any.
+# Check the compiled File table, not only the WiX source, so a staging or component-group mistake
+# cannot silently omit the licences.
+$fontNotices = @()
+$fileView = $Database.OpenView('SELECT `FileName` FROM `File`')
+try {
+  [void] $fileView.Execute()
+  while ($record = $fileView.Fetch()) {
+    $name = $record.StringData(1)
+    if ($name -like '*OFL-*') { $fontNotices += $name }
+  }
+} finally { [void] $fileView.Close() }
+if ($CraftFontLicences -eq 1 -and $fontNotices.Count -eq 0) {
+  throw 'the MSI carries no craft-font OFL notices'
+}
+if ($CraftFontLicences -eq 0 -and $fontNotices.Count -gt 0) {
+  throw "the MSI carries craft-font notices that packaging did not stage: $($fontNotices -join ', ')"
+}
+if ($ExpectedFontNoticesDirectory) {
+  . (Join-Path $PSScriptRoot 'font-notices.ps1')
+  $expected = @(Get-ChildItem -LiteralPath $ExpectedFontNoticesDirectory -File -Filter 'OFL-*.txt' | ForEach-Object { $_.Name })
+  Assert-CraftFontNoticeNames $expected $fontNotices
+}
 $status = Read-Row 'SELECT `Text` FROM `Control` WHERE `Dialog_` = ''InstallProgress'' AND `Control` = ''Status''' 1
 Assert-Equal $status[0] 'Please wait while setup completes.' 'Persistent progress message'
 Assert-NoRow 'SELECT `Event` FROM `EventMapping` WHERE `Dialog_` = ''InstallProgress'' AND `Control_` = ''Status''' 'progress text subscription'
