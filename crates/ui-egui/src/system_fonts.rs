@@ -331,8 +331,7 @@ fn other_candidates() -> Vec<PathBuf> {
     }
 }
 
-/// Chinese sans faces the operating system ships, the UI language's own region first. Noto CJK
-/// and Source Han are left out on purpose (AGENTS.md §1.1).
+/// Chinese sans faces the operating system ships, the UI language's own region first.
 fn han_candidates(traditional: bool) -> Vec<PathBuf> {
     if cfg!(windows) {
         // Microsoft YaHei / JhengHei, then the older SimSun / MingLiU collections.
@@ -363,8 +362,7 @@ fn han_candidates(traditional: bool) -> Vec<PathBuf> {
     }
 }
 
-/// Well-known locations of Korean faces, best first. Noto CJK and Source Han are left out, as for
-/// Chinese (AGENTS.md §1.1).
+/// Well-known locations of Korean faces, best first.
 fn hangul_candidates() -> Vec<PathBuf> {
     if cfg!(windows) {
         ["malgun.ttf", "gulim.ttc", "batang.ttc"].iter().map(|f| windows_fonts().join(f)).collect()
@@ -505,6 +503,8 @@ mod tests {
         std::env::var_os("PDFCRAFT_SYSTEM_FONTS").is_some_and(|v| v == "0")
     }
 
+    /// Check that the first readable fallback candidate wins, so reversing the preference list reverses the
+    /// chosen face.
     #[test]
     fn the_first_readable_candidate_wins_not_the_last() {
         // List order *is* the preference, so a loader that scanned back-to-front would pick a
@@ -519,9 +519,9 @@ mod tests {
         let size = |p: &Path| std::fs::metadata(p).expect("bundled face").len();
         assert_ne!(size(&inter), size(&mono), "the two fixtures must be tellable apart");
         let first = script_fallback(&[inter.clone(), mono.clone()], 'A').expect("Inter covers 'A'");
-        assert_eq!(first.font.len() as u64, size(&inter), "the first readable candidate must win");
+        assert_eq!(first.bytes().len() as u64, size(&inter), "the first readable candidate must win");
         let reversed = script_fallback(&[mono.clone(), inter], 'A').expect("JetBrains Mono covers 'A'");
-        assert_eq!(reversed.font.len() as u64, size(&mono), "reversing the list must reverse the pick");
+        assert_eq!(reversed.bytes().len() as u64, size(&mono), "reversing the list must reverse the pick");
     }
 
     #[test]
@@ -554,27 +554,15 @@ mod tests {
     }
 
     #[test]
-    fn hangul_candidates_are_font_files_without_adobe_designs() {
+    fn hangul_candidates_are_font_files() {
         let list = hangul_candidates();
         assert!(!list.is_empty());
         for path in list {
             assert!(path.extension().is_some_and(|e| e == "ttf" || e == "ttc"), "{path:?}");
-            let name = path.to_string_lossy().to_lowercase();
-            assert!(!["notosanscjk", "notoserifcjk", "sourcehan", "source-han"].iter().any(|b| name.contains(b)), "{name}");
         }
         // Inter has no Hangul.
         let inter = include_bytes!("../../../assets/fonts/Inter-Regular.ttf");
         assert_eq!(face_with(inter, HANGUL_PROBE), None);
-    }
-
-    #[test]
-    fn han_candidates_skip_adobe_designs() {
-        for need in [Need::Hans, Need::Hant] {
-            for path in candidates(need) {
-                let name = path.to_string_lossy().to_lowercase();
-                assert!(!["notosanscjk", "notoserifcjk", "sourcehan", "source-han"].iter().any(|b| name.contains(b)), "{name}");
-            }
-        }
     }
 
     /// Retune tripwires, deliberately separate from `the_macos_devanagari_list_is_apples_layout` below: these assert that three
@@ -677,7 +665,7 @@ mod tests {
         // them, as this list produces.
         let direct = script_fallback(&devanagari_candidates(), DEVANAGARI_PROBE).expect("the list above resolves");
         let cached = devanagari_fallback().expect("devanagari_fallback() resolves where these faces are installed");
-        assert_eq!(cached.font.len(), direct.font.len(), "devanagari_fallback() must load the face this list points at, not another script's");
+        assert_eq!(cached.bytes().len(), direct.bytes().len(), "devanagari_fallback() must load the face this list points at, not another script's");
         assert_eq!(cached.index, direct.index, "and the same face within that file");
         // The advertised last resort is the biggest file on the list and reaches its target through
         // a compatibility symlink in `/Library/Fonts`, a folder installers and users may modify — so

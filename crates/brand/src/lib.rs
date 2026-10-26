@@ -85,14 +85,14 @@ pub fn releases_page() -> &'static str {
     PAGE.get_or_init(|| format!("{}/releases", GITHUB.trim_end_matches('/')))
 }
 
-/// The GitHub API address of this build's latest release, or `None` when [`GITHUB`] is not a
-/// `https://github.com/owner/repo` address (the update check then only opens the releases page).
-pub fn latest_release_api() -> Option<String> {
+/// This build's GitHub `owner/repo`, the repository its update check reads releases from, or
+/// `None` when [`GITHUB`] is not a `https://github.com/owner/repo` address.
+pub fn github_repo() -> Option<&'static str> {
     let repo = GITHUB.strip_prefix("https://github.com/")?.trim_end_matches('/');
     let mut parts = repo.split('/');
     let (Some(owner), Some(name), None) = (parts.next(), parts.next(), parts.next()) else { return None };
     let plain = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'));
-    (plain(owner) && plain(name)).then(|| format!("https://api.github.com/repos/{owner}/{name}/releases/latest"))
+    (plain(owner) && plain(name)).then_some(repo)
 }
 
 /// `text` with the release's name replaced by this build's. Borrowed, and unchanged, in the
@@ -130,7 +130,7 @@ mod tests {
         assert!(APP_PAGE.starts_with("https://") && GITHUB.starts_with("https://") && SUPPORT.starts_with("https://"));
         assert_eq!(releases_page(), format!("{GITHUB}/releases"));
         if !REBRANDED {
-            assert_eq!(latest_release_api().as_deref(), Some("https://api.github.com/repos/storytold/pdfcraft/releases/latest"));
+            assert_eq!(github_repo(), Some("storytold/pdfcraft"));
         }
     }
 }
