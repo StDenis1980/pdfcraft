@@ -131,3 +131,12 @@ ones, as ISO 32000-2 §9.6.5.4 prescribes for symbolic fonts; the
 order the font lists them, platform ID first, so a wrong (1, 0) table (SAS 9.4's AMT fonts)
 drew "8" as "p" and "+" as "V". Covered by `raster::tests::symbolic_truetype_cmap`, whose font
 is built in memory.
+
+## craft-menu (Tinta Office fork)
+
+`vendor/craft-menu` is craft-libs `crates/menu` at `92d392cff132eaf53e13afff77f38b5c11b73aa0`,
+source unchanged. Its own manifest inherits `craft-keymap` with `default-features = false` from a
+workspace entry that keeps default features, which Cargo rejects in edition 2024, so the git
+dependency never loads. The copy's manifest states the dependencies directly and the root
+`[patch."https://github.com/storytold/craft-libs"]` entry points at it. Remove both once
+craft-libs fixes the manifest.
