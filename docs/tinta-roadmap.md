@@ -1,6 +1,6 @@
 # Tinta PDF — Tinta Office roadmap
 
-> **Status:** 2026-10-27 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created.
+> **Status:** 2026-10-27 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created; 2026-10-27 synced with upstream (#13), Help › Report a problem and issue forms added.
 
 Tinta PDF is the Tinta Office build of PdfCraft and replaces Acrobat Pro. Upstream keeps the
 feature-parity roadmap ([ROADMAP.md](../ROADMAP.md), [roadmap.md](roadmap.md),
@@ -46,7 +46,7 @@ the most ready apps), **3** = 2027 (1.0). Dates are indicative.
 | User guide | 2 | A short "first steps" guide per app in Spanish and Ukrainian on tintaoffice.com (Correo has one). |
 | Fork documentation | 1 | This file: what the fork changes, how to build a release, how to sync. |
 | Translations | 1–2 | Ukrainian reviewed by the owner, Spanish by a native tester, ca/gl/eu through communities. Marked as drafts until reviewed. |
-| Feedback | 1 | Help › Report a problem → the fork's issues or hola@tintaoffice.com; issue templates in Spanish and Ukrainian. |
+| Feedback | 1 | Help › Report a problem → the fork's issues or hola@tintaoffice.com; issue templates in Spanish and Ukrainian. **PDF: done** (`help.report` opens `PDFCRAFT_BRAND_REPORT`, the forms are in `.github/ISSUE_TEMPLATE/`; Help › Get help and support opens tintaoffice.com/#contact). |
 
 Rules: upstream first (fixes useful to everyone go to storytold as PRs); every change ships with
 automated tests and updated docs in the same PR; files people exchange (.docx, .xlsx, .pptx, PDF)

@@ -328,3 +328,12 @@ fn hosts_are_shown_as_the_browser_receives_them() {
         assert_eq!(document_url(bad), Err(B::Malformed), "{bad}");
     }
 }
+
+/// Tinta Office fork: Help › Report a problem opens the build's report page in every build.
+#[test]
+fn report_a_problem_opens_the_build_report_page() {
+    let link = super::for_command("help.report").expect("help.report is a link");
+    assert_eq!(link.url, pdfcraft_brand::REPORT);
+    assert_eq!(link.label, super::REPORT_LABEL);
+    assert!(crate::commands::command("help.report").is_some_and(|c| c.menu == Some("Help")));
+}

@@ -1,0 +1,49 @@
+name: "🇪🇸 Informar de un problema"
+description: "Algo no funciona en Tinta PDF (o en otra app de Tinta Office)."
+title: "[Problema] "
+labels: ["bug", "es"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisarnos. No adjuntes documentos con datos personales (DNI, nóminas, datos de salud): si el problema solo aparece con un archivo así, descríbelo o prepara una copia sin datos reales.
+  - type: input
+    id: version
+    attributes:
+      label: Versión
+      description: "Ayuda › Acerca de Tinta PDF (por ejemplo, 0.14.0)."
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Sistema
+      options: ["Windows 11", "Windows 10", "macOS", "Linux", "Otro"]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: ¿Qué hiciste?
+      description: "Los pasos, uno por línea, para que podamos repetirlo."
+      placeholder: "1. Abrí el formulario 303 de la AEAT\n2. Rellené la casilla...\n3. Guardé el archivo"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: ¿Qué esperabas que pasara?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: ¿Qué pasó en realidad?
+      description: "Puedes pegar capturas de pantalla o el mensaje de error."
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: Archivo (opcional)
+      description: "Si es un formulario público (AEAT, Seguridad Social, DGT...), pon el enlace de descarga."

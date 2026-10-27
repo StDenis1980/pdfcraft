@@ -1,0 +1,49 @@
+name: "🇺🇦 Повідомити про проблему"
+description: "Щось не працює в Tinta PDF (або в іншій програмі Tinta Office)."
+title: "[Проблема] "
+labels: ["bug", "uk"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Дякуємо, що повідомили. Не додавайте документи з особистими даними (паспорт, ІПН, зарплата, медичні дані): якщо проблема виникає лише з таким файлом, опишіть її або підготуйте копію без справжніх даних.
+  - type: input
+    id: version
+    attributes:
+      label: Версія
+      description: "Довідка › Про Tinta PDF (наприклад, 0.14.0)."
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Система
+      options: ["Windows 11", "Windows 10", "macOS", "Linux", "Інша"]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Що ви робили?
+      description: "Кроки, по одному в рядку, щоб ми могли повторити."
+      placeholder: "1. Відкрив(ла) форму...\n2. Заповнив(ла) поле...\n3. Зберіг(ла) файл"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Що мало статися?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Що сталося насправді?
+      description: "Можна вставити знімки екрана або текст помилки."
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: Файл (необов'язково)
+      description: "Якщо це публічна форма, дайте посилання для завантаження."
