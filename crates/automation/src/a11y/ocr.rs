@@ -87,11 +87,13 @@ impl Automation {
     }
 
     /// Whether text recognition's models are installed, the directories searched for them (in
-    /// order), and the languages it reads, each as a code and a name.
+    /// order), and the languages it reads, each as a code, a name and whether its model is
+    /// installed.
     pub(crate) fn ocr_status(&self) -> Result<Value> {
         use pdfcraft_engine::ocr;
         let dirs: Vec<String> = ocr::Models::search_dirs().iter().map(|d| d.to_string_lossy().into_owned()).collect();
-        let langs: Vec<Value> = ocr::LANGUAGES.iter().map(|(c, n)| json!({ "code": c, "name": n })).collect();
+        let langs: Vec<Value> =
+            ocr::LANGUAGES.iter().map(|(c, n)| json!({ "code": c, "name": n, "available": ocr::language_available(c) })).collect();
         Ok(json!({ "available": ocr::available(), "search_dirs": dirs, "languages": langs }))
     }
 }

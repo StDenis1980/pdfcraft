@@ -6,11 +6,18 @@
 //! into page content: invisible text (rendering mode 3) over each word, so the page becomes a
 //! searchable image (Acrobat's "Searchable Image (Exact)": the image is left untouched).
 //!
-//! The models read the Latin alphabet (English and other languages written without accents).
+//! The ocrs models read the Latin alphabet without accents (English). Tinta Office fork: other
+//! languages are read with PaddleOCR's models (`paddle`), which sit beside the ocrs ones.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+
+use rten_imageproc::BoundingRect;
+
+pub mod paddle;
 
 pub use pdfcraft_fonts::helvetica_width;
 
@@ -23,8 +30,23 @@ pub const RECOGNITION_MODEL: &str = "text-recognition.onnx";
 /// `€`, which made a scanned "€250" read as "E250".
 pub const ALPHABET: &str = " 0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~€ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-/// The languages the models read (ISO 639-1); all use the Latin alphabet without accents.
-pub const LANGUAGES: &[(&str, &str)] = &[("en", "English")];
+/// The languages the models read (ISO 639-1) and their names in themselves. English is read by
+/// the ocrs models, the others by PaddleOCR's ([`paddle::Script::for_language`]).
+pub const LANGUAGES: &[(&str, &str)] = &[
+    ("en", "English"),
+    ("es", "Español"),
+    ("ca", "Català"),
+    ("gl", "Galego"),
+    ("eu", "Euskara"),
+    ("pt", "Português"),
+    ("fr", "Français"),
+    ("it", "Italiano"),
+    ("de", "Deutsch"),
+    ("uk", "Українська"),
+    ("ru", "Русский"),
+    ("be", "Беларуская"),
+    ("bg", "Български"),
+];
 
 #[derive(Debug, thiserror::Error)]
 pub enum OcrError {
@@ -87,6 +109,20 @@ impl Models {
     }
 }
 
+/// Whether `language` can be read with the installed models: English needs only the ocrs pair,
+/// the others their PaddleOCR model and dictionary beside it too.
+pub fn language_available(language: &str) -> bool {
+    let Some(models) = Models::find() else { return false };
+    match paddle::Script::for_language(language) {
+        None => true,
+        Some(script) => {
+            let (model, dict) = script.files();
+            let dir = models.detection.parent().unwrap_or(Path::new("."));
+            dir.join(model).is_file() && dir.join(dict).is_file()
+        }
+    }
+}
+
 /// A recognised word: its text and its box in image pixels `[left, top, right, bottom]`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Word {
@@ -109,6 +145,10 @@ impl Line {
 /// A loaded recogniser. Loading takes a moment; keep one and reuse it.
 pub struct Ocr {
     engine: ocrs::OcrEngine,
+    /// Where the PaddleOCR models are looked for: beside the detection model.
+    dir: PathBuf,
+    /// The PaddleOCR line recognisers loaded so far.
+    paddle: Mutex<HashMap<paddle::Script, Arc<paddle::Paddle>>>,
 }
 
 impl Ocr {
@@ -121,7 +161,106 @@ impl Ocr {
             ..Default::default()
         };
         let engine = ocrs::OcrEngine::new(params).map_err(|e| OcrError::Load("ocr engine".into(), e.to_string()))?;
-        Ok(Ocr { engine })
+        let dir = models.detection.parent().map(Path::to_path_buf).unwrap_or_default();
+        Ok(Ocr { engine, dir, paddle: Mutex::default() })
+    }
+
+    /// The PaddleOCR recogniser for `script`, loaded the first time it is asked for.
+    fn paddle(&self, script: paddle::Script) -> Result<Arc<paddle::Paddle>, OcrError> {
+        let mut loaded = self.paddle.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(p) = loaded.get(&script) {
+            return Ok(p.clone());
+        }
+        let (model, dict) = script.files();
+        let (model, dict) = (self.dir.join(model), self.dir.join(dict));
+        if !model.is_file() || !dict.is_file() {
+            return Err(OcrError::NoModels);
+        }
+        let p = Arc::new(paddle::Paddle::load(&model, &dict)?);
+        loaded.insert(script, p.clone());
+        Ok(p)
+    }
+
+    /// Recognise the text in an image written in `language` (a code from [`LANGUAGES`]).
+    pub fn recognize_language(&self, pixels: &[u8], width: u32, height: u32, language: &str) -> Result<Vec<Line>, OcrError> {
+        let Some(script) = paddle::Script::for_language(language) else { return self.recognize(pixels, width, height) };
+        let reader = self.paddle(script)?;
+        let rgb = Self::channels(pixels, width, height)?;
+        let channels = rgb.len() / (width as usize).saturating_mul(height as usize).max(1);
+        let err = |e: &dyn std::fmt::Display| OcrError::Recognize(e.to_string());
+        let source = ocrs::ImageSource::from_bytes(&rgb, (width, height)).map_err(|e| err(&e))?;
+        let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
+        let found = self.engine.detect_words(&input).map_err(|e| err(&e))?;
+        // The dots of "і" and "ї" and other marks found on their own would pull the line finder
+        // off the line: leave them to the word they belong to (its line's crop holds them).
+        let boxes: Vec<[f32; 4]> = found
+            .iter()
+            .map(|r| {
+                let b = r.bounding_rect();
+                [b.left(), b.top(), b.right(), b.bottom()]
+            })
+            .collect();
+        let found: Vec<_> = found.iter().zip(&boxes).filter(|(_, b)| !boxes.iter().any(|other| mark_of(**b, *other))).map(|(r, _)| *r).collect();
+        let lines: Vec<(Vec<[f32; 4]>, [f32; 4])> = self
+            .engine
+            .find_text_lines(&input, &found)
+            .iter()
+            .filter_map(|line| {
+                let rects: Vec<[f32; 4]> = line
+                    .iter()
+                    .map(|r| {
+                        let b = r.bounding_rect();
+                        [b.left(), b.top(), b.right(), b.bottom()]
+                    })
+                    .collect();
+                let bounds = rects.iter().copied().reduce(|a, b| [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])])?;
+                Some((rects, bounds))
+            })
+            .collect();
+        let mut out = Vec::new();
+        for (rects, bounds) in lines.iter().filter(|(_, b)| !lines.iter().any(|(_, other)| mark_of(*b, *other))) {
+            let (rects, bounds) = (rects.clone(), *bounds);
+            // A little room around the ink, as the model was trained with.
+            let pad = (bounds[3] - bounds[1]) * 0.15;
+            let crop =
+                [(bounds[0] - pad).max(0.0), (bounds[1] - pad).max(0.0), (bounds[2] + pad).min(width as f32), (bounds[3] + pad).min(height as f32)];
+            let (read, per_step) = reader.read_line(&rgb, width, height, channels, crop)?;
+            let mut spans = paddle::words(&read);
+            let mut texts: Vec<String> = spans.iter().map(|s| s.text.clone()).collect();
+            paddle::tidy(&mut texts, language);
+            for (s, t) in spans.iter_mut().zip(texts) {
+                s.text = t;
+            }
+            // The detected word boxes when they match the words read; else the boxes from where
+            // along the line each word was read.
+            let words: Vec<Word> = if spans.len() == rects.len() {
+                spans.into_iter().zip(rects).map(|(s, rect)| Word { text: s.text, rect }).collect()
+            } else {
+                spans
+                    .into_iter()
+                    .map(|s| Word {
+                        text: s.text,
+                        rect: [crop[0] + s.steps.0 as f32 * per_step, bounds[1], (crop[0] + s.steps.1 as f32 * per_step).min(crop[2]), bounds[3]],
+                    })
+                    .collect()
+            };
+            if !words.is_empty() {
+                out.push(Line { words });
+            }
+        }
+        Ok(out)
+    }
+
+    /// The image with 1 or 3 channels, as ocrs wants.
+    fn channels(pixels: &[u8], width: u32, height: u32) -> Result<std::borrow::Cow<'_, [u8]>, OcrError> {
+        if width == 0 || height == 0 || pixels.is_empty() {
+            return Err(OcrError::EmptyImage);
+        }
+        Ok(if pixels.len() == (width as usize).saturating_mul(height as usize).saturating_mul(4) {
+            pixels.as_chunks::<4>().0.iter().flat_map(|p| [p[0], p[1], p[2]]).collect::<Vec<u8>>().into()
+        } else {
+            pixels.into()
+        })
     }
 
     /// Load the models found by [`Models::find`].
@@ -131,15 +270,7 @@ impl Ocr {
 
     /// Recognise the text in an RGBA (or RGB, or grey) image, `width` × `height` pixels.
     pub fn recognize(&self, pixels: &[u8], width: u32, height: u32) -> Result<Vec<Line>, OcrError> {
-        if width == 0 || height == 0 || pixels.is_empty() {
-            return Err(OcrError::EmptyImage);
-        }
-        // ocrs wants 1 or 3 channels.
-        let rgb: std::borrow::Cow<[u8]> = if pixels.len() == (width * height * 4) as usize {
-            pixels.as_chunks::<4>().0.iter().flat_map(|p| [p[0], p[1], p[2]]).collect::<Vec<u8>>().into()
-        } else {
-            pixels.into()
-        };
+        let rgb = Self::channels(pixels, width, height)?;
         let err = |e: &dyn std::fmt::Display| OcrError::Recognize(e.to_string());
         let source = ocrs::ImageSource::from_bytes(&rgb, (width, height)).map_err(|e| err(&e))?;
         let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
@@ -163,6 +294,20 @@ impl Ocr {
             .filter(|l| !l.words.is_empty())
             .collect())
     }
+}
+
+/// Whether the line in `a` is only a mark of the larger line in `b` that detection found on its
+/// own (the dot of a Ukrainian "і" or "ї", an accent): much smaller, over or under it and
+/// touching it. Reading it would add a stray letter. Boxes are `[left, top, right, bottom]`.
+fn mark_of(a: [f32; 4], b: [f32; 4]) -> bool {
+    let (ha, hb) = (a[3] - a[1], b[3] - b[1]);
+    let wa = a[2] - a[0];
+    if !(ha > 0.0 && hb > 0.0 && wa > 0.0) || ha * 2.0 > hb {
+        return false;
+    }
+    let overlap = (a[2].min(b[2]) - a[0].max(b[0])).max(0.0);
+    let gap = (a[1] - b[3]).max(b[1] - a[3]).max(0.0);
+    overlap > wa * 0.5 && gap < hb * 0.5
 }
 
 /// A word placed on a page, in PDF user space: the bottom-left corner of its box, and the
@@ -291,6 +436,17 @@ pub fn text_layer_with(words: &[PlacedWord], unicode: Option<&UnicodeFont>) -> V
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_dot_detected_apart_from_its_line_is_not_a_line() {
+        let line = [100.0, 200.0, 400.0, 230.0];
+        assert!(mark_of([300.0, 190.0, 306.0, 197.0], line), "the dot of an і just above");
+        assert!(!mark_of([300.0, 150.0, 306.0, 157.0], line), "too far above: its own text");
+        assert!(!mark_of([100.0, 240.0, 400.0, 270.0], line), "the next line");
+        assert!(!mark_of([500.0, 190.0, 506.0, 197.0], line), "beside it, not over it");
+        assert!(!mark_of(line, line), "the line itself");
+        assert!(!mark_of([0.0; 4], line), "an empty box");
+    }
 
     #[test]
     fn places_words_through_the_mapping() {

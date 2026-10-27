@@ -607,9 +607,10 @@ mod tests {
         let brand_id =
             config.lines().find_map(|l| l.trim().strip_prefix("PDFCRAFT_BRAND_APP_ID = ")).map_or("ai.storyteller.pdfcraft", |v| v.trim_matches('"'));
         assert!(read("packaging/macos/Info.plist.in").contains(&format!("<string>{brand_id}</string>")), "bundle id");
-        // The window uses the release's id from crates/brand, which the packaging still installs.
+        // Tinta Office fork: the window uses the brand id, under which packaging/linux/tinta-brand.sh
+        // installs the desktop entry and icons.
         let main = read("apps/pdfcraft/src/main.rs");
-        assert!(main.contains("const APP_ID: &str = pdfcraft_engine::brand::UPSTREAM_APP_ID;"), "APP_ID drifted from the bundle id");
+        assert!(main.contains("const APP_ID: &str = pdfcraft_engine::brand::APP_ID;"), "APP_ID drifted from the bundle id");
         let brand = read("crates/brand/src/lib.rs");
         assert!(brand.contains(r#"pub const UPSTREAM_APP_ID: &str = "ai.storyteller.pdfcraft";"#), "brand id drifted from the bundle id");
     }

@@ -1,6 +1,6 @@
 # Tinta PDF — Tinta Office roadmap
 
-> **Status:** 2026-10-27 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created; 2026-10-27 synced with upstream (#13), Help › Report a problem and issue forms added.
+> **Status:** 2026-10-27 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created; 2026-10-27 synced with upstream (#13), Help › Report a problem and issue forms added; government forms harness (#15); OCR in 12 more languages.
 
 Tinta PDF is the Tinta Office build of PdfCraft and replaces Acrobat Pro. Upstream keeps the
 feature-parity roadmap ([ROADMAP.md](../ROADMAP.md), [roadmap.md](roadmap.md),
@@ -11,15 +11,15 @@ for users in Spain and Ukraine. It is a fork-only file, so upstream syncs never 
 
 Ready for real work ≈ 50% (essentials user ≈ 66%, upstream estimate); 203 commits behind
 upstream. Viewing, comments, pages, forms and protection are at 65–70%. Missing for Spain: OCR
-reads only unaccented Latin (no ñ, á or Cyrillic), and there is no DNIe / smart-card signing.
+now reads Spanish, Catalan, Galician, Basque, Ukrainian and 7 other languages (PaddleOCR models, fork), still untested on real scans; there is no DNIe / smart-card signing.
 
 ## Priorities
 
 | # | Task | Where | Stage |
 |---|---|---|---|
 | 1 | Signing with an FNMT certificate from the Windows store: test with a real certificate that Acrobat Reader, AutoFirma and VALIDe accept the signature; add a timestamp (TSA) | upstream + our test | 1 |
-| 2 | OCR in Spanish, Catalan and Ukrainian (upstream gap 7; `ocr::LANGUAGES` is `en` only) | upstream | 1–2 |
-| 3 | Government forms: a set of public AEAT, Seguridad Social and DGT forms — fill, save, print; bugs found go upstream | our tests, fixes upstream | 1 |
+| 2 | OCR in Spanish, Catalan and Ukrainian (upstream gap 7). **Done in the fork:** PaddleOCR PP-OCRv5 Latin + Cyrillic models, 13 languages, Unicode text layer; next: real scans, offer upstream | fork → upstream | 1–2 |
+| 3 | Government forms: a set of public AEAT, Seguridad Social and DGT forms — fill, save, print; bugs found go upstream. **Harness done** (`crates/automation/tests/tinta_gov_forms.rs`, forms kept outside the repo in `PDFCRAFT_GOV_FORMS_DIR`); 8 forms, no engine bug found yet | our tests, fixes upstream | 1 |
 | 4 | Create PDF from .docx/.xlsx/.pptx and Word export that keeps layout (upstream rank 0, #773); in the suite this can go through Texto/Calculo/Presenta | upstream + suite integration | 2 |
 | 5 | DNIe and cards (PKCS #11), online revocation (LTV), the eIDAS trusted list | upstream (M9) | 2 |
 | 6 | Editing existing text (≈ 30% today) | upstream (M7) | 2–3 |
