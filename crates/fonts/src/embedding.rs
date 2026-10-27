@@ -116,6 +116,20 @@ pub fn embed(doc: &mut Document, fonts: &mut Dict, bytes: &[u8], family: &str) -
     embed_mapping(doc, fonts, bytes, family, &mappings)
 }
 
+/// The code each character has in the resource [`embed`] makes from `bytes`: text shown with
+/// that resource writes these as two-byte codes.
+pub fn embedded_codes(bytes: &[u8]) -> Result<HashMap<char, u16>, String> {
+    let font = FontRef::new(bytes).map_err(|e| e.to_string())?;
+    let mut codes = HashMap::new();
+    // The same characters, in the same order, as `embed` hands to `embed_mapping`, which numbers
+    // them from 1.
+    for (index, c) in font.charmap().mappings().filter(|(_, gid)| gid.to_u32() > 0).filter_map(|(cp, _)| char::from_u32(cp)).enumerate() {
+        let code = u16::try_from(index.saturating_add(1)).map_err(|_| "font mapping limit")?;
+        codes.insert(c, code);
+    }
+    Ok(codes)
+}
+
 /// Explicit glyph mapping for shaped text. A CID can represent a contextual glyph or a
 /// ligature, while its ToUnicode retains the logical cluster. The full source program stays exact.
 pub fn embed_mapping(
