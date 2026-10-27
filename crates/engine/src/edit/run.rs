@@ -468,7 +468,17 @@ pub(crate) fn run_edit(doc: &mut pdfcraft_cos::Document, edit: &Edit, cx: &mut E
         Edit::RemoveStandardId { standard } => pdfcraft_organize::remove_standard_id(doc, *standard)?,
         Edit::SetDocumentScript { name, script } => pdfcraft_forms::set_document_script(doc, name, script.as_deref())?,
         Edit::AddOcrText { page, words } => {
-            pdfcraft_edit::stamp(doc, *page, "OCR", pdfcraft_ocr::text_layer(words))?;
+            // Helvetica holds Latin text; a word it can't (Cyrillic, say) is written in the bundled
+            // Inter, embedded once and shared by every page that needs it.
+            let content = if words.iter().any(|w| pdfcraft_fonts::first_non_win_ansi(&w.text).is_some()) {
+                let resource = pdfcraft_edit::text::register_text_font(doc, *page, pdfcraft_fonts::INTER_REGULAR)?;
+                let codes = pdfcraft_fonts::embedding::embedded_codes(pdfcraft_fonts::INTER_REGULAR).map_err(EditError::Invalid)?;
+                let font = pdfcraft_ocr::UnicodeFont { resource: &resource, codes: &codes, width: pdfcraft_fonts::inter_width };
+                pdfcraft_ocr::text_layer_with(words, Some(&font))
+            } else {
+                pdfcraft_ocr::text_layer(words)
+            };
+            pdfcraft_edit::stamp(doc, *page, "OCR", content)?;
         }
         Edit::EditPageImage { page, index, change } => {
             let img = pdfcraft_edit::page_images(doc, *page)?

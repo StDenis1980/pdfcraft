@@ -214,19 +214,53 @@ fn num(v: f64) -> String {
     if s == "-0" { "0".into() } else { s.into() }
 }
 
+/// A font embedded in the page for the words Helvetica can't hold (Cyrillic, and Latin letters
+/// outside Western Europe): its resource name, the two-byte code of each character it has, and
+/// its advance widths. Tinta Office fork.
+pub struct UnicodeFont<'a> {
+    pub resource: &'a str,
+    pub codes: &'a std::collections::HashMap<char, u16>,
+    pub width: fn(&str, f64) -> f64,
+}
+
 /// Page content that writes `words` as invisible text in `/PCHelv` (standard Helvetica,
 /// WinAnsiEncoding), each word stretched to its box so selection and search highlight the
 /// right place. Marked content `/OCR` so it can be told apart from the page's own text.
 pub fn text_layer(words: &[PlacedWord]) -> Vec<u8> {
+    text_layer_with(words, None)
+}
+
+/// [`text_layer`], writing the words WinAnsiEncoding can't hold in `unicode` when there is one
+/// (otherwise they are written in Helvetica, where those characters become `?`).
+pub fn text_layer_with(words: &[PlacedWord], unicode: Option<&UnicodeFont>) -> Vec<u8> {
     // `3 Tr` and the font are graphics state, which `ET` doesn't reset: without `q … Q` they
     // would stay set for every later content stream on the page, so text added after OCR (a
     // header or footer) drew invisibly (#3029).
     let mut out = b"/OCR BMC\nq\nBT\n3 Tr\n/PCHelv 1 Tf\n".to_vec();
+    let mut in_unicode = false;
     for w in words {
-        let width = helvetica_width(&w.text, 1.0);
+        // The word's codes in the Unicode font, when Helvetica can't hold it and the font can.
+        let codes: Option<Vec<u16>> = unicode
+            .filter(|_| pdfcraft_fonts::first_non_win_ansi(&w.text).is_some())
+            .and_then(|f| w.text.chars().map(|c| f.codes.get(&c).copied()).collect());
+        let width = match (&codes, unicode) {
+            (Some(_), Some(f)) => (f.width)(&w.text, 1.0),
+            _ => helvetica_width(&w.text, 1.0),
+        };
         let height = w.up[0].hypot(w.up[1]);
-        if width <= 0.0 || height <= 0.0 {
+        if !(width > 0.0 && width.is_finite()) || !(height > 0.0 && height.is_finite()) {
             continue;
+        }
+        match (&codes, unicode) {
+            (Some(_), Some(f)) if !in_unicode => {
+                out.extend_from_slice(format!("/{} 1 Tf\n", f.resource).as_bytes());
+                in_unicode = true;
+            }
+            (None, _) if in_unicode => {
+                out.extend_from_slice(b"/PCHelv 1 Tf\n");
+                in_unicode = false;
+            }
+            _ => {}
         }
         // The em square: the word's own ink (cap height or x-height, descenders or not) spans the
         // box, so the text is as tall as the scanned word; its width is stretched to fit the word.
@@ -238,7 +272,16 @@ pub fn text_layer(words: &[PlacedWord]) -> Vec<u8> {
         let nums: Vec<String> = m.iter().map(|v| num(*v)).collect();
         out.extend_from_slice(nums.join(" ").as_bytes());
         out.extend_from_slice(b" Tm ");
-        out.extend(pdfcraft_fonts::literal(&pdfcraft_fonts::win_ansi(&w.text)));
+        match &codes {
+            Some(codes) => {
+                out.push(b'<');
+                for c in codes {
+                    out.extend_from_slice(format!("{c:04X}").as_bytes());
+                }
+                out.push(b'>');
+            }
+            None => out.extend(pdfcraft_fonts::literal(&pdfcraft_fonts::win_ansi(&w.text))),
+        }
         out.extend_from_slice(b" Tj\n");
     }
     out.extend_from_slice(b"ET\nQ\nEMC\n");

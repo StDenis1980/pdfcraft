@@ -207,3 +207,16 @@ fn visible_stretched_text_rewrites_unchanged() {
     let i = ((y * out.width + x) * 4) as usize;
     assert_eq!(&out.rgba[i..i + 3], &[255, 255, 255]);
 }
+
+/// Ukrainian (or any text Helvetica's WinAnsiEncoding can't hold) is written in an embedded
+/// font, so the searchable layer reads back as recognised rather than as `?`, next to Spanish
+/// written in Helvetica.
+#[test]
+fn ocr_text_outside_win_ansi_reads_back_as_recognised() {
+    let (s, id) = scanned_with(vec![word("Київ", 10.0, 40.0, 70.0), word("Peñaranda", 10.0, 70.0, 50.0), word("Ґанок", 10.0, 50.0, 30.0)]);
+    let blocks = s.get(id).unwrap().text_blocks(0);
+    assert_eq!(blocks.iter().map(|b| b.text.as_str()).collect::<Vec<_>>(), ["Київ", "Peñaranda", "Ґанок"]);
+    assert!(blocks.iter().all(|b| b.invisible));
+    let kyiv = blocks[0].rect;
+    assert!((kyiv[0] - 10.0).abs() < 0.5 && (kyiv[2] - 40.0).abs() < 0.5, "the word fills its box: {kyiv:?}");
+}
