@@ -29,6 +29,35 @@ fn render(a: &mut Automation, doc: u64, page: u64) -> Result<(), String> {
     }
 }
 
+/// A value a field with Acrobat's `format` (from form_fields) accepts, as a person would type it.
+fn formatted(format: &Value) -> String {
+    match format["type"].as_str() {
+        Some("date" | "time") => {
+            let pattern = format["pattern"].as_str().unwrap_or("dd/mm/yyyy");
+            // 15 March 2024, 09:30: every field of the pattern, longest names first.
+            [
+                ("yyyy", "2024"),
+                ("yy", "24"),
+                ("mmmm", "March"),
+                ("mmm", "Mar"),
+                ("mm", "03"),
+                ("dd", "15"),
+                ("HH", "09"),
+                ("hh", "09"),
+                ("MM", "30"),
+                ("ss", "00"),
+            ]
+            .iter()
+            .fold(pattern.to_owned(), |p, (from, to)| p.replace(from, to))
+        }
+        Some("zip") => "46500".into(),
+        Some("zip4") => "46500-1234".into(),
+        Some("phone") => "9612345678".into(),
+        Some("ssn") => "123456789".into(),
+        _ => "12".into(),
+    }
+}
+
 /// The value each fillable field gets, and what reading it back should give.
 fn values_for(fields: &[Value]) -> Map<String, Value> {
     let mut values = Map::new();
@@ -39,11 +68,14 @@ fn values_for(fields: &[Value]) -> Map<String, Value> {
         let Some(name) = f["name"].as_str() else { continue };
         let value = match f["type"].as_str() {
             Some("text") => {
-                // Formatted fields (dates, numbers) get digits; a comb or length limit is respected.
-                let text = if f.get("format").is_some() { "12" } else { SAMPLE };
+                // A formatted field gets a value its format accepts; a length limit is respected.
+                let text = match f.get("format") {
+                    Some(format) => formatted(format),
+                    None => SAMPLE.to_owned(),
+                };
                 let text: String = match f["max_length"].as_u64() {
                     Some(m) => text.chars().take(usize::try_from(m).unwrap_or(usize::MAX)).collect(),
-                    None => text.to_owned(),
+                    None => text,
                 };
                 json!(text)
             }
@@ -71,9 +103,12 @@ fn check_form(dir: &std::path::Path, file: &str) -> Result<String, String> {
     }
     let values = values_for(&fields);
     let filled = tool(&mut a, "form_fill", json!({ "doc": doc, "values": values }))?;
-    // Spanish is in WinAnsiEncoding: no field should have to draw `?` for it.
-    if let Some(w) = filled.get("warnings").and_then(Value::as_array).filter(|w| !w.is_empty()) {
-        return Err(format!("characters the fields can't draw: {w:?}"));
+    // Spanish is in WinAnsiEncoding: no field should have to draw `?` for it. A value wider than a
+    // small box is only a warning that the box shows part of it.
+    let undrawable: Vec<&Value> =
+        filled.get("warnings").and_then(Value::as_array).into_iter().flatten().filter(|w| !w.to_string().contains("does not fit")).collect();
+    if !undrawable.is_empty() {
+        return Err(format!("characters the fields can't draw: {undrawable:?}"));
     }
     render(&mut a, doc, 1)?;
     let out = format!("filled-{file}");
