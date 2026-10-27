@@ -282,7 +282,7 @@ fn expanding_all_tools_from_read_mode_restores_the_right_panel() {
 fn expanding_all_tools_from_edit_puts_edit_text_down() {
     use pdfcraft_ui_egui::{LeftPanel, Mode, QuickTool};
     let mut h = harness(|app| app.open_bytes("fixture.pdf", None, FIXTURE.to_vec()).expect("fixture opens"));
-    h.get_by_label("Edit").click();
+    support::outside_menus(&h, "Edit").click();
     h.run_steps(3);
     assert_eq!(h.state().quick_tool, QuickTool::EditText);
     h.state_mut().set_option("tools", "full").unwrap();
@@ -1643,7 +1643,7 @@ fn the_edit_tab_turns_on_edit_text_and_images() {
     use pdfcraft_ui_egui::{Mode, QuickTool};
     let mut h = harness(|app| app.open_bytes("fixture.pdf", None, FIXTURE.to_vec()).expect("fixture opens"));
     assert_eq!(h.state().quick_tool, QuickTool::Select);
-    h.get_by_label("Edit").click();
+    support::outside_menus(&h, "Edit").click();
     h.run_steps(3);
     assert_eq!(h.state().mode, Mode::Edit);
     assert_eq!(h.state().quick_tool, QuickTool::EditText);
@@ -1652,7 +1652,7 @@ fn the_edit_tab_turns_on_edit_text_and_images() {
     assert_eq!(h.state().mode, Mode::AllTools);
     assert_eq!(h.state().quick_tool, QuickTool::Select);
     // Another tool picked inside Edit is not taken away by leaving it.
-    h.get_by_label("Edit").click();
+    support::outside_menus(&h, "Edit").click();
     h.run_steps(3);
     h.state_mut().quick_tool = QuickTool::Hand;
     h.get_by_label("Convert").click();
@@ -1666,7 +1666,7 @@ fn the_edit_tab_turns_on_edit_text_and_images() {
 fn organize_pages_from_the_edit_panel_opens_its_panel() {
     use pdfcraft_ui_egui::LeftPanel;
     let mut h = harness(|app| app.open_bytes("fixture.pdf", None, FIXTURE.to_vec()).expect("fixture opens"));
-    h.get_by_label("Edit").click();
+    support::outside_menus(&h, "Edit").click();
     h.run_steps(3);
     assert_eq!(h.state().left, LeftPanel::Tool("edit"));
     assert!(
@@ -1684,7 +1684,7 @@ fn organize_pages_from_the_edit_panel_opens_its_panel() {
 #[test]
 fn the_edit_panel_keeps_the_add_update_remove_menu() {
     let mut h = harness(|app| app.open_bytes("fixture.pdf", None, FIXTURE.to_vec()).expect("fixture opens"));
-    h.get_by_label("Edit").click();
+    support::outside_menus(&h, "Edit").click();
     h.run_steps(3);
     h.get_by_label("Watermark").click();
     h.run_steps(3);
