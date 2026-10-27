@@ -140,6 +140,10 @@ pub struct Bundled {
 pub struct Fetched {
     pub file: String,
     pub url: String,
+    /// Other copies of the same bytes, tried in order when `url` fails (the pinned `sha256`
+    /// still decides). Upstream hosts go away: the ocrs models' S3 bucket started answering 403.
+    #[serde(default)]
+    pub mirrors: Vec<String>,
     pub title: String,
     pub author: String,
     pub source: String,
@@ -318,7 +322,7 @@ pub fn check(root: &Path, m: &Manifest, repo_files: &[String], lock: &BTreeSet<(
         if f.sha256.len() != 64 || f.licence_sha256.len() != 64 {
             problems.push(format!("{}: sha256 and licence_sha256 must be 64 hex digits", f.file));
         }
-        if !f.url.starts_with("https://") || !f.licence_url.starts_with("https://") {
+        if !f.url.starts_with("https://") || !f.licence_url.starts_with("https://") || f.mirrors.iter().any(|u| !u.starts_with("https://")) {
             problems.push(format!("{}: URLs must be https", f.file));
         }
     }
@@ -341,31 +345,41 @@ pub fn fetch_all(m: &Manifest, dir: &Path, kind: &str) -> Result<Vec<PathBuf>> {
     let mut out = Vec::new();
     for f in m.fetched.iter().filter(|f| f.kind == kind) {
         let path = dir.join(&f.file);
-        fetch_verified(&f.url, &path, &f.sha256)?;
+        let urls: Vec<&str> = std::iter::once(f.url.as_str()).chain(f.mirrors.iter().map(String::as_str)).collect();
+        fetch_verified(&urls, &path, &f.sha256)?;
         let licence = dir.join(format!("{}.LICENCE.txt", f.file));
-        fetch_verified(&f.licence_url, &licence, &f.licence_sha256)?;
+        fetch_verified(&[f.licence_url.as_str()], &licence, &f.licence_sha256)?;
         out.push(path);
     }
     Ok(out)
 }
 
-fn fetch_verified(url: &str, path: &Path, sha256: &str) -> Result<()> {
+/// Downloads `path` from the first of `urls` that serves bytes with the pinned `sha256`. A copy
+/// with the wrong hash is never used, whichever URL it came from.
+fn fetch_verified(urls: &[&str], path: &Path, sha256: &str) -> Result<()> {
     if std::fs::read(path).is_ok_and(|b| sha256_hex(&b) == sha256) {
         return Ok(());
     }
-    println!("assets: fetching {url}");
     let tmp = path.with_extension("part");
-    let status = Command::new("curl").args(["-sSfL", "--retry", "3", "-o"]).arg(&tmp).arg(url).status().context("running curl")?;
-    if !status.success() {
-        bail!("download failed: {url}");
+    let mut errors = Vec::new();
+    for url in urls {
+        println!("assets: fetching {url}");
+        let status = Command::new("curl").args(["-sSfL", "--retry", "3", "-o"]).arg(&tmp).arg(url).status().context("running curl")?;
+        if !status.success() {
+            errors.push(format!("download failed: {url}"));
+            continue;
+        }
+        let bytes = std::fs::read(&tmp)?;
+        if sha256_hex(&bytes) != sha256 {
+            let _ = std::fs::remove_file(&tmp);
+            errors.push(format!("{url}: SHA-256 mismatch (expected {sha256}); refusing to use it"));
+            continue;
+        }
+        std::fs::rename(&tmp, path)?;
+        return Ok(());
     }
-    let bytes = std::fs::read(&tmp)?;
-    if sha256_hex(&bytes) != sha256 {
-        let _ = std::fs::remove_file(&tmp);
-        bail!("{url}: SHA-256 mismatch (expected {sha256}); refusing to use it");
-    }
-    std::fs::rename(&tmp, path)?;
-    Ok(())
+    let _ = std::fs::remove_file(&tmp);
+    bail!("{}", errors.join("; "))
 }
 
 /// `cargo xtask models [DIR]`: fetch the OCR models (`kind = "model"`) into `assets/models/` (git-ignored),
@@ -474,6 +488,40 @@ mod tests {
         assert!(!models.is_empty());
         for f in models {
             assert!(text.contains(&f.file) && text.contains(&f.author) && text.contains(&f.licence), "{}", f.file);
+        }
+    }
+
+    /// A dead primary URL falls through to a mirror, and a copy with the wrong bytes is refused
+    /// from any URL.
+    #[test]
+    fn fetch_falls_back_to_a_mirror_and_still_checks_the_hash() {
+        let dir = std::env::temp_dir().join(format!("pdfcraft-xtask-mirror-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let good = dir.join("good.bin");
+        std::fs::write(&good, b"model bytes").unwrap();
+        let bad = dir.join("bad.bin");
+        std::fs::write(&bad, b"other bytes").unwrap();
+        let sha = sha256_hex(b"model bytes");
+        let url = |p: &Path| format!("file://{}", p.display());
+        let missing = url(&dir.join("missing.bin"));
+
+        let out = dir.join("out.bin");
+        fetch_verified(&[&missing, &url(&bad), &url(&good)], &out, &sha).unwrap();
+        assert_eq!(std::fs::read(&out).unwrap(), b"model bytes");
+
+        let out2 = dir.join("out2.bin");
+        let err = fetch_verified(&[&missing, &url(&bad)], &out2, &sha).unwrap_err().to_string();
+        assert!(err.contains("download failed") && err.contains("SHA-256 mismatch"), "{err}");
+        assert!(!out2.exists() && !out2.with_extension("part").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The OCR models keep a mirror: their original host has gone away before.
+    #[test]
+    fn every_model_has_a_mirror() {
+        let m = load(&root()).unwrap();
+        for f in m.fetched.iter().filter(|f| f.kind == "model") {
+            assert!(f.mirrors.iter().any(|u| u.starts_with("https://")), "{} has no mirror", f.file);
         }
     }
 
