@@ -80,11 +80,18 @@ fn values_for(fields: &[Value]) -> Map<String, Value> {
                 json!(text)
             }
             Some("checkbox") => json!(true),
-            Some("combo" | "radio") => match f["options"].as_array().and_then(|o| o.first()) {
-                Some(Value::String(s)) => json!(s),
-                Some(o) => o["value"].clone(),
-                None => continue,
-            },
+            // The first real choice: an empty option (DGT's "Provincia" starts with one) means
+            // "nothing chosen", and reads back as no value.
+            Some("combo" | "radio") => {
+                let choice = |o: &Value| match o {
+                    Value::String(s) => json!(s),
+                    o => o["value"].clone(),
+                };
+                match f["options"].as_array().into_iter().flatten().map(choice).find(|v| v.as_str().is_some_and(|s| !s.trim().is_empty())) {
+                    Some(v) => v,
+                    None => continue,
+                }
+            }
             _ => continue,
         };
         values.insert(name.to_owned(), value);
@@ -135,19 +142,23 @@ fn check_form(dir: &std::path::Path, file: &str) -> Result<String, String> {
     Ok(format!("{file}: {} fields, {} filled, {pages} pages", fields.len(), values.len()))
 }
 
-/// The harness itself, on a form built here: a text field with a length limit, a check box.
+/// The harness itself, on a form built here: a text field, a check box and a drop-down whose first
+/// option is empty, like DGT's.
 #[test]
 fn the_harness_fills_and_reads_back_a_built_form() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = Session::new();
     let bytes = s.create_blank(300.0, 400.0, 1).unwrap();
     let id = s.open("form.pdf", None, bytes, None).unwrap();
-    for (name, kind, y) in [("apellidos", NewField::Text { multiline: false }, 300.0), ("acepto", NewField::CheckBox, 250.0)] {
+    let provincia = NewField::Combo { options: vec![String::new(), "Valencia".into()], editable: false };
+    for (name, kind, y) in
+        [("apellidos", NewField::Text { multiline: false }, 300.0), ("acepto", NewField::CheckBox, 250.0), ("provincia", provincia, 200.0)]
+    {
         s.apply(id, Edit::AddField { page: 0, rect: [30.0, y, 250.0, y + 20.0], kind, name: Some(name.into()) }).unwrap();
     }
     std::fs::write(dir.path().join("form.pdf"), s.save_bytes(id).unwrap().as_slice()).unwrap();
     let line = check_form(dir.path(), "form.pdf").unwrap();
-    assert_eq!(line, "form.pdf: 2 fields, 2 filled, 1 pages");
+    assert_eq!(line, "form.pdf: 3 fields, 3 filled, 1 pages");
 }
 
 /// Every PDF in `PDFCRAFT_GOV_FORMS_DIR`. Skips when it is unset.
