@@ -13,6 +13,7 @@ pub const DISCORD: &str = pdfcraft_brand::SUPPORT;
 pub const WEBSITE: &str = "https://getartcraft.com";
 pub const APP_PAGE: &str = pdfcraft_brand::APP_PAGE;
 pub const GITHUB: &str = pdfcraft_brand::GITHUB;
+pub const REPORT: &str = pdfcraft_brand::REPORT;
 
 /// A link and the registry command that opens it.
 #[derive(Clone, Copy, Debug)]
@@ -34,6 +35,7 @@ const RELEASE_LINKS: &[Link] = &[
     Link { command: "help.app_page", label: "PdfCraft web page", url: APP_PAGE, icon: "globe" },
     Link { command: "help.github", label: "PdfCraft on GitHub", url: GITHUB, icon: "code-xml" },
     Link { command: "help.website", label: "ArtCraft website", url: WEBSITE, icon: "external-link" },
+    Link { command: "help.report", label: REPORT_LABEL, url: REPORT, icon: "triangle-alert" },
 ];
 
 const REBRANDED_LINKS: &[Link] = &[
@@ -41,10 +43,13 @@ const REBRANDED_LINKS: &[Link] = &[
     Link { command: "help.app_page", label: "PdfCraft web page", url: APP_PAGE, icon: "globe" },
     Link { command: "help.github", label: "PdfCraft on GitHub", url: GITHUB, icon: "code-xml" },
     Link { command: "help.website", label: ORIGIN_LABEL, url: WEBSITE, icon: "external-link" },
+    Link { command: "help.report", label: REPORT_LABEL, url: REPORT, icon: "triangle-alert" },
 ];
 
 /// `help.discord` in a rebranded build.
 pub const SUPPORT_LABEL: &str = "Get help and support";
+/// `help.report`: where people tell the makers what went wrong ([`pdfcraft_brand::REPORT`]).
+pub const REPORT_LABEL: &str = "Report a problem";
 /// `help.website` in a rebranded build: the project it is based on.
 pub const ORIGIN_LABEL: &str = "Original project (ArtCraft)";
 

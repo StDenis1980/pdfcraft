@@ -404,6 +404,7 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("help.app_page", "PdfCraft web page", HELP, None, Nothing, "globe"),
     c("help.github", "PdfCraft on GitHub", HELP, None, Nothing, "code-xml"),
     c("help.website", if pdfcraft_brand::REBRANDED { crate::links::ORIGIN_LABEL } else { "ArtCraft website" }, HELP, None, Nothing, "external-link"),
+    c("help.report", crate::links::REPORT_LABEL, HELP, None, Nothing, "triangle-alert"),
     c("help.check_updates", "Check for updates…", HELP, None, Nothing, "cloud"),
     c("help.about", "About PdfCraft", HELP, None, Nothing, "info"),
 ];

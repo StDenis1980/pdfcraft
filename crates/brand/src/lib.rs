@@ -72,6 +72,10 @@ pub const GITHUB: &str = env_or!("PDFCRAFT_BRAND_GITHUB", "https://github.com/st
 /// Discord; a rebranded build without its own support page sends them to its web page.
 pub const SUPPORT: &str = env_or!("PDFCRAFT_BRAND_SUPPORT", if REBRANDED { APP_PAGE } else { "https://discord.gg/artcraft" });
 
+/// Where people report a problem (`PDFCRAFT_BRAND_REPORT`): a web page or a `mailto:` address.
+/// The release sends them to its GitHub issue forms.
+pub const REPORT: &str = env_or!("PDFCRAFT_BRAND_REPORT", "https://github.com/storytold/pdfcraft/issues/new/choose");
+
 /// Whether this build carries a name of its own. The ArtCraft marks and community links are only
 /// for the release (`docs/brand/LICENSE-brand.txt`).
 pub const REBRANDED: bool = match option_env!("PDFCRAFT_BRAND_NAME") {
@@ -128,6 +132,7 @@ mod tests {
         assert_eq!(REBRANDED, option_env!("PDFCRAFT_BRAND_NAME").is_some_and(|v| !v.is_empty()));
         assert!(!NAME.is_empty() && !APP_ID.is_empty());
         assert!(APP_PAGE.starts_with("https://") && GITHUB.starts_with("https://") && SUPPORT.starts_with("https://"));
+        assert!(REPORT.starts_with("https://") || REPORT.starts_with("mailto:"), "{REPORT}");
         assert_eq!(releases_page(), format!("{GITHUB}/releases"));
         if !REBRANDED {
             assert_eq!(github_repo(), Some("storytold/pdfcraft"));
