@@ -842,8 +842,8 @@ pub fn tools() -> Vec<ToolDef> {
                 }),
                 &["doc", "tsa", "out"],
             )),
-        t("sign_trust", "Trust certificates", "Add certificates (.cer/.crt/.pem/.der, a .p7b/.p7c bundle, or the certificates in a .p12 with `password`) to the trusted certificates used to validate signatures, or clear the list (clear: true). Every open document is revalidated. Returns the trusted list.").with(schema(
-            json!({ "paths": { "type": "array", "items": { "type": "string" } }, "password": { "type": "string" }, "clear": { "type": "boolean" } }),
+        t("sign_trust", "Trust certificates", "Add certificates (.cer/.crt/.pem/.der, a .p7b/.p7c bundle, or the certificates in a .p12 with `password`) to the trusted certificates used to validate signatures, or clear the list (clear: true). The operating system's trusted roots (Windows: Trusted Root Certification Authorities) are trusted too unless system is false. Every open document is revalidated. Returns the trusted list and how many system roots are trusted.").with(schema(
+            json!({ "paths": { "type": "array", "items": { "type": "string" } }, "password": { "type": "string" }, "clear": { "type": "boolean" }, "system": { "type": "boolean", "description": "Trust the operating system's root certificates (on by default; Windows only so far)." } }),
             &[],
         )),
         t("comment_mark", "Mark a comment with a checkmark", "Mark or unmark a comment with a checkmark (Acrobat: Mark with checkmark), recorded as a private reply. Undoable.").with(schema(

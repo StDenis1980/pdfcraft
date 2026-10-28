@@ -6369,11 +6369,11 @@ title = "Trust the operating system's root certificates"
 area = "H"
 tier = "P1"
 milestone = "M9"
-status = "planned"
+status = "partial"
 commands = []
-tools = []
-evidence = []
-notes = ""
+tools = ["sign_trust"]
+evidence = ["crates/engine/src/tests.rs::system_trust_validates_without_joining_the_user_list"]
+notes = "Tinta Office fork: on Windows the app and the automation tools trust Current User > Trusted Root Certification Authorities (which includes the machine roots) besides the user's list, kept apart so preferences save only the user's. Missing: macOS Keychain and Linux system roots, a preference to turn it off in the app (sign_trust system:false does it headlessly), the EU Trusted List and AATL, and roots Windows hasn't downloaded yet (automatic root update fetches them lazily)."
 
 [[feature]]
 id = "sign.verification-time"
