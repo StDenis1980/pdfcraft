@@ -429,6 +429,25 @@ fn sign_as(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
         let l = ui.label(tl!("Location"));
         ui.add(crate::widgets::line(&mut d.location).hint_text(tl!("Optional")).desired_width(260.0)).labelled_by(l.id);
         ui.end_row();
+        // Tinta Office fork: a timestamp from an RFC 3161 server (PAdES B-T), off by default.
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            ui.label(tl!("Timestamp"));
+            ui.add(widgets::checkbox(&mut d.timestamp.on, tl!("Add a timestamp from a server")));
+            ui.end_row();
+            if d.timestamp.on {
+                ui.label("");
+                ui.add(crate::widgets::line(&mut d.timestamp.url).hint_text(super::DEFAULT_TSA).desired_width(260.0));
+                ui.end_row();
+                ui.label("");
+                ui.label(
+                    egui::RichText::new(tl!("Only a fingerprint of the document is sent to the server, never the document."))
+                        .small()
+                        .color(t.text_muted),
+                );
+                ui.end_row();
+            }
+        }
         if in_os_key_store {
             ui.label("");
             ui.label(

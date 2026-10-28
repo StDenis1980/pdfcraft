@@ -74,6 +74,7 @@ mod stamps;
 mod text_select;
 mod theme;
 mod theme_button;
+mod tinta_sign_timestamp;
 mod trust_signer;
 mod ui;
 mod updates;

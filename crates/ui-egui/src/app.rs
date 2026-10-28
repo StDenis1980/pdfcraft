@@ -231,6 +231,7 @@ impl PdfCraftApp {
             signature_photo: None,
             saved_signature_previews: [None, None],
             sign_graphic: sign_ui::SignGraphic::Name,
+            sign_timestamp: Default::default(),
             sign_graphic_preview: None,
             #[cfg(target_arch = "wasm32")]
             signature_images: Default::default(),
