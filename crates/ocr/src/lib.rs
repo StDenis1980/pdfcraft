@@ -219,36 +219,72 @@ impl Ocr {
             .collect();
         let mut out = Vec::new();
         for (rects, bounds) in lines.iter().filter(|(_, b)| !lines.iter().any(|(_, other)| mark_of(*b, *other))) {
-            let (rects, bounds) = (rects.clone(), *bounds);
-            // A little room around the ink, as the model was trained with.
+            // Boxes far apart on one line (table cells, columns, a heading beside a picture) are
+            // read apart, or the model runs their words together. Each gap is read on its own too,
+            // for a word the detector missed there; empty paper reads as nothing, or as words too
+            // unsure to keep.
+            let mut words = Vec::new();
             let pad = (bounds[3] - bounds[1]) * 0.15;
-            let crop =
-                [(bounds[0] - pad).max(0.0), (bounds[1] - pad).max(0.0), (bounds[2] + pad).min(width as f32), (bounds[3] + pad).min(height as f32)];
-            let (read, per_step) = reader.read_line(&rgb, width, height, channels, crop)?;
-            let mut spans = paddle::words(&read);
-            let mut texts: Vec<String> = spans.iter().map(|s| s.text.clone()).collect();
-            paddle::tidy(&mut texts, language);
-            for (s, t) in spans.iter_mut().zip(texts) {
-                s.text = t;
+            let mut previous_right: Option<f32> = None;
+            for part in segments(rects, (bounds[3] - bounds[1]) * SEGMENT_GAP) {
+                let Some(part_bounds) = part.iter().copied().reduce(|a, b| [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])]) else {
+                    continue;
+                };
+                if let Some(right) = previous_right {
+                    // Inset by the padding, so the crop ends where the neighbouring boxes start.
+                    let gap = [right + pad, bounds[1], part_bounds[0] - pad, bounds[3]];
+                    if gap[2] > gap[0] {
+                        words.extend(self.read_segment(&reader, &rgb, (width, height, channels), Vec::new(), gap, language)?);
+                    }
+                }
+                previous_right = Some(previous_right.map_or(part_bounds[2], |r| r.max(part_bounds[2])));
+                // The line's top and bottom, so a segment of small letters keeps the line height.
+                let part_bounds = [part_bounds[0], bounds[1], part_bounds[2], bounds[3]];
+                words.extend(self.read_segment(&reader, &rgb, (width, height, channels), part, part_bounds, language)?);
             }
-            // The detected word boxes when they match the words read; else the boxes from where
-            // along the line each word was read.
-            let words: Vec<Word> = if spans.len() == rects.len() {
-                spans.into_iter().zip(rects).map(|(s, rect)| Word { text: s.text, rect }).collect()
-            } else {
-                spans
-                    .into_iter()
-                    .map(|s| Word {
-                        text: s.text,
-                        rect: [crop[0] + s.steps.0 as f32 * per_step, bounds[1], (crop[0] + s.steps.1 as f32 * per_step).min(crop[2]), bounds[3]],
-                    })
-                    .collect()
-            };
             if !words.is_empty() {
                 out.push(Line { words });
             }
         }
         Ok(out)
+    }
+
+    /// Read one run of word boxes of a line, `bounds` around them all. Words the model is
+    /// unsure of (pictures, texture and stray marks read as letters) are left out.
+    fn read_segment(
+        &self,
+        reader: &paddle::Paddle,
+        rgb: &[u8],
+        (width, height, channels): (u32, u32, usize),
+        rects: Vec<[f32; 4]>,
+        bounds: [f32; 4],
+        language: &str,
+    ) -> Result<Vec<Word>, OcrError> {
+        // A little room around the ink, as the model was trained with.
+        let pad = (bounds[3] - bounds[1]) * 0.15;
+        let crop =
+            [(bounds[0] - pad).max(0.0), (bounds[1] - pad).max(0.0), (bounds[2] + pad).min(width as f32), (bounds[3] + pad).min(height as f32)];
+        let (read, per_step) = reader.read_line(rgb, width, height, channels, crop)?;
+        let mut spans = paddle::words(&read);
+        let mut texts: Vec<String> = spans.iter().map(|s| s.text.clone()).collect();
+        paddle::tidy(&mut texts, language);
+        for (s, t) in spans.iter_mut().zip(texts) {
+            s.text = t;
+        }
+        // The detected word boxes when they match the words read; else the boxes from where
+        // along the line each word was read.
+        let boxed: Vec<(paddle::Span, [f32; 4])> = if spans.len() == rects.len() {
+            spans.into_iter().zip(rects).collect()
+        } else {
+            spans
+                .into_iter()
+                .map(|s| {
+                    let rect = [crop[0] + s.steps.0 as f32 * per_step, bounds[1], (crop[0] + s.steps.1 as f32 * per_step).min(crop[2]), bounds[3]];
+                    (s, rect)
+                })
+                .collect()
+        };
+        Ok(boxed.into_iter().filter(|(s, _)| s.score >= MIN_WORD_SCORE).map(|(s, rect)| Word { text: s.text, rect }).collect())
     }
 
     /// The image with 1 or 3 channels, as ocrs wants.
@@ -294,6 +330,32 @@ impl Ocr {
             .filter(|l| !l.words.is_empty())
             .collect())
     }
+}
+
+/// The least mean score a word read by the PaddleOCR models needs to be kept.
+const MIN_WORD_SCORE: f32 = 0.7;
+
+/// How many line heights wide a gap between word boxes must be to read the boxes either side
+/// apart. Measured on phone photos of flyers: the gaps the detector leaves inside small print
+/// (spaces, letters its boxes missed) are up to 1.25 line heights, the gaps between columns and
+/// table cells from 1.8.
+const SEGMENT_GAP: f32 = 1.5;
+
+/// Split a line's word boxes (`[left, top, right, bottom]`) into runs, left to right, wherever
+/// the gap between neighbours is wider than `min_gap`.
+fn segments(rects: &[[f32; 4]], min_gap: f32) -> Vec<Vec<[f32; 4]>> {
+    let mut sorted: Vec<[f32; 4]> = rects.iter().copied().filter(|r| r.iter().all(|v| v.is_finite())).collect();
+    sorted.sort_by(|a, b| a[0].total_cmp(&b[0]));
+    let mut out: Vec<Vec<[f32; 4]>> = Vec::new();
+    let mut right = f32::NEG_INFINITY;
+    for r in sorted {
+        match out.last_mut() {
+            Some(run) if r[0] - right <= min_gap => run.push(r),
+            _ => out.push(vec![r]),
+        }
+        right = right.max(r[2]);
+    }
+    out
 }
 
 /// Whether the line in `a` is only a mark of the larger line in `b` that detection found on its
@@ -446,6 +508,20 @@ mod tests {
         assert!(!mark_of([500.0, 190.0, 506.0, 197.0], line), "beside it, not over it");
         assert!(!mark_of(line, line), "the line itself");
         assert!(!mark_of([0.0; 4], line), "an empty box");
+    }
+
+    #[test]
+    fn a_line_is_read_apart_where_its_boxes_are_far_apart() {
+        // Words spaced 8 px, then a 60 px gutter (a second column), given out of order.
+        let (a, b, c) = ([10.0, 0.0, 50.0, 20.0], [58.0, 0.0, 90.0, 20.0], [150.0, 2.0, 200.0, 20.0]);
+        assert_eq!(segments(&[c, a, b], 30.0), [vec![a, b], vec![c]]);
+        assert_eq!(segments(&[a, b], 30.0), [vec![a, b]], "a space between words is no gutter");
+        assert_eq!(segments(&[a, c], 100.0), [vec![a, c]], "a gap as wide as the least is kept");
+        // A box inside a wider one before it is no gap.
+        let wide = [0.0, 0.0, 300.0, 20.0];
+        assert_eq!(segments(&[wide, c], 30.0), [vec![wide, c]]);
+        assert!(segments(&[], 30.0).is_empty());
+        assert!(segments(&[[f32::NAN, 0.0, 1.0, 1.0]], 30.0).is_empty(), "boxes that are not numbers are dropped");
     }
 
     #[test]
@@ -642,9 +718,37 @@ mod tests {
         assert!(word.rect[0] >= 10.0 && word.rect[0] < 60.0, "{word:?}");
     }
 
+    #[test]
+    fn columns_on_one_line_are_read_as_separate_words() {
+        let Some(models) = Models::find() else {
+            eprintln!("skipped: OCR models not installed");
+            return;
+        };
+        let ocr = Ocr::load(&models).unwrap();
+        // Two columns, a gutter of eight letters between them.
+        let (w, h, px) = test_image::text("HELLO        WORLD");
+        let lines = match ocr.recognize_language(&px, w, h, "es") {
+            Err(OcrError::NoModels) => {
+                eprintln!("skipped: the Latin model is not installed");
+                return;
+            }
+            other => other.unwrap(),
+        };
+        let words: Vec<&str> = lines.iter().flat_map(|l| &l.words).map(|w| w.text.as_str()).collect();
+        assert!(words.iter().any(|w| w.starts_with("HELL")) && words.iter().any(|w| w.starts_with("WOR")), "{words:?}");
+        assert!(!words.iter().any(|w| w.contains("HELL") && w.contains("WOR")), "the columns ran together: {words:?}");
+        let hello = lines.iter().flat_map(|l| &l.words).find(|w| w.text.starts_with("HELL")).unwrap();
+        assert!(hello.rect[2] < (40 + 5 * 24) as f32 + 10.0, "the first column's box ends at its own text: {hello:?}");
+    }
+
     mod test_image {
         /// "HELLO WORLD" drawn with blocky 5×7 letters, 4 pixels per dot, black on white.
         pub fn hello() -> (u32, u32, Vec<u8>) {
+            text("HELLO WORLD")
+        }
+
+        /// `text` (the letters of "HELLO WORLD" and spaces) drawn as [`hello`] draws it.
+        pub fn text(text: &str) -> (u32, u32, Vec<u8>) {
             const GLYPHS: &[(char, [&str; 7])] = &[
                 ('H', ["X...X", "X...X", "X...X", "XXXXX", "X...X", "X...X", "X...X"]),
                 ('E', ["XXXXX", "X....", "X....", "XXXX.", "X....", "X....", "XXXXX"]),
@@ -654,7 +758,6 @@ mod tests {
                 ('R', ["XXXX.", "X...X", "X...X", "XXXX.", "X.X..", "X..X.", "X...X"]),
                 ('D', ["XXXX.", "X...X", "X...X", "X...X", "X...X", "X...X", "XXXX."]),
             ];
-            let text = "HELLO WORLD";
             let (dot, x0, y0) = (4u32, 40u32, 40u32);
             let (w, h) = (x0 * 2 + text.len() as u32 * 6 * dot, y0 * 2 + 7 * dot);
             let mut px = vec![255u8; (w * h * 4) as usize];
