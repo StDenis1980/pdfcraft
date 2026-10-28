@@ -56,11 +56,13 @@ pub struct Paddle {
     classes: Vec<String>,
 }
 
-/// One recognised character and the time step it was read at.
+/// One recognised character, the time step it was read at and the model's score for it (its
+/// probability, 0–1).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Read {
     pub text: String,
     pub step: usize,
+    pub score: f32,
 }
 
 /// Class index → text for a dictionary (one entry per line).
@@ -83,44 +85,49 @@ pub fn decode(scores: &[f32], steps: usize, classes: &[String]) -> Vec<Read> {
     for step in 0..steps {
         let Some(row) = scores.get(step.saturating_mul(n)..step.saturating_add(1).saturating_mul(n)) else { break };
         // NaN scores never win.
-        let best = row.iter().enumerate().fold((0, f32::NEG_INFINITY), |b, (i, v)| if *v > b.1 { (i, *v) } else { b }).0;
+        let (best, score) = row.iter().enumerate().fold((0, f32::NEG_INFINITY), |b, (i, v)| if *v > b.1 { (i, *v) } else { b });
         if best != 0
             && best != last
             && let Some(text) = classes.get(best)
         {
-            out.push(Read { text: text.clone(), step });
+            out.push(Read { text: text.clone(), step, score: score.clamp(0.0, 1.0) });
         }
         last = best;
     }
     out
 }
 
-/// A word of a decoded line: its text and the time steps it spans, end exclusive.
+/// A word of a decoded line: its text, the time steps it spans (end exclusive) and the mean
+/// score of its characters.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Span {
     pub text: String,
     pub steps: (usize, usize),
+    pub score: f32,
 }
 
 /// Split a decoded line at its spaces.
 pub fn words(read: &[Read]) -> Vec<Span> {
-    let mut out: Vec<Span> = Vec::new();
-    let mut current: Option<Span> = None;
+    // Each word with the sum and count of its characters' scores.
+    let mut out: Vec<(Span, f32, usize)> = Vec::new();
+    let mut current: Option<(Span, f32, usize)> = None;
     for r in read {
         if r.text.trim().is_empty() {
             out.extend(current.take());
             continue;
         }
         match current.as_mut() {
-            Some(s) => {
+            Some((s, sum, n)) => {
                 s.text.push_str(&r.text);
                 s.steps.1 = r.step.saturating_add(1);
+                *sum += r.score;
+                *n = n.saturating_add(1);
             }
-            None => current = Some(Span { text: r.text.clone(), steps: (r.step, r.step.saturating_add(1)) }),
+            None => current = Some((Span { text: r.text.clone(), steps: (r.step, r.step.saturating_add(1)), score: 0.0 }, r.score, 1)),
         }
     }
     out.extend(current);
-    out
+    out.into_iter().map(|(s, sum, n)| Span { score: sum / n.max(1) as f32, ..s }).collect()
 }
 
 /// Latin letters a Cyrillic model also knows that look the same as Cyrillic ones, and the
@@ -285,7 +292,25 @@ mod tests {
         let c = classes("J\no\ns\né").unwrap();
         // J o s é _ space _ J o
         let read = decode(&scores(&[1, 2, 3, 4, 0, 5, 0, 1, 2], c.len()), 9, &c);
-        assert_eq!(words(&read), [Span { text: "José".into(), steps: (0, 4) }, Span { text: "Jo".into(), steps: (7, 9) }]);
+        let spans = words(&read);
+        let got: Vec<_> = spans.iter().map(|s| (s.text.as_str(), s.steps)).collect();
+        assert_eq!(got, [("José", (0, 4)), ("Jo", (7, 9))]);
+        assert!(spans.iter().all(|s| (s.score - 0.9).abs() < 1e-5), "{spans:?}");
+    }
+
+    #[test]
+    fn a_word_scores_the_mean_of_its_characters() {
+        let c = classes("a\nb").unwrap();
+        // a b _ a: one word, with b read at 0.3 and the rest at 0.9.
+        let mut s = scores(&[1, 2, 0, 1], c.len());
+        if let Some(v) = s.get_mut(c.len() + 2) {
+            *v = 0.3;
+        }
+        let read = decode(&s, 4, &c);
+        assert_eq!(read.iter().map(|r| r.score).collect::<Vec<_>>(), [0.9, 0.3, 0.9]);
+        let spans = words(&read);
+        assert_eq!(spans.len(), 1, "{spans:?}");
+        assert!(spans.iter().all(|s| (s.score - 0.7).abs() < 1e-5), "{spans:?}");
     }
 
     #[test]
