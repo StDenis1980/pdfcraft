@@ -6191,9 +6191,9 @@ tier = "P1"
 milestone = "M9"
 status = "partial"
 commands = []
-tools = []
-evidence = ["crates/sign/tests/it/pdf.rs::a_document_timestamp_covers_the_file_and_validates"]
-notes = "timestamp_document appends a standalone /ETSI.RFC3161 signature dictionary over the whole file; validation discovers and verifies these (imprint, token signature, TSA cert validity) and reports the trusted time. Missing: automation tool and timestamp-server configuration (transport is caller-injected)."
+tools = ["sign_timestamp"]
+evidence = ["crates/sign/tests/it/pdf.rs::a_document_timestamp_covers_the_file_and_validates", "crates/automation/tests/tinta_tsa.rs::a_document_timestamp_is_added_and_validates"]
+notes = "timestamp_document appends a standalone /ETSI.RFC3161 signature dictionary over the whole file; validation discovers and verifies these (imprint, token signature, TSA cert validity) and reports the trusted time. Tinta Office fork: the sign_timestamp tool asks a server given by address. Missing: the app's command and a timestamp-server preference."
 
 [[feature]]
 id = "sign.timestamp-servers"
@@ -6215,9 +6215,9 @@ tier = "P1"
 milestone = "M9"
 status = "partial"
 commands = []
-tools = []
-evidence = ["crates/sign/tests/it/pdf.rs::signing_with_a_timestamp_embeds_a_verified_rfc3161_token"]
-notes = "Sign with an embedded RFC 3161 token (sign_with_timestamp): imprint and TSA signature verified at signing and validation time, trusted time reported. Missing: timestamp-server configuration and a fetcher (transport is caller-injected), the standalone document timestamp, automation tool."
+tools = ["sign_document"]
+evidence = ["crates/sign/tests/it/pdf.rs::signing_with_a_timestamp_embeds_a_verified_rfc3161_token", "crates/automation/tests/tinta_tsa.rs::a_signature_with_a_timestamp_server_carries_its_time", "crates/platform/src/tsa.rs::posts_the_query_and_returns_the_reply"]
+notes = "Sign with an embedded RFC 3161 token (sign_with_timestamp): imprint and TSA signature verified at signing and validation time, trusted time reported. Tinta Office fork: sign_document takes a tsa server address, reached over HTTP(S) by pdfcraft_platform::tsa only when given (tested against a loopback server). Missing: the sign dialog's timestamp option and a timestamp-server preference in the app, tests against real public servers."
 
 [[feature]]
 id = "sign.ltv"

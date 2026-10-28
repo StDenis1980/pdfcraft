@@ -4538,7 +4538,9 @@ version = "0.14.0"
 dependencies = [
  "async-channel",
  "futures-lite",
+ "pdfcraft-sign",
  "rustix 1.1.5",
+ "ureq",
  "zbus",
 ]
 

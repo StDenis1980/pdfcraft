@@ -9,6 +9,12 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+pdfcraft-sign = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# Tinta Office fork: the timestamp server transport (tsa.rs). Already in the dependency graph,
+# with these features, through the update check (craft-update).
+ureq = { version = "3.4", default-features = false, features = ["rustls-no-provider", "_ring", "platform-verifier"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # `write_atomically`: a volume that refuses F_FULLFSYNC gets a plain fsync.

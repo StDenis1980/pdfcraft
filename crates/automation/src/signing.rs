@@ -197,6 +197,8 @@ impl Automation {
     }
 
     pub(crate) fn sign_document(&mut self, a: &Args) -> Result<Value> {
+        // A bad server address is refused before the digital ID is opened.
+        let tsa = a.opt_str("tsa")?.map(timestamp_server).transpose()?;
         let id = self.open_id(a)?;
         let doc = self.doc(a)?;
         let doc_id = doc.id;
@@ -258,7 +260,11 @@ impl Automation {
             graphic,
             ..SignOptions::default()
         };
-        let signed = self.session.sign(doc_id, &id, opts).map_err(|e| match e {
+        let signed = match &tsa {
+            Some(tsa) => self.session.sign_with_timestamp(doc_id, &id, opts, tsa),
+            None => self.session.sign(doc_id, &id, opts),
+        };
+        let signed = signed.map_err(|e| match e {
             // A graphic the signer refuses is the caller's to fix.
             pdfcraft_engine::EditError::Sign(m) if m.starts_with("the signature graphic") => bad(m),
             e => failed(e),
@@ -269,6 +275,21 @@ impl Automation {
         let doc = self.doc(a)?;
         let newest = doc.signatures.iter().filter(|s| s.signed).max_by_key(|s| s.revision).cloned();
         Ok(json!({ "path": path, "bytes": signed.len(), "signature": newest.map(|s| self.sig_json(a, &s)).transpose()? }))
+    }
+
+    /// Tinta Office fork: add a document timestamp (RFC 3161, `/ETSI.RFC3161`) from the server
+    /// at `tsa` over the document as it is, and save the result to `out`.
+    pub(crate) fn sign_timestamp(&mut self, a: &Args) -> Result<Value> {
+        let tsa = timestamp_server(a.str("tsa")?)?;
+        let doc_id = self.doc(a)?.id;
+        let out = self.resolve(a.str("out")?, true)?;
+        let stamped = self.session.timestamp_document(doc_id, &tsa, String::new()).map_err(failed)?;
+        write_atomic(&out, &stamped)?;
+        let path = out.to_string_lossy().into_owned();
+        self.session.mark_signed(doc_id, stamped.clone(), Some(path.clone())).map_err(failed)?;
+        let doc = self.doc(a)?;
+        let newest = doc.signatures.iter().filter(|s| s.signed).max_by_key(|s| s.revision).cloned();
+        Ok(json!({ "path": path, "bytes": stamped.len(), "timestamp": newest.map(|s| self.sig_json(a, &s)).transpose()? }))
     }
 
     /// `{"image": path}` (PNG or JPEG), `{"text": name}` (typed in the script font) or
@@ -337,4 +358,11 @@ impl Automation {
         self.session.set_trusted_certificates(certs);
         Ok(json!({ "trusted": self.session.trusted_certificates().iter().map(cert_json).collect::<Vec<_>>() }))
     }
+}
+
+/// Tinta Office fork: the RFC 3161 server at `url`, reached over the network only when a
+/// signature or timestamp asks for it.
+fn timestamp_server(url: &str) -> Result<pdfcraft_platform::tsa::HttpTsa> {
+    let agent = format!("{}/{}", pdfcraft_engine::brand::NAME.replace(' ', ""), env!("CARGO_PKG_VERSION"));
+    pdfcraft_platform::tsa::HttpTsa::new(url, &agent).map_err(|e| bad(e.to_string()))
 }
