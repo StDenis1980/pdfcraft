@@ -2828,3 +2828,4 @@ theme	Appearance	Aspecte
 	Add a timestamp from a server	Afegeix una marca de temps d'un servidor
 	Only a fingerprint of the document is sent to the server, never the document.	Només s'envia al servidor una empremta del document, mai el document.
 	Timestamps need the desktop app.	Les marques de temps necessiten l'aplicació d'escriptori.
+	ID number (NIF)	Número d'identificació (NIF)

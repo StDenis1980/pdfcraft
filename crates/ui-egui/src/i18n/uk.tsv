@@ -2588,3 +2588,4 @@ animation effects	Off	Вимкнено
 	Add a timestamp from a server	Додати позначку часу із сервера
 	Only a fingerprint of the document is sent to the server, never the document.	На сервер надсилається лише відбиток документа, а не сам документ.
 	Timestamps need the desktop app.	Позначки часу доступні лише в програмі для комп'ютера.
+	ID number (NIF)	Ідентифікаційний номер (NIF)

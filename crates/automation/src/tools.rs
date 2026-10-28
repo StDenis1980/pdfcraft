@@ -812,6 +812,7 @@ pub fn tools() -> Vec<ToolDef> {
                             "location": { "type": "boolean", "description": "Default false." },
                             "distinguished_name": { "type": "boolean", "description": "Default false." },
                             "labels": { "type": "boolean", "description": "Default true." },
+                            "id_number": { "type": "boolean", "description": "Keep a Spanish ID number (NIF, DNI, NIE) that the certificate's common name carries in the name shown. Default false." },
                         },
                         "additionalProperties": false,
                     },

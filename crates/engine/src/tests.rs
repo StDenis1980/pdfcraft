@@ -425,7 +425,8 @@ fn visible_signatures_keep_displayed_orientation_on_rotated_pages() {
     let digital_id = sign::pkcs12::open(&p12, "test").unwrap();
     let picture = image::load_from_memory(&quadrant_png()).unwrap().to_rgba8();
     let graphic = sign::Graphic::Image { width: picture.width(), height: picture.height(), rgba: Arc::new(picture.into_raw()) };
-    let bare = sign::Appearance { name: false, date: false, reason: false, location: false, distinguished_name: false, labels: false };
+    let bare =
+        sign::Appearance { name: false, date: false, reason: false, location: false, distinguished_name: false, labels: false, id_number: false };
     for degrees in [0, 90, 180, 270] {
         // After the test certificate's start date (2026-10-02).
         let mut session = Session::new().with_clock(|| 1_800_000_000);

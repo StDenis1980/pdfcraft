@@ -12,6 +12,42 @@ const O: &str = "2.5.4.10";
 const OU: &str = "2.5.4.11";
 const EMAIL: &str = "1.2.840.113549.1.9.1";
 
+/// Tinta Office fork: `name` without a Spanish personal or tax ID number (NIF, DNI, NIE, CIF),
+/// which qualified certificates put in the common name ("GARCIA LOPEZ ANA - 12345678Z",
+/// "ANA GARCIA LOPEZ - NIF:12345678Z"). Parts of the name split by " - " that are only such a
+/// number, with or without an "NIF", "DNI", "NIE" or "IDCES-" prefix, are left out; anything
+/// else is kept as it is. A name that is nothing but a number is returned unchanged.
+pub fn without_id_number(name: &str) -> String {
+    let kept: Vec<&str> = name.split(" - ").filter(|part| !is_id_number(part)).collect();
+    let joined = kept.join(" - ").trim().trim_end_matches([',', '-']).trim().to_string();
+    if joined.is_empty() { name.to_string() } else { joined }
+}
+
+/// A Spanish DNI (8 digits and a letter), NIE (X, Y or Z, 7 digits and a letter) or CIF (a
+/// letter, 7 digits and a digit or letter), possibly after a label.
+fn is_id_number(part: &str) -> bool {
+    let mut s = part.trim();
+    for prefix in ["IDCES-", "NIF:", "NIF", "DNI:", "DNI", "NIE:", "NIE"] {
+        if let Some(head) = s.get(..prefix.len())
+            && head.eq_ignore_ascii_case(prefix)
+            && let Some(rest) = s.get(prefix.len()..)
+        {
+            s = rest.trim_start_matches([' ', ':']);
+            break;
+        }
+    }
+    let [first, middle @ .., last] = s.as_bytes() else { return false };
+    if middle.len() != 7 || !s.bytes().all(|c| c.is_ascii_alphanumeric()) {
+        return false;
+    }
+    let (first, last) = (first.to_ascii_uppercase(), *last);
+    let digits = |x: &[u8]| x.iter().all(u8::is_ascii_digit);
+    let dni = first.is_ascii_digit() && digits(middle) && last.is_ascii_alphabetic();
+    let nie = matches!(first, b'X' | b'Y' | b'Z') && digits(middle) && last.is_ascii_alphabetic();
+    let cif = first.is_ascii_alphabetic() && digits(middle) && last.is_ascii_alphanumeric();
+    dni || nie || cif
+}
+
 /// A distinguished name: (attribute OID, value) in order.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Name {
