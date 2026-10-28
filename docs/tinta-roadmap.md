@@ -39,7 +39,7 @@ the most ready apps), **3** = 2027 (1.0). Dates are indicative.
 | Our changes upstream | 1 | Offer storytold the configurable brand, Presenta's translations, the codec feature flag and the ca/gl/eu catalogs (craft-i18n#53), so the fork stays small. |
 | GitHub Actions | 1 | GitHub disabled Actions in pdfcraft, wordcraft and deckcraft; ask GitHub Support. Until then, run the gates locally. |
 | Releases | 1 | A preview every month for all five apps, release notes in es/uk/en, one build script. |
-| Linux | 1 | AppImage + .deb with Tinta names for all five (built in the cloud); Flatpak in stage 2. |
+| Linux | 1 | AppImage + .deb with Tinta names for all five (built in the cloud); Flatpak in stage 2. **PDF: test build done 2026-10-28** (`packaging/linux/package.sh` already applies the Tinta identity). Built in the cloud with `cargo zigbuild --target x86_64-unknown-linux-gnu.2.35` so it runs on glibc 2.35 and newer (Ubuntu 22.04+, Debian 12+, Fedora 36+), then `package.sh --skip-build` with `CROSS_TARGET=x86_64-unknown-linux-gnu`; the .deb installs, finds the OCR models and the AppImage opens (checked under Xvfb). On X11 the app needs libxkbcommon-x11 (now recommended by the packages). |
 | Windows installers | 1 | Desktop shortcuts for Texto and Calculo; Presenta registered for .pptx. |
 | Code signing | 2 | Windows (Certum Open Source or Azure Trusted Signing; scripts exist), macOS (Apple Developer + notarization). Owner decision and payment. |
 | Automated tests | 1–2 | Coverage audit per app; tests for every fork change (brand, languages, installers); a smoke test of each release installer on Windows; investigate the flaky tests upstream. |

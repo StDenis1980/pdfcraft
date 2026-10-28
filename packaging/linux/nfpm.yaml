@@ -40,6 +40,7 @@ overrides:
       - libwayland-client0
       - libx11-6
       - libx11-xcb1
+      - libxkbcommon-x11-0
       - libxcursor1
       - libxi6
       - libxrandr2
@@ -61,6 +62,7 @@ overrides:
       - libwayland-client
       - libX11
       - libXcursor
+      - libxkbcommon-x11
       - libXi
       - libXrandr
       - mesa-vulkan-drivers
