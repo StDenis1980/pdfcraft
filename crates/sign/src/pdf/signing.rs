@@ -12,11 +12,15 @@ pub struct Appearance {
     pub location: bool,
     pub distinguished_name: bool,
     pub labels: bool,
+    /// Tinta Office fork: keep a Spanish ID number (NIF, DNI, NIE) that the certificate puts in
+    /// its common name in the signer's name shown (off: [`crate::x509::without_id_number`]).
+    /// The certificate itself, and so validation, always has it.
+    pub id_number: bool,
 }
 
 impl Default for Appearance {
     fn default() -> Self {
-        Self { name: true, date: true, reason: false, location: false, distinguished_name: false, labels: true }
+        Self { name: true, date: true, reason: false, location: false, distinguished_name: false, labels: true, id_number: false }
     }
 }
 
@@ -439,6 +443,8 @@ fn appearance(doc: &mut Document, rect: [f64; 4], turn: i64, name: &str, cert: &
     // The upright layout box: a quarter turn swaps its sides.
     let (w, h) = if turn % 180 == 0 { (rw, rh) } else { (rh, rw) };
     let a = &opts.appearance;
+    let shown_name = if a.id_number { name.to_string() } else { crate::x509::without_id_number(name) };
+    let name = shown_name.as_str();
     let dn = cert.subject.display();
     let mut needs_unicode = false;
     if w > 1.0 && h > 1.0 {

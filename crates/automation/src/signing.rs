@@ -23,7 +23,7 @@ const MAX_LABEL_CHARS: usize = 200;
 /// `appearance`: which items the visible signature shows; those not given keep the default
 /// (name, date and labels on; reason, location and distinguished name off).
 fn appearance_arg(v: &Value) -> Result<sign::Appearance> {
-    const KEYS: &str = "name, date, reason, location, distinguished_name, labels";
+    const KEYS: &str = "name, date, reason, location, distinguished_name, labels, id_number";
     let o = v.as_object().ok_or_else(|| bad(format!("appearance must be an object of true/false items ({KEYS})")))?;
     let mut shown = sign::Appearance::default();
     for (key, value) in o {
@@ -35,6 +35,7 @@ fn appearance_arg(v: &Value) -> Result<sign::Appearance> {
             "location" => &mut shown.location,
             "distinguished_name" => &mut shown.distinguished_name,
             "labels" => &mut shown.labels,
+            "id_number" => &mut shown.id_number,
             other => return Err(bad(format!("unknown appearance item {other:?} ({KEYS})"))),
         };
         *item = on;

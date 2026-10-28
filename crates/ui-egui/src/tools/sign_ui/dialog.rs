@@ -363,8 +363,10 @@ fn sign_as(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
         ui.label(egui::RichText::new(tl!("Appearance")).font(theme::semibold(12.5)));
         let graphic = graphic_of(app.signature.as_ref(), &d.graphic);
         let (labels, in_english) = appearance_labels(crate::i18n::current());
-        let lines = detail_lines(&d.appearance, &labels, &entry.name, &d.reason, &d.location, &date);
-        preview(ui, t, &entry.name, &d.appearance, &lines, graphic.as_ref(), &mut app.sign_graphic_preview);
+        // The name as signing draws it (Tinta Office fork: without a Spanish ID number unless kept).
+        let shown_name = if d.appearance.id_number { entry.name.clone() } else { sign::x509::without_id_number(&entry.name) };
+        let lines = detail_lines(&d.appearance, &labels, &shown_name, &d.reason, &d.location, &date);
+        preview(ui, t, &shown_name, &d.appearance, &lines, graphic.as_ref(), &mut app.sign_graphic_preview);
         if in_english && d.appearance.labels {
             ui.label(
                 egui::RichText::new(tl!("The labels are in English: the signature's font can't draw them in this language."))
@@ -380,6 +382,10 @@ fn sign_as(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
             ui.add(widgets::checkbox(&mut a.location, tl!("Location")));
             ui.add(widgets::checkbox(&mut a.distinguished_name, tl!("Distinguished name")));
             ui.add(widgets::checkbox(&mut a.labels, tl!("Labels")));
+            // Tinta Office fork: only offered when the name carries one.
+            if sign::x509::without_id_number(&entry.name) != entry.name {
+                ui.add(widgets::checkbox(&mut a.id_number, tl!("ID number (NIF)")));
+            }
         });
         // Acrobat: Configure Signature Appearance, Text, Draw or Image.
         ui.horizontal_wrapped(|ui| {

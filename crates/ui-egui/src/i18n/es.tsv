@@ -2889,3 +2889,4 @@ theme	Appearance	Aspecto
 	Add a timestamp from a server	Añadir una marca de tiempo de un servidor
 	Only a fingerprint of the document is sent to the server, never the document.	Solo se envía al servidor una huella del documento, nunca el documento.
 	Timestamps need the desktop app.	Las marcas de tiempo requieren la aplicación de escritorio.
+	ID number (NIF)	Número de identificación (NIF)

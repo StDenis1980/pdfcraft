@@ -427,7 +427,7 @@ fn visible_signatures_show_a_drawn_typed_or_image_graphic() {
         assert_eq!(im.dict.get(b"SMask").is_some(), translucent);
     }
     // With no text at all, the graphic has the whole box (194 x 44): 176 x 44, centred.
-    let bare = Appearance { name: false, date: false, reason: false, location: false, distinguished_name: false, labels: false };
+    let bare = Appearance { name: false, date: false, reason: false, location: false, distinguished_name: false, labels: false, id_number: false };
     let signed = pdfcraft_sign::sign(&open(&fixture()), &id, &SignOptions { graphic: Some(picture(false)), appearance: bare, ..opts() }).unwrap();
     assert!(appearance_of(&signed, "Signature1").0.contains("q 176 0 0 44 12 3 cm /Im1 Do Q"));
     // An invisible signature has nothing to show: no image is embedded.
@@ -2940,4 +2940,39 @@ fn signing_a_field_with_a_null_value_after_another_signature_keeps_the_first_val
         "{:?}",
         all.iter().map(|s| (&s.status, &s.modification)).collect::<Vec<_>>()
     );
+}
+
+/// Tinta Office fork: Spanish qualified certificates carry the holder's NIF in the common name;
+/// the visible signature leaves it out unless `id_number` keeps it.
+#[test]
+fn the_shown_name_leaves_out_a_spanish_id_number_unless_kept() {
+    use pdfcraft_sign::x509::without_id_number;
+    for (cn, shown) in [
+        ("GARCIA LOPEZ ANA - 12345678Z", "GARCIA LOPEZ ANA"),
+        ("ANA GARCIA LOPEZ - NIF:12345678Z", "ANA GARCIA LOPEZ"),
+        ("ANA GARCIA LOPEZ - NIF 12345678Z", "ANA GARCIA LOPEZ"),
+        ("JOHN SMITH - X1234567L", "JOHN SMITH"),
+        ("EMPRESA SL - B12345678 - ANA GARCIA", "EMPRESA SL - ANA GARCIA"),
+        ("ANA GARCIA - IDCES-12345678Z", "ANA GARCIA"),
+        // Not ID numbers, or nothing else: kept.
+        ("Ada Lovelace", "Ada Lovelace"),
+        ("Studio - Sales 2026", "Studio - Sales 2026"),
+        ("12345678Z", "12345678Z"),
+        ("ÁNGEL - 1234567890", "ÁNGEL - 1234567890"),
+        ("", ""),
+    ] {
+        assert_eq!(without_id_number(cn), shown, "{cn:?}");
+    }
+    let key = pdfcraft_sign::PrivateKey::generate_p256().unwrap();
+    let name = pdfcraft_sign::Name::build("GARCIA LOPEZ ANA - 12345678Z", "", "", "", "ES");
+    let from = pdfcraft_sign::Time { year: 2026, month: 10, day: 2, hour: 0, minute: 0, second: 0 };
+    let certificate = pdfcraft_sign::Certificate::self_signed(&name, &key, from, 5, &[7]).unwrap();
+    let id = DigitalId { key, certificate, chain: Vec::new(), friendly_name: None };
+    let signed = pdfcraft_sign::sign(&open(&fixture()), &id, &opts()).unwrap();
+    let (content, _) = appearance_of(&signed, "Signature1");
+    assert!(content.contains("GARCIA") && !content.contains("12345678Z"), "{content}");
+    let kept = pdfcraft_sign::Appearance { id_number: true, ..pdfcraft_sign::Appearance::default() };
+    let signed = pdfcraft_sign::sign(&open(&fixture()), &id, &SignOptions { appearance: kept, ..opts() }).unwrap();
+    let (content, _) = appearance_of(&signed, "Signature1");
+    assert!(content.contains("12345678Z"), "{content}");
 }
