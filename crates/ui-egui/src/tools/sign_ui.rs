@@ -24,6 +24,25 @@ pub(crate) use dialog::{appearance_labels, dialog};
 pub(crate) use panel::{CertAction, banner, cert_viewer, panel, signature_status_style};
 pub use panel::{CertTab, CertViewer, PanelAction, certificate_pem};
 
+/// Tinta Office fork: whether signatures get a timestamp (PAdES B-T) and from which RFC 3161
+/// server. Remembered across signings; off by default, since it reaches the network.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct SignTimestamp {
+    pub on: bool,
+    pub url: String,
+}
+
+/// The suggested server: ACCV's, the Valencian public certification authority's (free, on the EU
+/// trusted list).
+pub const DEFAULT_TSA: &str = "http://tss.accv.es:8318/tsa";
+
+impl Default for SignTimestamp {
+    fn default() -> Self {
+        Self { on: false, url: DEFAULT_TSA.to_string() }
+    }
+}
+
 /// A digital ID the app knows about (Acrobat: Digital ID files). The file stays where it is;
 /// its password is asked for at each signing.
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -124,6 +143,8 @@ pub struct SignDraft {
     pub error: Option<String>,
     /// Sign with a Digital ID ▸ Remove was clicked for this list entry: asking to confirm.
     pub confirm_remove: Option<usize>,
+    /// Tinta Office fork: add a timestamp from this server.
+    pub timestamp: SignTimestamp,
 }
 
 impl SignDraft {
@@ -146,6 +167,7 @@ impl SignDraft {
             new_id: NewIdDraft::default(),
             error: None,
             confirm_remove: None,
+            timestamp: SignTimestamp::default(),
         }
     }
 }
@@ -244,6 +266,21 @@ fn save_new_id_file(dir: &std::path::Path, stem: &str, p12: &[u8]) -> std::io::R
 }
 
 /// A Keychain identity by its `keychain:` reference.
+/// Tinta Office fork: the timestamp server a signing asks, when it asks one.
+fn timestamp_server(t: &SignTimestamp) -> Result<Option<Box<dyn sign::TimestampAuthority + Send>>, String> {
+    if !t.on {
+        return Ok(None);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let agent = format!("{}/{}", pdfcraft_engine::brand::NAME.replace(' ', ""), env!("CARGO_PKG_VERSION"));
+        let tsa = pdfcraft_platform::tsa::HttpTsa::new(&t.url, &agent).map_err(|e| e.to_string())?;
+        Ok(Some(Box::new(tsa)))
+    }
+    #[cfg(target_arch = "wasm32")]
+    Err(crate::i18n::t("Timestamps need the desktop app.").to_string())
+}
+
 fn keychain_id(reference: &str) -> Result<DigitalId, String> {
     #[cfg(target_os = "macos")]
     return sign::keychain::find(reference).map_err(|e| e.to_string());
@@ -301,6 +338,7 @@ impl PdfCraftApp {
         if let SignGraphic::Image(image) = &self.sign_graphic {
             draft.image = Some(image.clone());
         }
+        draft.timestamp = self.sign_timestamp.clone();
         self.sign_draft = Some(draft);
         self.dialog = Some(crate::Dialog::Sign);
     }
@@ -452,6 +490,8 @@ impl PdfCraftApp {
             _ => None,
         };
         let choice = d.graphic.clone();
+        let stamp = d.timestamp.clone();
+        let tsa = timestamp_server(&stamp)?;
         let opts = SignOptions {
             field: d.field.clone(),
             page: d.page,
@@ -477,7 +517,13 @@ impl PdfCraftApp {
             if !app.commit_typing_in(doc_id) {
                 return Err(String::new());
             }
-            let signed = app.session.sign(doc_id, &id, opts).map_err(|e| e.to_string())?;
+            // The timestamp server is asked here, after the save was chosen (it waits for the
+            // reply, at most 30 seconds).
+            let signed = match &tsa {
+                Some(tsa) => app.session.sign_with_timestamp(doc_id, &id, opts, tsa.as_ref()),
+                None => app.session.sign(doc_id, &id, opts),
+            }
+            .map_err(|e| e.to_string())?;
             crate::editing::write_atomically(&path.to_string_lossy(), signed.as_slice()).map_err(|e| format!("Could not save: {e}"))?;
             // Our own write is not a change on disk to reload (#431).
             #[cfg(not(target_arch = "wasm32"))]
@@ -486,6 +532,7 @@ impl PdfCraftApp {
             #[cfg(target_os = "macos")]
             crate::macos_association::repair(&path);
             app.sign_graphic = choice;
+            app.sign_timestamp = stamp;
             if let Some(view) = app.views.iter_mut().find(|v| v.id == doc_id) {
                 view.invalidate_content();
             }

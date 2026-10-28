@@ -2825,3 +2825,6 @@ theme	Appearance	Aspecte
 	Rotate the selected pages clockwise	Gira les pàgines seleccionades en sentit horari
 	Extract the selected pages…	Extreu les pàgines seleccionades…
 	Delete the selected pages	Suprimeix les pàgines seleccionades
+	Add a timestamp from a server	Afegeix una marca de temps d'un servidor
+	Only a fingerprint of the document is sent to the server, never the document.	Només s'envia al servidor una empremta del document, mai el document.
+	Timestamps need the desktop app.	Les marques de temps necessiten l'aplicació d'escriptori.

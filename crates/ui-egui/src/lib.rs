@@ -39,7 +39,7 @@ pub mod marks {
 pub use create_ui::Clip;
 pub use link_ui::LinkDraft;
 pub use optimize_ui::{OptimizeDraft, OptimizeTab};
-pub use sign_ui::{DigitalIdEntry, SignDraft, SignGraphic, SignStep};
+pub use sign_ui::{DigitalIdEntry, SignDraft, SignGraphic, SignStep, SignTimestamp};
 mod bidi;
 mod dialogs;
 pub use edit_text_ui::CropMode;
@@ -579,6 +579,8 @@ pub struct PdfCraftApp {
     pub(crate) saved_signature_previews: [Option<(fill_sign::SavedSig, egui::TextureHandle)>; 2],
     /// What visible digital signatures show on their left, and its preview in Sign as.
     pub sign_graphic: sign_ui::SignGraphic,
+    /// Tinta Office fork: the Sign as dialog's timestamp choice, remembered.
+    pub sign_timestamp: sign_ui::SignTimestamp,
     pub(crate) sign_graphic_preview: Option<(fill_sign::SavedSig, egui::TextureHandle)>,
     #[cfg(target_arch = "wasm32")]
     pub(crate) signature_images: fill_sign::ImageInbox,

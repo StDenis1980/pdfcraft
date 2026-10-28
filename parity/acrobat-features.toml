@@ -6216,8 +6216,8 @@ milestone = "M9"
 status = "partial"
 commands = []
 tools = ["sign_document"]
-evidence = ["crates/sign/tests/it/pdf.rs::signing_with_a_timestamp_embeds_a_verified_rfc3161_token", "crates/automation/tests/tinta_tsa.rs::a_signature_with_a_timestamp_server_carries_its_time", "crates/platform/src/tsa.rs::posts_the_query_and_returns_the_reply"]
-notes = "Sign with an embedded RFC 3161 token (sign_with_timestamp): imprint and TSA signature verified at signing and validation time, trusted time reported. Tinta Office fork: sign_document takes a tsa server address, reached over HTTP(S) by pdfcraft_platform::tsa only when given (tested against a loopback server). Missing: the sign dialog's timestamp option and a timestamp-server preference in the app, tests against real public servers."
+evidence = ["crates/sign/tests/it/pdf.rs::signing_with_a_timestamp_embeds_a_verified_rfc3161_token", "crates/automation/tests/tinta_tsa.rs::a_signature_with_a_timestamp_server_carries_its_time", "crates/platform/src/tsa.rs::posts_the_query_and_returns_the_reply", "crates/ui-egui/tests/it/tinta_sign_timestamp.rs::signing_with_a_timestamp_server_embeds_its_token_and_remembers_it"]
+notes = "Sign with an embedded RFC 3161 token (sign_with_timestamp): imprint and TSA signature verified at signing and validation time, trusted time reported. Tinta Office fork: sign_document takes a tsa server address, reached over HTTP(S) by pdfcraft_platform::tsa only when given; the Sign as dialog has a Timestamp checkbox and server (ACCV by default, remembered with the preferences). Checked by hand 2026-10-28 against ACCV, DigiCert and FreeTSA with an ACCV certificate. Missing: the dialog waits for the server on the UI thread (up to 30 s), no list of known servers, no authenticated servers."
 
 [[feature]]
 id = "sign.ltv"

@@ -2813,3 +2813,6 @@ theme	Appearance	Itxura
 	Rotate the selected pages clockwise	Biratu hautatutako orriak erlojuaren orratzen noranzkoan
 	Extract the selected pages…	Atera hautatutako orriak…
 	Delete the selected pages	Ezabatu hautatutako orriak
+	Add a timestamp from a server	Gehitu zerbitzari baten denbora-zigilua
+	Only a fingerprint of the document is sent to the server, never the document.	Dokumentuaren hatz-marka bakarrik bidaltzen da zerbitzarira, inoiz ez dokumentua.
+	Timestamps need the desktop app.	Denbora-zigiluek mahaigaineko aplikazioa behar dute.
