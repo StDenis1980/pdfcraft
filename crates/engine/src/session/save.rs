@@ -228,15 +228,36 @@ impl Session {
         }
     }
 
-    /// The certificates trusted for signing.
+    /// The certificates the user trusts for signing (not the system's: see
+    /// [`Session::set_system_trust`]).
     pub fn trusted_certificates(&self) -> &[pdfcraft_sign::Certificate] {
-        &self.trust.certs
+        &self.user_trust
     }
 
     /// Replace the trusted certificates, revalidate every open document's signatures,
     /// and rebuild its display copy and renderer to match (working file untouched,
     /// generation/dirty unchanged: trust alone is not an edit).
     pub fn set_trusted_certificates(&mut self, certs: Vec<pdfcraft_sign::Certificate>) {
+        self.user_trust = certs;
+        self.retrust();
+    }
+
+    /// Tinta Office fork: also trust these operating-system root certificates (Windows: the
+    /// Trusted Root Certification Authorities store), as Acrobat and VALIDe trust the issuers of
+    /// Spanish qualified certificates (FNMT, ACCV…). Empty turns it off. Revalidates like
+    /// [`Session::set_trusted_certificates`].
+    pub fn set_system_trust(&mut self, certs: Vec<pdfcraft_sign::Certificate>) {
+        self.system_trust = certs;
+        self.retrust();
+    }
+
+    /// The operating-system certificates trusted for signing.
+    pub fn system_trust(&self) -> &[pdfcraft_sign::Certificate] {
+        &self.system_trust
+    }
+
+    fn retrust(&mut self) {
+        let certs = self.user_trust.iter().chain(&self.system_trust).cloned().collect();
         self.trust = Arc::new(TrustStore { certs });
         for doc in &mut self.docs {
             doc.trust = self.trust.clone();

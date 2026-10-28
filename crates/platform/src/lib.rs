@@ -5,5 +5,6 @@
 
 pub mod desktop_theme;
 pub mod staging;
+pub mod trust;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod tsa;

@@ -34,8 +34,14 @@ pub struct Session {
     /// injected time AS local time and zeroes the zone, so injecting only it leaves either the
     /// local dates or the UTC ones wrong by the zone's offset.
     utc_offset: Option<fn() -> i64>,
-    /// Certificates trusted for signing (Acrobat: Trusted Certificates).
+    /// Certificates trusted for signing: the user's and the system's together (what validation
+    /// uses).
     pub(crate) trust: Arc<TrustStore>,
+    /// Tinta Office fork: the user's own trusted certificates (Acrobat: Trusted Certificates),
+    /// kept apart from the operating system's so only these are saved with the preferences.
+    pub(crate) user_trust: Vec<pdfcraft_sign::Certificate>,
+    /// Tinta Office fork: the operating system's root certificates, when trusting them is on.
+    pub(crate) system_trust: Vec<pdfcraft_sign::Certificate>,
     /// Preferences ▸ JavaScript ▸ Enable Acrobat JavaScript, inverted (on by default).
     pub(crate) js_off: bool,
     /// Preferences ▸ Date format, when not the default (see [`dates`]).

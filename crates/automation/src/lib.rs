@@ -98,8 +98,12 @@ impl Default for Automation {
 
 impl Automation {
     pub fn new() -> Self {
+        // Tinta Office fork: signers chaining to a system root (FNMT, ACCV…) validate, as in
+        // the app; `sign_trust` with `system: false` turns it off.
+        let mut session = Session::new();
+        session.set_system_trust(pdfcraft_platform::trust::system_roots());
         Self {
-            session: Session::new(),
+            session,
             root: None,
             roots: None,
             renderers: HashMap::new(),

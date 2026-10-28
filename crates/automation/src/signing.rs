@@ -355,8 +355,14 @@ impl Automation {
                 }
             }
         }
+        if let Some(on) = a.opt_bool("system")? {
+            self.session.set_system_trust(if on { pdfcraft_platform::trust::system_roots() } else { Vec::new() });
+        }
         self.session.set_trusted_certificates(certs);
-        Ok(json!({ "trusted": self.session.trusted_certificates().iter().map(cert_json).collect::<Vec<_>>() }))
+        Ok(json!({
+            "trusted": self.session.trusted_certificates().iter().map(cert_json).collect::<Vec<_>>(),
+            "system_trusted": self.session.system_trust().len(),
+        }))
     }
 }
 

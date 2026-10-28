@@ -33,8 +33,11 @@ impl Default for PdfCraftApp {
 impl PdfCraftApp {
     /// Construct an application with the default session, panels, theme and control state.
     pub fn new() -> Self {
+        // Tinta Office fork: signers chaining to a system root (FNMT, ACCV…) validate.
+        let mut session = Session::new();
+        session.set_system_trust(pdfcraft_platform::trust::system_roots());
         Self {
-            session: Session::new(),
+            session,
             views: Vec::new(),
             closed_tabs: Vec::new(),
             active: None,

@@ -105,6 +105,26 @@ pub fn list() -> Result<Listing, SignError> {
     Ok(Listing { ids: ids.into_iter().map(|(_, id)| id).collect(), unusable })
 }
 
+/// Tinta Office fork: the certificates in Current User > Trusted Root Certification Authorities,
+/// which includes the machine's roots (the logical store merges them). They anchor chains when
+/// validating signatures, as they do for Acrobat's "use Windows certificates" and for the
+/// issuers of Spanish qualified certificates (FNMT, ACCV…). Unreadable entries are skipped.
+pub fn root_certificates() -> Result<Vec<Certificate>, SignError> {
+    let store = CertStore::open(CertStoreType::CurrentUser, "Root")
+        .map_err(|e| SignError::Crypto(format!("the Windows Trusted Root store couldn't be opened: {}", describe(&e))))?;
+    let contexts =
+        store.find_all().map_err(|e| SignError::Crypto(format!("the Windows Trusted Root store couldn't be searched: {}", describe(&e))))?;
+    let mut roots: Vec<Certificate> = Vec::new();
+    for context in contexts {
+        if let Ok(c) = Certificate::parse(context.as_der())
+            && !roots.iter().any(|r| r.raw == c.raw)
+        {
+            roots.push(c);
+        }
+    }
+    Ok(roots)
+}
+
 /// Each usable identity with the store's certificate context it came from, and the rest.
 struct Entries {
     ids: Vec<(CertContext, DigitalId)>,

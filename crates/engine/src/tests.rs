@@ -4079,6 +4079,35 @@ fn signing_saving_trusting_and_commenting_afterwards() {
     assert!(!s.get(id).unwrap().dirty && s.get(id).unwrap().can_undo().map(str::to_owned) == before);
 }
 
+/// Tinta Office fork: system roots validate signatures without becoming the user's trusted
+/// certificates (which are what the preferences save), and each list survives the other's change.
+#[test]
+fn system_trust_validates_without_joining_the_user_list() {
+    let p12 = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../sign/tests/data/ec-p256.p12")).unwrap();
+    let digital_id = sign::pkcs12::open(&p12, "test").unwrap();
+    let mut s = Session::new().with_clock(|| 1_800_000_000);
+    let id = s.open("fixture.pdf", None, Arc::new(fixture(1)), None).unwrap();
+    let opts = SignOptions { page: 0, rect: Some([20.0, 20.0, 180.0, 60.0]), ..SignOptions::default() };
+    let signed = s.sign(id, &digital_id, opts).unwrap();
+    s.mark_signed(id, signed.clone(), None).unwrap();
+    let status = |s: &Session, id| s.get(id).unwrap().signatures[0].status;
+    assert_eq!(status(&s, id), SignatureStatus::Unknown);
+    s.set_system_trust(vec![digital_id.certificate.clone()]);
+    assert_eq!(status(&s, id), SignatureStatus::Valid);
+    assert!(s.trusted_certificates().is_empty(), "system roots aren't the user's list");
+    assert_eq!(s.system_trust().len(), 1);
+    // Documents opened later use it too, and changing the user list keeps it.
+    let later = s.open("again.pdf", None, signed, None).unwrap();
+    assert_eq!(status(&s, later), SignatureStatus::Valid);
+    s.set_trusted_certificates(Vec::new());
+    assert_eq!(status(&s, later), SignatureStatus::Valid);
+    // Turning it off revalidates; the user's own trust then still counts.
+    s.set_system_trust(Vec::new());
+    assert_eq!(status(&s, id), SignatureStatus::Unknown);
+    s.set_trusted_certificates(vec![digital_id.certificate.clone()]);
+    assert_eq!(status(&s, id), SignatureStatus::Valid);
+}
+
 #[test]
 fn validated_signatures_without_layers_keep_their_appearance() {
     let p12 = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../sign/tests/data/ec-p256.p12")).unwrap();
