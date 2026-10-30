@@ -6334,6 +6334,31 @@ fn ocr_tools_make_a_scan_searchable() {
     assert!(matches!(a.call("ocr_recognize", &json!({ "doc": scan, "language": "xx" })), Err(ToolError::InvalidArgs(_))));
 }
 
+/// A scan whose text runs sideways (a page photographed across) is read turned upright, and
+/// its words land on the page where the picture shows them.
+#[test]
+fn ocr_recognize_reads_a_sideways_scan() {
+    let dir = workdir("ocr-sideways");
+    let mut a = auto(&dir);
+    if ok(&mut a, "ocr_status", json!({}))["available"] != true {
+        eprintln!("skipped: OCR models not installed");
+        return;
+    }
+    let text = ok(&mut a, "doc_create", json!({ "from": "text", "text": "Searchable scans with recognised words" }))["doc"].as_u64().unwrap();
+    ok(&mut a, "page_rotate", json!({ "doc": text, "pages": [1], "degrees": 90 }));
+    ok(&mut a, "doc_export_images", json!({ "doc": text, "folder": "scan", "dpi": 150, "pages": [1] }));
+    let png = std::fs::read_dir(dir.join("scan")).unwrap().next().unwrap().unwrap().path();
+    let scan = ok(&mut a, "doc_create", json!({ "from": "images", "paths": [png.to_string_lossy()] }))["doc"].as_u64().unwrap();
+    let r = ok(&mut a, "ocr_recognize", json!({ "doc": scan }));
+    assert!(r["pages"][0]["text"].as_str().unwrap().to_lowercase().contains("searchable"), "{r}");
+    let found = ok(&mut a, "text_find", json!({ "doc": scan, "query": "searchable" }));
+    assert_eq!(found["count"], 1, "{found}");
+    // The word runs up or down the page, as the picture shows it, not across.
+    let rect: Vec<f64> = found["matches"][0]["rects"][0].as_array().unwrap().iter().map(|v| v.as_f64().unwrap()).collect();
+    let (w, h) = ((rect[2] - rect[0]).abs(), (rect[3] - rect[1]).abs());
+    assert!(h > w * 2.0, "{found}");
+}
+
 /// #1028: `skip_text_pages: false` reads a picture on a page that has its own text, and the
 /// page's own words are left out (counted) instead of being added a second time.
 #[test]

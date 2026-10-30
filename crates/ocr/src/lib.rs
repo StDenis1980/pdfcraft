@@ -287,6 +287,44 @@ impl Ocr {
         Ok(boxed.into_iter().filter(|(s, _)| s.score >= MIN_WORD_SCORE).map(|(s, rect)| Word { text: s.text, rect }).collect())
     }
 
+    /// [`Ocr::recognize_language`] for a page that may hold its text sideways (a book
+    /// photographed across, a landscape table on a portrait page): when most word boxes found
+    /// are taller than wide, the image is also read turned a quarter each way, and the reading
+    /// with the most text kept. Returns the lines in the turned image's pixels and the turn,
+    /// whose [`Turn::to_source`] maps them back.
+    pub fn recognize_upright(&self, pixels: &[u8], width: u32, height: u32, language: &str) -> Result<(Vec<Line>, Turn), OcrError> {
+        let lines = self.recognize_language(pixels, width, height, language)?;
+        if !self.sideways(pixels, width, height)? {
+            return Ok((lines, Turn::None));
+        }
+        let mut best = (lines, Turn::None);
+        for turn in [Turn::Clockwise, Turn::CounterClockwise] {
+            let Some((turned, w, h)) = turn_image(pixels, width, height, turn) else { continue };
+            let read = self.recognize_language(&turned, w, h, language)?;
+            if text_amount(&read) > text_amount(&best.0) {
+                best = (read, turn);
+            }
+        }
+        Ok(best)
+    }
+
+    /// Whether most of the words detected in the image are taller than wide.
+    fn sideways(&self, pixels: &[u8], width: u32, height: u32) -> Result<bool, OcrError> {
+        let rgb = Self::channels(pixels, width, height)?;
+        let err = |e: &dyn std::fmt::Display| OcrError::Recognize(e.to_string());
+        let source = ocrs::ImageSource::from_bytes(&rgb, (width, height)).map_err(|e| err(&e))?;
+        let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
+        let found = self.engine.detect_words(&input).map_err(|e| err(&e))?;
+        let boxes: Vec<[f32; 4]> = found
+            .iter()
+            .map(|r| {
+                let b = r.bounding_rect();
+                [b.left(), b.top(), b.right(), b.bottom()]
+            })
+            .collect();
+        Ok(mostly_tall(&boxes))
+    }
+
     /// The image with 1 or 3 channels, as ocrs wants.
     fn channels(pixels: &[u8], width: u32, height: u32) -> Result<std::borrow::Cow<'_, [u8]>, OcrError> {
         if width == 0 || height == 0 || pixels.is_empty() {
@@ -332,14 +370,88 @@ impl Ocr {
     }
 }
 
+/// A quarter turn applied to an image before reading it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Turn {
+    None,
+    /// A quarter turn clockwise: the left edge becomes the top.
+    Clockwise,
+    /// A quarter turn counter-clockwise: the right edge becomes the top.
+    CounterClockwise,
+}
+
+impl Turn {
+    /// The point of the image as given (`width` × `height` pixels) that the point (`x`, `y`)
+    /// of the turned image shows.
+    pub fn to_source(self, x: f32, y: f32, width: u32, height: u32) -> (f32, f32) {
+        match self {
+            Turn::None => (x, y),
+            Turn::Clockwise => (y, height as f32 - x),
+            Turn::CounterClockwise => (width as f32 - y, x),
+        }
+    }
+}
+
+/// `pixels` (`width` × `height`, any number of bytes per pixel) turned by `turn`, with its new
+/// width and height. `None` when the buffer does not hold whole pixels of that size.
+pub fn turn_image(pixels: &[u8], width: u32, height: u32, turn: Turn) -> Option<(Vec<u8>, u32, u32)> {
+    let (w, h) = (width as usize, height as usize);
+    let count = w.checked_mul(h).filter(|n| *n > 0)?;
+    if !pixels.len().is_multiple_of(count) {
+        return None;
+    }
+    let channels = pixels.len() / count;
+    let (tw, th) = match turn {
+        Turn::None => return Some((pixels.to_vec(), width, height)),
+        Turn::Clockwise | Turn::CounterClockwise => (h, w),
+    };
+    let mut out = Vec::with_capacity(pixels.len());
+    for y in 0..th {
+        for x in 0..tw {
+            // The source pixel whose centre this one shows.
+            let (sx, sy) = match turn {
+                Turn::Clockwise => (y, h - 1 - x),
+                _ => (w - 1 - y, x),
+            };
+            let at = (sy * w + sx) * channels;
+            out.extend_from_slice(pixels.get(at..at + channels)?);
+        }
+    }
+    Some((out, height, width))
+}
+
+/// Whether most of `boxes` (`[left, top, right, bottom]`) are clearly taller than wide, as the
+/// words of text turned sideways are. Single letters and digits, about square, count neither way.
+fn mostly_tall(boxes: &[[f32; 4]]) -> bool {
+    let (mut tall, mut wide) = (0usize, 0usize);
+    for b in boxes {
+        let (w, h) = (b[2] - b[0], b[3] - b[1]);
+        if !(w > 0.0 && h > 0.0) {
+            continue;
+        }
+        if h > w * 1.5 {
+            tall += 1;
+        } else if w > h * 1.5 {
+            wide += 1;
+        }
+    }
+    tall > wide
+}
+
+/// How much text a reading holds: its characters, letters and digits only.
+fn text_amount(lines: &[Line]) -> usize {
+    lines.iter().flat_map(|l| &l.words).map(|w| w.text.chars().filter(|c| c.is_alphanumeric()).count()).sum()
+}
+
 /// The least mean score a word read by the PaddleOCR models needs to be kept.
 const MIN_WORD_SCORE: f32 = 0.7;
 
 /// How many line heights wide a gap between word boxes must be to read the boxes either side
-/// apart. Measured on phone photos of flyers: the gaps the detector leaves inside small print
-/// (spaces, letters its boxes missed) are up to 1.25 line heights, the gaps between columns and
-/// table cells from 1.8.
-const SEGMENT_GAP: f32 = 1.5;
+/// apart. Measured on phone photos of flyers and of a textbook: inside a run of text the
+/// detector leaves gaps of up to about 2 line heights (spaces, and letters or words its boxes
+/// missed, which only read whole with their neighbours), while columns and table cells sit
+/// 3 or more apart.
+const SEGMENT_GAP: f32 = 3.0;
 
 /// Split a line's word boxes (`[left, top, right, bottom]`) into runs, left to right, wherever
 /// the gap between neighbours is wider than `min_gap`.
@@ -739,6 +851,67 @@ mod tests {
         assert!(!words.iter().any(|w| w.contains("HELL") && w.contains("WOR")), "the columns ran together: {words:?}");
         let hello = lines.iter().flat_map(|l| &l.words).find(|w| w.text.starts_with("HELL")).unwrap();
         assert!(hello.rect[2] < (40 + 5 * 24) as f32 + 10.0, "the first column's box ends at its own text: {hello:?}");
+    }
+
+    #[test]
+    fn a_turned_image_maps_back_onto_the_image_as_given() {
+        // 3 × 2 pixels, one byte each, numbered in reading order.
+        let (w, h) = (3u32, 2u32);
+        let px: Vec<u8> = (0..6).collect();
+        for turn in [Turn::None, Turn::Clockwise, Turn::CounterClockwise] {
+            let (out, tw, th) = turn_image(&px, w, h, turn).unwrap();
+            assert_eq!(out.len(), px.len());
+            for y in 0..th {
+                for x in 0..tw {
+                    // The centre of each turned pixel maps to the centre of the pixel it copies.
+                    let (sx, sy) = turn.to_source(x as f32 + 0.5, y as f32 + 0.5, w, h);
+                    let source = (sy - 0.5) as u32 * w + (sx - 0.5) as u32;
+                    assert_eq!(u32::from(out[(y * tw + x) as usize]), source, "{turn:?} at {x},{y}");
+                }
+            }
+        }
+        let (cw, tw, th) = turn_image(&px, w, h, Turn::Clockwise).unwrap();
+        assert_eq!((tw, th), (2, 3));
+        assert_eq!(cw, [3, 0, 4, 1, 5, 2], "the left column becomes the top row");
+        assert!(turn_image(&px[..5], w, h, Turn::Clockwise).is_none(), "not whole pixels");
+        assert!(turn_image(&[], 0, 0, Turn::Clockwise).is_none(), "no pixels");
+    }
+
+    #[test]
+    fn text_is_sideways_when_most_word_boxes_stand_up() {
+        let (wide, tall, square) = ([0.0, 0.0, 60.0, 20.0], [0.0, 0.0, 20.0, 60.0], [0.0, 0.0, 20.0, 22.0]);
+        assert!(mostly_tall(&[tall, tall, wide, square, square]));
+        assert!(!mostly_tall(&[tall, wide, wide]));
+        assert!(!mostly_tall(&[square, square]), "letters alone say nothing");
+        assert!(!mostly_tall(&[]));
+        assert!(!mostly_tall(&[[f32::NAN, 0.0, 1.0, 9.0]]));
+    }
+
+    #[test]
+    fn sideways_text_is_read_turned_upright() {
+        let Some(models) = Models::find() else {
+            eprintln!("skipped: OCR models not installed");
+            return;
+        };
+        let ocr = Ocr::load(&models).unwrap();
+        // "HELLO WORLD" turned a quarter counter-clockwise: it reads from the bottom up.
+        let (w, h, px) = test_image::hello();
+        let (px, w, h) = turn_image(&px, w, h, Turn::CounterClockwise).unwrap();
+        let (lines, turn) = match ocr.recognize_upright(&px, w, h, "es") {
+            Err(OcrError::NoModels) => {
+                eprintln!("skipped: the Latin model is not installed");
+                return;
+            }
+            other => other.unwrap(),
+        };
+        assert_eq!(turn, Turn::Clockwise, "{lines:?}");
+        let words: Vec<&Word> = lines.iter().flat_map(|l| &l.words).collect();
+        let hello = words.iter().find(|w| w.text.starts_with("HELL")).unwrap_or_else(|| panic!("{words:?}"));
+        // Mapped back, HELLO stands in the left column of the sideways image, near its bottom.
+        let (a, b) = (turn.to_source(hello.rect[0], hello.rect[1], w, h), turn.to_source(hello.rect[2], hello.rect[3], w, h));
+        let (left, right, top, bottom) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
+        assert!(left >= 20.0 && right <= 100.0, "{left}..{right}");
+        assert!(top > h as f32 / 2.0 && bottom <= h as f32, "{top}..{bottom} of {h}");
     }
 
     mod test_image {

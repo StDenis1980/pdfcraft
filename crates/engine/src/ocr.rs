@@ -136,7 +136,8 @@ impl OcrJob {
                 out.push(skip(&e));
                 continue;
             }
-            let lines = match ocr.recognize_language(&shot.rgba, shot.width, shot.height, &self.settings.language) {
+            // A page whose text runs sideways is read turned; its words are mapped back.
+            let (lines, turn) = match ocr.recognize_upright(&shot.rgba, shot.width, shot.height, &self.settings.language) {
                 Ok(l) => l,
                 Err(e) => {
                     out.push(skip(&e.to_string()));
@@ -144,13 +145,20 @@ impl OcrJob {
                 }
             };
             let scale = shot.width as f32 / info.width.max(1e-3);
+            let (sw, sh) = (shot.width, shot.height);
             let to_user = |x: f32, y: f32| {
+                let (x, y) = turn.to_source(x, y, sw, sh);
                 let [u, v] = info.view_to_user(x / scale, y / scale);
                 [u as f64, v as f64]
             };
+            // A word's box on the page as rendered, in view space.
+            let view_rect = |r: [f32; 4]| {
+                let (a, b) = (turn.to_source(r[0], r[1], sw, sh), turn.to_source(r[2], r[3], sw, sh));
+                [a.0.min(b.0) / scale, a.1.min(b.1) / scale, a.0.max(b.0) / scale, a.1.max(b.1) / scale]
+            };
             // Words the page's own text already has are not added a second time.
             let (fresh, already): (Vec<_>, Vec<_>) =
-                lines.iter().flat_map(|l| &l.words).partition(|w| covered(w.rect.map(|v| v / scale), &existing) < ALREADY_ON_PAGE);
+                lines.iter().flat_map(|l| &l.words).partition(|w| covered(view_rect(w.rect), &existing) < ALREADY_ON_PAGE);
             let words = fresh.into_iter().map(|w| PlacedWord::place(w, to_user)).collect();
             out.push(OcrPage { page, words, already_on_page: already.len(), skipped: None });
         }
