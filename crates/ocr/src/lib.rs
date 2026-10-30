@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use rten_imageproc::{BoundingRect, RotatedRect};
 
+pub mod lexicon;
 pub mod paddle;
 
 pub use pdfcraft_fonts::helvetica_width;
@@ -149,6 +150,8 @@ pub struct Ocr {
     dir: PathBuf,
     /// The PaddleOCR line recognisers loaded so far.
     paddle: Mutex<HashMap<paddle::Script, Arc<paddle::Paddle>>>,
+    /// The word lists loaded so far, by language (`None`: not installed).
+    lexicons: Mutex<HashMap<String, Option<Arc<lexicon::Lexicon>>>>,
 }
 
 impl Ocr {
@@ -162,10 +165,16 @@ impl Ocr {
         };
         let engine = ocrs::OcrEngine::new(params).map_err(|e| OcrError::Load("ocr engine".into(), e.to_string()))?;
         let dir = models.detection.parent().map(Path::to_path_buf).unwrap_or_default();
-        Ok(Ocr { engine, dir, paddle: Mutex::default() })
+        Ok(Ocr { engine, dir, paddle: Mutex::default(), lexicons: Mutex::default() })
     }
 
     /// The PaddleOCR recogniser for `script`, loaded the first time it is asked for.
+    /// The word list for `language` found beside the models ([`load_lexicon`]), loaded once.
+    fn lexicon(&self, language: &str) -> Option<Arc<lexicon::Lexicon>> {
+        let mut loaded = self.lexicons.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        loaded.entry(language.to_owned()).or_insert_with(|| load_lexicon(&self.dir, language).map(Arc::new)).clone()
+    }
+
     fn paddle(&self, script: paddle::Script) -> Result<Arc<paddle::Paddle>, OcrError> {
         let mut loaded = self.paddle.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         if let Some(p) = loaded.get(&script) {
@@ -284,6 +293,13 @@ impl Ocr {
         let mut spans = paddle::words(&read);
         let mut texts: Vec<String> = spans.iter().map(|s| s.text.clone()).collect();
         paddle::tidy(&mut texts, language);
+        if let Some(lex) = self.lexicon(language) {
+            for t in texts.iter_mut() {
+                if let Some(fixed) = lexicon::correct(t, &lex) {
+                    *t = fixed;
+                }
+            }
+        }
         for (s, t) in spans.iter_mut().zip(texts) {
             s.text = t;
         }
@@ -599,6 +615,26 @@ fn mostly_tall(boxes: &[[f32; 4]]) -> bool {
 /// How much text a reading holds: its characters, letters and digits only.
 fn text_amount(lines: &[Line]) -> usize {
     lines.iter().flat_map(|l| &l.words).map(|w| w.text.chars().filter(|c| c.is_alphanumeric()).count()).sum()
+}
+
+/// Languages with a word list that corrects what the models misread, and the Hunspell
+/// dictionary's file name (beside the models; `cargo xtask models` fetches it).
+const LEXICONS: &[(&str, &str)] = &[("uk", "uk_UA")];
+/// The largest dictionary file read: a Hunspell dictionary is a few megabytes.
+const MAX_LEXICON_BYTES: u64 = 64 << 20;
+
+/// The word list in `dir` that puts right the letters the models misread in `language`: the
+/// Hunspell dictionary `<name>.aff` + `<name>.dic` named in [`LEXICONS`]. `None` when the
+/// language has none, or its files are missing, too large or empty.
+fn load_lexicon(dir: &Path, language: &str) -> Option<lexicon::Lexicon> {
+    let name = LEXICONS.iter().find(|(l, _)| *l == language).map(|(_, n)| *n)?;
+    let read = |ext: &str| {
+        let path = dir.join(format!("{name}.{ext}"));
+        let size = std::fs::metadata(&path).ok()?.len();
+        (size <= MAX_LEXICON_BYTES).then(|| std::fs::read_to_string(&path).ok()).flatten()
+    };
+    let lex = lexicon::Lexicon::parse(&read("aff")?, &read("dic")?);
+    (!lex.is_empty()).then_some(lex)
 }
 
 /// The least mean score a word read by the PaddleOCR models needs to be kept.
@@ -1131,6 +1167,19 @@ mod tests {
         let (left, right, top, bottom) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
         assert!(left >= 20.0 && right <= 100.0, "{left}..{right}");
         assert!(top > h as f32 / 2.0 && bottom <= h as f32, "{top}..{bottom} of {h}");
+    }
+
+    #[test]
+    fn the_ukrainian_word_list_is_found_beside_the_models() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(load_lexicon(dir.path(), "uk").is_none(), "not installed");
+        std::fs::write(dir.path().join("uk_UA.aff"), "SET UTF-8\n").unwrap();
+        std::fs::write(dir.path().join("uk_UA.dic"), "1\nвідповідно\n").unwrap();
+        let lex = load_lexicon(dir.path(), "uk").unwrap();
+        assert_eq!(lexicon::correct("видповидно", &lex).as_deref(), Some("відповідно"));
+        assert!(load_lexicon(dir.path(), "ru").is_none(), "Russian has no word list");
+        std::fs::write(dir.path().join("uk_UA.dic"), "0\n").unwrap();
+        assert!(load_lexicon(dir.path(), "uk").is_none(), "an empty list is no list");
     }
 
     #[test]

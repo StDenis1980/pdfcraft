@@ -3439,6 +3439,34 @@ kind = "model"
 usage = "Scan & OCR: reads lines in the characters the Cyrillic model reads, in its output order (cargo xtask models; Tinta Office fork)"
 sha256 = "3e95f1581557162870cacdba5af91a4c6be2890710d395b0c3c7578e7ee5e6eb"
 
+[[fetched]]
+file = "uk_UA.aff"
+url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/uk_UA/uk_UA.aff"
+mirrors = ["https://cdn.jsdelivr.net/gh/LibreOffice/dictionaries@4f1df64b2e8e14751aa7c2205d170ca016071315/uk_UA/uk_UA.aff"]
+title = "Ukrainian Hunspell dictionary (affix rules)"
+author = "Andriy Rysin and the dict_uk project (https://github.com/brown-uk/dict_uk)"
+source = "LibreOffice dictionaries repository, uk_UA (https://github.com/LibreOffice/dictionaries/tree/4f1df64b2e8e14751aa7c2205d170ca016071315/uk_UA), built from dict_uk; unmodified"
+licence = "MPL-1.1"
+licence_url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/es/MPL-1.1.txt"
+licence_sha256 = "53692a2ed6c6a2c6ec9b32dd0b820dfae91e0a1fcdf625ca9ed0bdf8705fcc4f"
+kind = "model"
+usage = "Scan & OCR: Ukrainian word list that puts right letters the Cyrillic model misreads (і/ї/є), suffix rules (cargo xtask models; Tinta Office fork)"
+sha256 = "2219dd15e9802adebc45722c60943b1472640260491af38dd3e43b07e75585e6"
+
+[[fetched]]
+file = "uk_UA.dic"
+url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/uk_UA/uk_UA.dic"
+mirrors = ["https://cdn.jsdelivr.net/gh/LibreOffice/dictionaries@4f1df64b2e8e14751aa7c2205d170ca016071315/uk_UA/uk_UA.dic"]
+title = "Ukrainian Hunspell dictionary (word stems)"
+author = "Andriy Rysin and the dict_uk project (https://github.com/brown-uk/dict_uk)"
+source = "LibreOffice dictionaries repository, uk_UA (https://github.com/LibreOffice/dictionaries/tree/4f1df64b2e8e14751aa7c2205d170ca016071315/uk_UA), built from dict_uk; unmodified"
+licence = "MPL-1.1"
+licence_url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/es/MPL-1.1.txt"
+licence_sha256 = "53692a2ed6c6a2c6ec9b32dd0b820dfae91e0a1fcdf625ca9ed0bdf8705fcc4f"
+kind = "model"
+usage = "Scan & OCR: Ukrainian word list that puts right letters the Cyrillic model misreads (і/ї/є), stems (cargo xtask models; Tinta Office fork)"
+sha256 = "2e5a9e67be63bdb089b3459addb5d71113319d13768e277bcae20f3cc1ad5a93"
+
 [[build_input]]
 name = "craft-fonts"
 option = "CRAFT_FONTS_DIR"

@@ -169,11 +169,11 @@ fn cyrillic(c: char) -> bool {
 pub fn tidy(words: &mut [String], language: &str) {
     if Script::for_language(language) == Some(Script::Cyrillic) {
         let count = |f: fn(&char) -> bool| words.iter().flat_map(|w| w.chars()).filter(f).count();
-        if count(|c| cyrillic(*c)) > count(char::is_ascii_alphabetic) {
-            for w in words.iter_mut() {
-                if w.chars().filter(char::is_ascii_alphabetic).all(|c| cyrillic_twin(c, language).is_some()) {
-                    *w = w.chars().map(|c| cyrillic_twin(c, language).unwrap_or(c)).collect();
-                }
+        let line = count(|c| cyrillic(*c)) > count(char::is_ascii_alphabetic);
+        for w in words.iter_mut() {
+            // A word of a Cyrillic line, or one with Cyrillic letters of its own ("Oпції").
+            if (line || w.chars().any(cyrillic)) && w.chars().filter(char::is_ascii_alphabetic).all(|c| cyrillic_twin(c, language).is_some()) {
+                *w = w.chars().map(|c| cyrillic_twin(c, language).unwrap_or(c)).collect();
             }
         }
     }
@@ -333,6 +333,10 @@ mod tests {
         let mut words: Vec<String> = ["PDF", "i", "OCR", "Київ"].map(String::from).to_vec();
         tidy(&mut words, "uk");
         assert_eq!(words, ["PDF", "i", "OCR", "Київ"]);
+        // A word with Cyrillic letters of its own is Cyrillic in any line.
+        let mut words: Vec<String> = ["SOLAR", "Oпції:", "MPI", "Mодуль"].map(String::from).to_vec();
+        tidy(&mut words, "uk");
+        assert_eq!(words, ["SOLAR", "Опції:", "MPI", "Модуль"]);
     }
 
     #[test]
