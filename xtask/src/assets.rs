@@ -21,6 +21,11 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
 /// Licences allowed by AGENTS.md §1.2 (SPDX identifiers).
+/// Licences allowed only for `[[fetched]]` files of kind `model` (AGENTS.md §1.2): data downloaded
+/// unmodified beside the OCR models with its licence text, never committed. MPL-1.1 is the
+/// LibreOffice Ukrainian word list (approved by the owner, 2026-10-30).
+pub const FETCHED_MODEL_LICENCES: &[&str] = &["MPL-1.1"];
+
 pub const ALLOWED_LICENCES: &[&str] = &[
     "ISC",
     "MIT",
@@ -315,7 +320,13 @@ pub fn check(root: &Path, m: &Manifest, repo_files: &[String], lock: &BTreeSet<(
         }
     }
     for f in &m.fetched {
-        licence_ok(&f.file, &f.licence, &mut problems);
+        if f.kind == "model" {
+            for id in licence_ids(&f.licence).filter(|id| !FETCHED_MODEL_LICENCES.contains(id)) {
+                licence_ok(&f.file, id, &mut problems);
+            }
+        } else {
+            licence_ok(&f.file, &f.licence, &mut problems);
+        }
         if visual(&f.kind) && !ofl_font(&f.kind, &f.licence) && (mentions_adobe(&f.author) || mentions_adobe(&f.source) || mentions_adobe(&f.title)) {
             problems.push(format!("{}: {} from Adobe is forbidden (AGENTS.md §1.1)", f.file, f.kind));
         }
@@ -650,6 +661,30 @@ mod tests {
     fn disallowed_licences_are_rejected() {
         let m = Manifest { asset: vec![asset("assets/icons/x.svg", "Someone", "icon", "LicenseRef-Proprietary OR MIT")], ..Default::default() };
         let p = check(&root(), &m, &[], &lock(&[]));
+        assert!(p.iter().any(|p| p.contains("not on the allowlist")), "{p:?}");
+    }
+
+    #[test]
+    fn mpl_is_allowed_only_for_fetched_models() {
+        let fetched = |kind: &str| Fetched {
+            file: "uk_UA.dic".into(),
+            url: "https://example.org/uk_UA.dic".into(),
+            mirrors: vec![],
+            title: "t".into(),
+            author: "a".into(),
+            source: "https://example.org".into(),
+            licence: "MPL-1.1".into(),
+            licence_url: "https://example.org/MPL-1.1.txt".into(),
+            licence_sha256: "0".repeat(64),
+            kind: kind.into(),
+            usage: "u".into(),
+            sha256: "0".repeat(64),
+        };
+        let check_one = |m: Manifest| check(&root(), &m, &[], &lock(&[]));
+        assert!(check_one(Manifest { fetched: vec![fetched("model")], ..Default::default() }).is_empty());
+        let p = check_one(Manifest { fetched: vec![fetched("data")], ..Default::default() });
+        assert!(p.iter().any(|p| p.contains("not on the allowlist")), "{p:?}");
+        let p = check_one(Manifest { asset: vec![asset("assets/icons/x.svg", "Someone", "icon", "MPL-1.1")], ..Default::default() });
         assert!(p.iter().any(|p| p.contains("not on the allowlist")), "{p:?}");
     }
 
