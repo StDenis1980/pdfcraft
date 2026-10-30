@@ -13,3 +13,5 @@ PDFCRAFT_BRAND_GITHUB = "https://github.com/StDenis1980/pdfcraft"
 # Help and support: the site's contact section (email), and the fork's issue forms (es/uk/en).
 PDFCRAFT_BRAND_SUPPORT = "https://tintaoffice.com/#contact"
 PDFCRAFT_BRAND_REPORT = "https://github.com/StDenis1980/pdfcraft/issues/new/choose"
+# Tinta Office: where error reports go once the person allowed them (apps/pdfcraft/src/tinta_report.rs).
+TINTA_REPORT_URL = "https://report.tintaoffice.com"

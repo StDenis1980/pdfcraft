@@ -2848,3 +2848,13 @@ theme	Appearance	Aparência
 	Rotate the selected pages clockwise	Girar as páginas selecionadas no sentido horário
 	Extract the selected pages…	Extrair as páginas selecionadas…
 	Delete the selected pages	Excluir as páginas selecionadas
+	Send error reports automatically?	Enviar relatórios de erro automaticamente?
+	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Quando o aplicativo trava ou para de responder, ele pode enviar um relatório para que o problema seja corrigido sem que você precise nos escrever. O relatório contém a versão do aplicativo, o sistema, o idioma, o ponto do código onde o erro ocorreu e as últimas linhas do registro técnico. Nunca o texto dos seus documentos, nomes de arquivos, pastas, endereços de e-mail ou senhas.
+	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Os relatórios vão para a Tinta Office (report.tintaoffice.com, armazenados na UE) e são excluídos após 90 dias. Você pode mudar isso a qualquer momento em Preferências e excluir lá seus relatórios do servidor. Detalhes: tintaoffice.com/en/legal
+	Yes, send reports	Sim, enviar relatórios
+	Error reports	Relatórios de erro
+	Send error reports automatically	Enviar relatórios de erro automaticamente
+	Installation id: {id}	ID da instalação: {id}
+	Delete my reports from the server	Excluir meus relatórios do servidor
+	Deletion requested: it completes the next time the app is online.	Exclusão solicitada: será concluída na próxima vez que o aplicativo estiver online.
+	Open the reports folder	Abrir a pasta de relatórios

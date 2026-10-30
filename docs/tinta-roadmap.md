@@ -47,6 +47,7 @@ the most ready apps), **3** = 2027 (1.0). Dates are indicative.
 | Fork documentation | 1 | This file: what the fork changes, how to build a release, how to sync. |
 | Translations | 1–2 | Ukrainian reviewed by the owner, Spanish by a native tester, ca/gl/eu through communities. Marked as drafts until reviewed. |
 | Feedback | 1 | Help › Report a problem → the fork's issues or hola@tintaoffice.com; issue templates in Spanish and Ukrainian. **PDF: done** (`help.report` opens `PDFCRAFT_BRAND_REPORT`, the forms are in `.github/ISSUE_TEMPLATE/`; Help › Get help and support opens tintaoffice.com/#contact). |
+| Error reports | 1 | Automatic, only with consent (decided 2026-10-30): the first start asks "Send error reports automatically?"; Preferences (the gear on the Edit panel) changes it, shows the installation id and deletes the reports from the server. Panics and a window busy for 15 s write a scrubbed report (no document text, file names, paths, e-mail addresses, long numbers) to `error-reports/pending` in the app's data folder; while allowed it goes to report.tintaoffice.com (tintaoffice-web `report-worker/`: R2 in the EU, 90 days, one GitHub issue per distinct crash labelled `auto-report`). PDF: `crates/ui-egui/src/tinta_reports.rs`, `apps/pdfcraft/src/tinta_report.rs`, address in `.cargo/config.toml` (`TINTA_REPORT_URL`). |
 
 Rules: upstream first (fixes useful to everyone go to storytold as PRs); every change ships with
 automated tests and updated docs in the same PR; files people exchange (.docx, .xlsx, .pptx, PDF)

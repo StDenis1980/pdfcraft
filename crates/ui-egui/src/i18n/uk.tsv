@@ -2589,3 +2589,13 @@ animation effects	Off	Вимкнено
 	Only a fingerprint of the document is sent to the server, never the document.	На сервер надсилається лише відбиток документа, а не сам документ.
 	Timestamps need the desktop app.	Позначки часу доступні лише в програмі для комп'ютера.
 	ID number (NIF)	Ідентифікаційний номер (NIF)
+	Send error reports automatically?	Надсилати звіти про помилки автоматично?
+	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Коли програма аварійно завершується або перестає відповідати, вона може надіслати звіт, щоб проблему виправили без вашого листа нам. У звіті є версія програми, система, мова, місце в коді, де сталася помилка, і останні рядки технічного журналу. Ніколи — текст ваших документів, назви файлів, папки, адреси email чи паролі.
+	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Звіти надходять до Tinta Office (report.tintaoffice.com, зберігаються в ЄС) і видаляються через 90 днів. Змінити це можна будь-коли у Параметрах, там само можна видалити свої звіти із сервера. Докладніше: tintaoffice.com/uk/pravova-informatsiia
+	Yes, send reports	Так, надсилати звіти
+	Error reports	Звіти про помилки
+	Send error reports automatically	Надсилати звіти про помилки автоматично
+	Installation id: {id}	Ідентифікатор встановлення: {id}
+	Delete my reports from the server	Видалити мої звіти із сервера
+	Deletion requested: it completes the next time the app is online.	Видалення запитано: воно завершиться, коли програма наступного разу буде в мережі.
+	Open the reports folder	Відкрити папку звітів
