@@ -218,35 +218,51 @@ impl Ocr {
             })
             .collect();
         let mut out = Vec::new();
-        for (rects, bounds) in lines.iter().filter(|(_, b)| !lines.iter().any(|(_, other)| mark_of(*b, *other))) {
-            // Boxes far apart on one line (table cells, columns, a heading beside a picture) are
-            // read apart, or the model runs their words together. Each gap is read on its own too,
-            // for a word the detector missed there; empty paper reads as nothing, or as words too
-            // unsure to keep.
-            let mut words = Vec::new();
-            let pad = (bounds[3] - bounds[1]) * 0.15;
-            let mut previous_right: Option<f32> = None;
-            for part in segments(rects, (bounds[3] - bounds[1]) * SEGMENT_GAP) {
-                let Some(part_bounds) = part.iter().copied().reduce(|a, b| [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])]) else {
-                    continue;
-                };
-                if let Some(right) = previous_right {
-                    // Inset by the padding, so the crop ends where the neighbouring boxes start.
-                    let gap = [right + pad, bounds[1], part_bounds[0] - pad, bounds[3]];
-                    if gap[2] > gap[0] {
-                        words.extend(self.read_segment(&reader, &rgb, (width, height, channels), Vec::new(), gap, language)?);
-                    }
-                }
-                previous_right = Some(previous_right.map_or(part_bounds[2], |r| r.max(part_bounds[2])));
-                // The line's top and bottom, so a segment of small letters keeps the line height.
-                let part_bounds = [part_bounds[0], bounds[1], part_bounds[2], bounds[3]];
-                words.extend(self.read_segment(&reader, &rgb, (width, height, channels), part, part_bounds, language)?);
-            }
+        for (rects, _) in lines.iter().filter(|(_, b)| !lines.iter().any(|(_, other)| mark_of(*b, *other))) {
+            let words = self.read_line(&reader, &rgb, (width, height, channels), rects, language)?;
             if !words.is_empty() {
                 out.push(Line { words });
             }
         }
         Ok(out)
+    }
+
+    /// Read the word boxes (`[left, top, right, bottom]`) of one line the detector found.
+    fn read_line(
+        &self,
+        reader: &paddle::Paddle,
+        rgb: &[u8],
+        dims: (u32, u32, usize),
+        rects: &[[f32; 4]],
+        language: &str,
+    ) -> Result<Vec<Word>, OcrError> {
+        // Boxes far apart on one line (table cells, columns, a heading beside a picture) are
+        // read apart, or the model runs their words together. Each gap is read on its own too,
+        // for a word the detector missed there; empty paper reads as nothing, or as words too
+        // unsure to keep.
+        //
+        // A line photographed at a slant climbs across its box, which then holds parts of the
+        // lines above and below: it is read in pieces short enough to stay level.
+        let band = Band::fit(rects);
+        let mut words = Vec::new();
+        let pad = band.height * 0.15;
+        let mut previous: Option<[f32; 4]> = None;
+        for part in segments(rects, band.height * SEGMENT_GAP) {
+            for piece in band.pieces(part) {
+                let Some(piece_bounds) = band.around(&piece) else { continue };
+                if let Some(before) = previous.filter(|b| piece_bounds[0] - b[2] > band.height * SEGMENT_GAP) {
+                    // Inset by the padding, so the crop ends where the neighbouring boxes start.
+                    let (left, right) = (before[2] + pad, piece_bounds[0] - pad);
+                    let gap = [left, before[1].min(piece_bounds[1]), right, before[3].max(piece_bounds[3])];
+                    if gap[2] > gap[0] {
+                        words.extend(self.read_segment(reader, rgb, dims, Vec::new(), gap, language)?);
+                    }
+                }
+                previous = Some(previous.map_or(piece_bounds, |b| if piece_bounds[2] > b[2] { piece_bounds } else { b }));
+                words.extend(self.read_segment(reader, rgb, dims, piece, piece_bounds, language)?);
+            }
+        }
+        Ok(words)
     }
 
     /// Read one run of word boxes of a line, `bounds` around them all. Words the model is
@@ -411,8 +427,9 @@ impl Ocr {
 
 /// The size (width, height) of the tiles [`Ocr::detect`] searches: twice the detection model's
 /// input (600 × 800), which keeps a tile's small print legible once shrunk to it, while a word
-/// of a few centimetres still fits whole in one tile. Measured on phone photos of whole pages
-/// in Spanish, Catalan and Ukrainian: 40–170% more words read than the whole image alone.
+/// of a few centimetres still fits whole in one tile. Measured on 25 phone photos of whole
+/// pages in Spanish, Catalan and Ukrainian: 19% more words read than the whole image alone, and
+/// up to 6× more on a page of dense small print.
 const TILE: (u32, u32) = (1200, 1600);
 /// How far neighbouring tiles overlap: wider than most words, so each word lies whole in one.
 const TILE_OVERLAP: u32 = 400;
@@ -456,10 +473,11 @@ fn crop(pixels: &[u8], width: u32, channels: usize, [x, y, w, h]: [u32; 4]) -> O
 
 /// Merge the word boxes found in a whole image with those found in its tiles. Tile boxes repeat
 /// where tiles overlap, and a word cut by a tile edge leaves a piece: a box mostly inside a
-/// larger one is dropped. A box of the whole image stands for the tile boxes inside it when
-/// they are about as tall as it is (a large word the tiles cut up), and is dropped when they
-/// are much shorter (small print run together by the shrunken image); found by nothing in the
-/// tiles, it is kept.
+/// larger one is dropped. A box of the whole image stands for the tile boxes it overlaps when
+/// they all lie inside it and are about as tall as it is (a large word the tiles cut up), and
+/// is dropped otherwise (small print run together by the shrunken image, or a line whose words
+/// the tiles found reaching past it, which would be read twice); found by nothing in the tiles,
+/// it is kept.
 fn merge_detections(whole: Vec<RotatedRect>, tiled: Vec<RotatedRect>) -> Vec<RotatedRect> {
     let rect = |r: &RotatedRect| {
         let b = r.bounding_rect();
@@ -476,13 +494,12 @@ fn merge_detections(whole: Vec<RotatedRect>, tiled: Vec<RotatedRect>) -> Vec<Rot
     let mut out = Vec::new();
     for r in whole {
         let w = rect(&r);
-        let inside: Vec<usize> = kept.iter().enumerate().filter(|(_, (k, _))| mostly_inside(*k, w)).map(|(i, _)| i).collect();
-        let tall = inside.iter().filter_map(|i| kept.get(*i)).all(|(k, _)| k[3] - k[1] >= (w[3] - w[1]) * 0.6);
-        if inside.is_empty() {
+        let touching: Vec<usize> = kept.iter().enumerate().filter(|(_, (k, _))| overlaps(*k, w)).map(|(i, _)| i).collect();
+        if touching.is_empty() {
             out.push(r);
-        } else if tall {
+        } else if touching.iter().filter_map(|i| kept.get(*i)).all(|(k, _)| mostly_inside(*k, w) && k[3] - k[1] >= (w[3] - w[1]) * 0.6) {
             // Highest index first, so the others stay where they are.
-            for i in inside.into_iter().rev() {
+            for i in touching.into_iter().rev() {
                 kept.remove(i);
             }
             out.push(r);
@@ -496,6 +513,12 @@ fn merge_detections(whole: Vec<RotatedRect>, tiled: Vec<RotatedRect>) -> Vec<Rot
 fn area(b: [f32; 4]) -> f32 {
     let a = (b[2] - b[0]).max(0.0) * (b[3] - b[1]).max(0.0);
     if a.is_finite() { a } else { 0.0 }
+}
+
+/// Whether boxes `a` and `b` share more than a sliver: a tenth of the smaller one.
+fn overlaps(a: [f32; 4], b: [f32; 4]) -> bool {
+    let overlap = area([a[0].max(b[0]), a[1].max(b[1]), a[2].min(b[2]), a[3].min(b[3])]);
+    overlap > 0.0 && overlap > area(a).min(area(b)) * 0.1
 }
 
 /// Whether at least 80% of box `a` lies inside box `b`.
@@ -603,6 +626,67 @@ fn segments(rects: &[[f32; 4]], min_gap: f32) -> Vec<Vec<[f32; 4]>> {
         right = right.max(r[2]);
     }
     out
+}
+
+/// The band a line of text runs along: the straight line through its word boxes' centres
+/// (`y = slope × x + offset`, in pixels) and the height of its tallest box.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Band {
+    slope: f32,
+    offset: f32,
+    height: f32,
+}
+
+/// The steepest slope [`Band::fit`] believes: about 11°. Steeper, the boxes are not one line.
+const MAX_SLOPE: f32 = 0.2;
+/// How far a piece of a slanted line may climb across its length, in line heights, before
+/// [`Band::pieces`] cuts it: half a line, so the piece's box holds only half a line of its
+/// neighbours' letters at its ends.
+const MAX_CLIMB: f32 = 0.5;
+
+impl Band {
+    /// The band through the boxes (`[left, top, right, bottom]`) of a line: level when they are
+    /// too few or too close together to tell a slope.
+    fn fit(rects: &[[f32; 4]]) -> Band {
+        let boxes: Vec<[f32; 4]> = rects.iter().copied().filter(|r| r.iter().all(|v| v.is_finite()) && r[2] >= r[0] && r[3] >= r[1]).collect();
+        let height = boxes.iter().map(|r| r[3] - r[1]).fold(0.0, f32::max);
+        let centres: Vec<(f32, f32)> = boxes.iter().map(|r| ((r[0] + r[2]) / 2.0, (r[1] + r[3]) / 2.0)).collect();
+        let n = centres.len().max(1) as f32;
+        let (mx, my) = centres.iter().fold((0.0, 0.0), |(x, y), c| (x + c.0 / n, y + c.1 / n));
+        let (cov, var) = centres.iter().fold((0.0, 0.0), |(c, v), p| (c + (p.0 - mx) * (p.1 - my), v + (p.0 - mx) * (p.0 - mx)));
+        // Centres closer together than a line height (one word, or a short stack) say nothing.
+        let slope = if centres.len() > 1 && var > (height * height).max(1.0) { (cov / var).clamp(-MAX_SLOPE, MAX_SLOPE) } else { 0.0 };
+        let slope = if slope.is_finite() { slope } else { 0.0 };
+        Band { slope, offset: my - slope * mx, height }
+    }
+
+    /// The boxes of one run of a line, left to right, cut into pieces each climbing at most
+    /// [`MAX_CLIMB`] line heights along the band. A level line stays one piece.
+    fn pieces(&self, run: Vec<[f32; 4]>) -> Vec<Vec<[f32; 4]>> {
+        let longest = if self.slope == 0.0 { f32::INFINITY } else { MAX_CLIMB * self.height / self.slope.abs() };
+        let mut out: Vec<Vec<[f32; 4]>> = Vec::new();
+        let mut start = f32::NEG_INFINITY;
+        for r in run {
+            match out.last_mut() {
+                Some(piece) if r[2] - start <= longest => piece.push(r),
+                _ => {
+                    start = r[0];
+                    out.push(vec![r]);
+                }
+            }
+        }
+        out
+    }
+
+    /// The box to read a piece of the line in: its word boxes, and the band's full height
+    /// over the piece's length, so a piece of small letters keeps the line's height.
+    fn around(&self, piece: &[[f32; 4]]) -> Option<[f32; 4]> {
+        let b = piece.iter().copied().reduce(|a, b| [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])])?;
+        let (y0, y1) = (self.slope * b[0] + self.offset, self.slope * b[2] + self.offset);
+        let half = self.height / 2.0;
+        let out = [b[0], b[1].min(y0.min(y1) - half), b[2], b[3].max(y0.max(y1) + half)];
+        out.iter().all(|v| v.is_finite()).then_some(out)
+    }
 }
 
 /// Whether the line in `a` is only a mark of the larger line in `b` that detection found on its
@@ -1108,6 +1192,98 @@ mod tests {
         assert_eq!(boxes(merge_detections(vec![rr([0.0, 0.0, 400.0, 80.0])], lines)).len(), 3);
         // What only the whole image found is kept.
         assert_eq!(boxes(merge_detections(vec![rr(word)], vec![])), [[100, 100, 300, 130]]);
+    }
+
+    #[test]
+    fn a_whole_image_box_across_tile_boxes_is_not_read_twice() {
+        let rr = |[l, t, r, b]: [f32; 4]| RotatedRect::from_rect(rten_imageproc::RectF::from_tlbr(t, l, b, r));
+        // The shrunken whole image found a line the tiles found as two words, one of which
+        // reaches past it: keeping the line too would read those words twice.
+        let words = vec![rr([100.0, 100.0, 300.0, 120.0]), rr([310.0, 100.0, 620.0, 121.0])];
+        let merged = merge_detections(vec![rr([100.0, 98.0, 480.0, 122.0])], words);
+        let mut lefts: Vec<f32> = merged.iter().map(|r| r.bounding_rect().left()).collect();
+        lefts.sort_by(f32::total_cmp);
+        assert_eq!(lefts, [100.0, 310.0]);
+        assert!(merged.iter().all(|r| r.bounding_rect().width() < 350.0));
+        // A sliver of overlap with a neighbour does not stop a word only the whole image found.
+        let merged = merge_detections(vec![rr([100.0, 200.0, 300.0, 230.0])], vec![rr([295.0, 200.0, 500.0, 230.0])]);
+        assert_eq!(merged.len(), 2);
+    }
+
+    #[test]
+    fn a_slanted_line_is_read_in_level_pieces() {
+        // Ten words 20 high climbing 5 pixels per 100 across: over the line, 45 pixels, more
+        // than two lines' height.
+        let words: Vec<[f32; 4]> = (0..10).map(|i| i as f32 * 100.0).map(|x| [x, 300.0 + x * 0.05, x + 80.0, 320.0 + x * 0.05]).collect();
+        let band = Band::fit(&words);
+        assert!((band.slope - 0.05).abs() < 1e-3, "{band:?}");
+        assert_eq!(band.height, 20.0);
+        let pieces = band.pieces(words.clone());
+        assert_eq!(pieces.iter().map(Vec::len).sum::<usize>(), 10);
+        assert!(pieces.len() >= 4, "{pieces:?}");
+        for piece in &pieces {
+            let b = band.around(piece).unwrap();
+            assert!(b[3] - b[1] <= 20.0 * (1.0 + MAX_CLIMB) + 1.0, "{b:?}");
+            // Every word lies inside the box its piece is read in.
+            assert!(piece.iter().all(|w| w[1] >= b[1] && w[3] <= b[3]));
+        }
+        // A level line stays one piece, as tall as its words.
+        let level: Vec<[f32; 4]> = (0..10).map(|i| i as f32 * 100.0).map(|x| [x, 300.0, x + 80.0, 320.0]).collect();
+        let band = Band::fit(&level);
+        assert_eq!(band.slope, 0.0);
+        let pieces = band.pieces(level);
+        assert_eq!(pieces.len(), 1);
+        assert_eq!(band.around(&pieces[0]), Some([0.0, 300.0, 980.0, 320.0]));
+        // One word, or none, or junk, is a level band.
+        assert_eq!(Band::fit(&[[0.0, 0.0, 50.0, 10.0]]).slope, 0.0);
+        assert_eq!(Band::fit(&[]).height, 0.0);
+        assert_eq!(Band::fit(&[[f32::NAN, 0.0, 1.0, 1.0], [0.0, 0.0, f32::INFINITY, 1.0]]), Band { slope: 0.0, offset: 0.0, height: 0.0 });
+        // Boxes stacked steeper than any line are not taken for one.
+        assert_eq!(Band::fit(&[[0.0, 0.0, 50.0, 10.0], [100.0, 200.0, 150.0, 210.0]]).slope, MAX_SLOPE);
+    }
+
+    #[test]
+    fn a_slanted_line_is_read_without_its_neighbours() {
+        let Some(models) = Models::find() else {
+            eprintln!("skipped: OCR models not installed");
+            return;
+        };
+        let ocr = Ocr::load(&models).unwrap();
+        let Ok(reader) = ocr.paddle(paddle::Script::Latin) else {
+            eprintln!("skipped: Latin recognition model not installed");
+            return;
+        };
+        // Three lines of "HELLO WORLD" four times over, their letters 28 pixels high and 12
+        // apart, photographed at a slant: across the line it climbs past the line below.
+        const SLANT: f32 = 0.06;
+        const GAP: u32 = 40;
+        let text = ["HELLO WORLD"; 4].join(" ");
+        let (lw, lh, line) = test_image::text(&text);
+        let (w, h) = (lw, lh + 2 * GAP + (lw as f32 * SLANT) as u32);
+        let mut px = vec![255u8; (w * h * 3) as usize];
+        for row in 0..3u32 {
+            for y in 0..lh {
+                for x in 0..lw {
+                    if line[((y * lw + x) * 4) as usize] == 0 {
+                        let o = (((y + row * GAP + (x as f32 * SLANT) as u32) * w + x) * 3) as usize;
+                        px[o..o + 3].copy_from_slice(&[0, 0, 0]);
+                    }
+                }
+            }
+        }
+        // The middle line's word boxes, as the detector finds them: 40 pixels in, 24 a letter.
+        let mut boxes = Vec::new();
+        let mut start = 0;
+        for word in text.split(' ') {
+            let (x0, x1) = ((40 + start * 24) as f32, (40 + (start + word.len()) * 24 - 4) as f32);
+            boxes.push([x0, 40.0 + GAP as f32 + x0 * SLANT, x1, 68.0 + GAP as f32 + x1 * SLANT]);
+            start += word.len() + 1;
+        }
+        let words = ocr.read_line(&reader, &px, (w, h, 3), &boxes, "es").unwrap();
+        let read: Vec<String> = words.iter().map(|w| w.text.to_uppercase()).collect();
+        // The blocky "D" reads as "O" at times; the neighbours' letters run into a level crop.
+        let right = read.iter().filter(|t| t.starts_with("HELL") || t.starts_with("WOR")).count();
+        assert!(right >= 7, "{read:?}");
     }
 
     #[test]
