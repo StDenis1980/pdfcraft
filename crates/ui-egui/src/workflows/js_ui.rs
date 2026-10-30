@@ -393,6 +393,7 @@ pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tok
     });
     ui.add_space(8.0);
     crate::appearance::preferences_section(ui, app, t);
+    crate::tinta_reports::preferences_section(ui, app);
     ui.add_space(8.0);
     ui.label(egui::RichText::new(tl!("Documents and view")).font(theme::semibold(13.0)));
     ui.horizontal(|ui| {

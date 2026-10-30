@@ -166,6 +166,8 @@ impl PdfCraftApp {
             a11y_skipped: Default::default(),
             alt_draft: Default::default(),
             os_key_store_ids: false,
+            tinta_reports: Default::default(),
+            tinta_hooks: None,
             cert_viewer: None,
             space_audit: Vec::new(),
             space_audit_of: None,
@@ -344,6 +346,7 @@ impl eframe::App for PdfCraftApp {
     /// Each frame's work before drawing: opens, operating-system and control-channel requests,
     /// the quit guard, shortcuts, and the background jobs' results.
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let _busy = tinta_reports::busy(self);
         self.ctx = Some(ctx.clone());
         #[cfg(not(target_arch = "wasm32"))]
         self.window_state.repair(ctx);
@@ -519,9 +522,11 @@ impl eframe::App for PdfCraftApp {
         // Last, after everything that can open or answer the "save changes?" question.
         self.attend_save_prompt(ctx);
         self.sync_native_menu(ctx);
+        tinta_reports::tick(self);
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let _busy = tinta_reports::busy(self);
         let ctx = ui.ctx().clone();
         i18n::set_current(i18n::Lang::from_pref(&self.language));
         // A language change switches stock chrome between LTR and RTL before anything is drawn.
@@ -531,6 +536,7 @@ impl eframe::App for PdfCraftApp {
             ctx.request_repaint();
             return;
         }
+        tinta_reports::first_start(self, &ctx);
         // Before any widget reads this frame's wheel input or draws.
         self.motion.begin_pass(&ctx, self.animation_effects);
         // One-time 0.36 -> 0.37 panel persistence migration, before any panel stores or reads state.

@@ -21,6 +21,11 @@ egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"
 serde_json = { workspace = true }
 # Records from every crate go to standard error and the log file (src/logging.rs).
 log = { workspace = true }
+# Tinta Office: error reports (`src/tinta_report.rs`) go to report.tintaoffice.com over HTTPS with
+# the system's certificates (craft-update's ureq and features), and the installation id comes
+# from the system's randomness.
+ureq = { version = "3.4", default-features = false, features = ["rustls-no-provider", "_ring", "gzip", "platform-verifier"] }
+getrandom = "0.4"
 # The log timestamp goes through chrono (no hand-rolled calendar code).
 chrono = { workspace = true }
 

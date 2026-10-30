@@ -32,6 +32,7 @@ pub use combine_ui::{Columns as CombineColumns, CombineView, Lock as CombineLock
 mod commands;
 pub mod control;
 mod menus;
+pub mod tinta_reports;
 /// Header & footer / watermark / background dialog types (tests and automation).
 pub mod marks {
     pub use crate::marks_ui::{MarksDraft, PageRange, Subset};
@@ -462,6 +463,10 @@ pub struct PdfCraftApp {
     pub alt_draft: a11y_ui::AltDraft,
     /// List the OS key store's signing identities among the digital IDs (the desktop app).
     pub os_key_store_ids: bool,
+    /// Tinta Office: whether error reports are sent automatically ([`tinta_reports`]).
+    pub tinta_reports: tinta_reports::ReportsPrefs,
+    /// Tinta Office: set by the desktop app when this build can send error reports.
+    pub tinta_hooks: Option<tinta_reports::Hooks>,
     pub cert_viewer: Option<sign_ui::CertViewer>,
     /// The last space audit.
     pub space_audit: Vec<pdfcraft_engine::optimize::SpaceUse>,

@@ -2476,3 +2476,13 @@ animation effects	Off	Выкл
 	Rotate the selected pages clockwise	Повернуть выбранные страницы по часовой стрелке
 	Extract the selected pages…	Извлечь выбранные страницы…
 	Delete the selected pages	Удалить выбранные страницы
+	Send error reports automatically?	Отправлять отчёты об ошибках автоматически?
+	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Когда программа аварийно завершается или перестаёт отвечать, она может отправить отчёт, чтобы проблему исправили без вашего письма нам. В отчёте есть версия программы, система, язык, место в коде, где произошла ошибка, и последние строки технического журнала. Никогда — текст ваших документов, имена файлов, папки, адреса email или пароли.
+	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Отчёты поступают в Tinta Office (report.tintaoffice.com, хранятся в ЕС) и удаляются через 90 дней. Изменить это можно в любое время в Параметрах, там же можно удалить свои отчёты с сервера. Подробнее: tintaoffice.com/en/legal
+	Yes, send reports	Да, отправлять отчёты
+	Error reports	Отчёты об ошибках
+	Send error reports automatically	Отправлять отчёты об ошибках автоматически
+	Installation id: {id}	Идентификатор установки: {id}
+	Delete my reports from the server	Удалить мои отчёты с сервера
+	Deletion requested: it completes the next time the app is online.	Удаление запрошено: оно завершится, когда программа в следующий раз будет в сети.
+	Open the reports folder	Открыть папку отчётов

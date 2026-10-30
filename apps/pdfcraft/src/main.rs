@@ -41,6 +41,7 @@ mod reopen;
 mod settings;
 mod single_instance;
 mod text_scale;
+mod tinta_report;
 #[cfg(test)]
 #[path = "windows_manifest.rs"]
 mod windows_manifest;
@@ -260,6 +261,12 @@ fn main() -> eframe::Result {
             Err(e) => log::warn!("no log file: {e}"),
         }
     }
+    // Tinta Office: error reports, after the logger's panic hook so the log already holds the panic.
+    let data = pdfcraft_ui_egui::portable::data_dir().map(std::path::Path::to_path_buf).or_else(|| eframe::storage_dir(pdfcraft_engine::brand::NAME));
+    if let Some(dir) = tinta_report::dir(data.clone()) {
+        let log_file = data.map(|d| d.join("logs").join(logging::LOG_FILE));
+        tinta_report::install(dir, log_file, pdfcraft_engine::build_info::LABEL.unwrap_or("dev"));
+    }
     // Windows, Linux and the BSDs: a launch that only names files (an Outlook attachment, an
     // Explorer double-click, a file manager or `xdg-open`) hands them to the PdfCraft already
     // running and exits (#282, #317, #1726). Any option means the caller wants this launch's own
@@ -430,6 +437,7 @@ fn app_creator<'a>(
         app.set_startup_update_check(true);
         app.printer_source = Some(pdfcraft_ui_egui::system_printers());
         app.os_key_store_ids = cfg!(any(target_os = "macos", target_os = "windows"));
+        app.tinta_hooks = tinta_report::hooks();
         #[cfg(target_os = "macos")]
         {
             app.os_events = Some(apple_events.connect(&cc.egui_ctx));
