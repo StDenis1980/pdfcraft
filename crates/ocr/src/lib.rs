@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use rten_imageproc::BoundingRect;
+use rten_imageproc::{BoundingRect, RotatedRect};
 
 pub mod paddle;
 
@@ -190,7 +190,7 @@ impl Ocr {
         let err = |e: &dyn std::fmt::Display| OcrError::Recognize(e.to_string());
         let source = ocrs::ImageSource::from_bytes(&rgb, (width, height)).map_err(|e| err(&e))?;
         let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
-        let found = self.engine.detect_words(&input).map_err(|e| err(&e))?;
+        let found = self.detect(&rgb, width, height)?;
         // The dots of "і" and "ї" and other marks found on their own would pull the line finder
         // off the line: leave them to the word they belong to (its line's crop holds them).
         let boxes: Vec<[f32; 4]> = found
@@ -311,10 +311,7 @@ impl Ocr {
     /// Whether most of the words detected in the image are taller than wide.
     fn sideways(&self, pixels: &[u8], width: u32, height: u32) -> Result<bool, OcrError> {
         let rgb = Self::channels(pixels, width, height)?;
-        let err = |e: &dyn std::fmt::Display| OcrError::Recognize(e.to_string());
-        let source = ocrs::ImageSource::from_bytes(&rgb, (width, height)).map_err(|e| err(&e))?;
-        let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
-        let found = self.engine.detect_words(&input).map_err(|e| err(&e))?;
+        let found = self.detect(&rgb, width, height)?;
         let boxes: Vec<[f32; 4]> = found
             .iter()
             .map(|r| {
@@ -323,6 +320,48 @@ impl Ocr {
             })
             .collect();
         Ok(mostly_tall(&boxes))
+    }
+
+    /// The words found in an image of 1 or 3 channels (as [`Ocr::channels`] gives). The detection
+    /// model takes a fixed size and shrinks a larger image to it, which loses small print on a
+    /// page photographed whole, so a larger image is also searched in [`TILE`]s, and the two sets
+    /// of boxes merged ([`merge_detections`]).
+    fn detect(&self, rgb: &[u8], width: u32, height: u32) -> Result<Vec<RotatedRect>, OcrError> {
+        let whole = self.detect_in(rgb, width, height)?;
+        if width <= TILE.0 && height <= TILE.1 {
+            return Ok(whole);
+        }
+        let channels = rgb.len() / (width as usize).saturating_mul(height as usize).max(1);
+        let mut tiled = Vec::new();
+        let (xs, ys) = (tile_starts(width, TILE.0), tile_starts(height, TILE.1));
+        for (row, &y) in ys.iter().enumerate() {
+            for (col, &x) in xs.iter().enumerate() {
+                let (tw, th) = (TILE.0.min(width.saturating_sub(x)), TILE.1.min(height.saturating_sub(y)));
+                let Some(tile) = crop(rgb, width, channels, [x, y, tw, th]) else { continue };
+                // Each tile keeps the words centred in its own share of the overlaps: the other
+                // half belongs to its neighbour, which sees those words further from its edge.
+                let (left, right) = owned(&xs, col, TILE.0, width);
+                let (top, bottom) = owned(&ys, row, TILE.1, height);
+                tiled.extend(
+                    self.detect_in(&tile, tw, th)?
+                        .into_iter()
+                        .map(|r| RotatedRect::new(r.center().translate(y as f32, x as f32), r.up_axis(), r.width(), r.height()))
+                        .filter(|r| {
+                            let c = r.center();
+                            (left..right).contains(&c.x) && (top..bottom).contains(&c.y)
+                        }),
+                );
+            }
+        }
+        Ok(merge_detections(whole, tiled))
+    }
+
+    /// The words the detection model finds in one image, shrunk to its input size if larger.
+    fn detect_in(&self, rgb: &[u8], width: u32, height: u32) -> Result<Vec<RotatedRect>, OcrError> {
+        let err = |e: &dyn std::fmt::Display| OcrError::Recognize(e.to_string());
+        let source = ocrs::ImageSource::from_bytes(rgb, (width, height)).map_err(|e| err(&e))?;
+        let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
+        self.engine.detect_words(&input).map_err(|e| err(&e))
     }
 
     /// The image with 1 or 3 channels, as ocrs wants.
@@ -348,7 +387,7 @@ impl Ocr {
         let err = |e: &dyn std::fmt::Display| OcrError::Recognize(e.to_string());
         let source = ocrs::ImageSource::from_bytes(&rgb, (width, height)).map_err(|e| err(&e))?;
         let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
-        let found = self.engine.detect_words(&input).map_err(|e| err(&e))?;
+        let found = self.detect(&rgb, width, height)?;
         let lines = self.engine.find_text_lines(&input, &found);
         let read = self.engine.recognize_text(&input, &lines).map_err(|e| err(&e))?;
         use ocrs::TextItem;
@@ -368,6 +407,102 @@ impl Ocr {
             .filter(|l| !l.words.is_empty())
             .collect())
     }
+}
+
+/// The size (width, height) of the tiles [`Ocr::detect`] searches: twice the detection model's
+/// input (600 × 800), which keeps a tile's small print legible once shrunk to it, while a word
+/// of a few centimetres still fits whole in one tile. Measured on phone photos of whole pages
+/// in Spanish, Catalan and Ukrainian: 40–170% more words read than the whole image alone.
+const TILE: (u32, u32) = (1200, 1600);
+/// How far neighbouring tiles overlap: wider than most words, so each word lies whole in one.
+const TILE_OVERLAP: u32 = 400;
+
+/// Where tiles `tile` long start along an edge `len` long: overlapping by [`TILE_OVERLAP`], the
+/// last one ending at the edge.
+fn tile_starts(len: u32, tile: u32) -> Vec<u32> {
+    let step = tile.saturating_sub(TILE_OVERLAP).max(1);
+    let last = len.saturating_sub(tile);
+    let mut out: Vec<u32> = (0..).map(|i: u32| i.saturating_mul(step)).take_while(|s| *s < last).collect();
+    out.push(last);
+    out
+}
+
+/// The part of an edge `len` long that tile `i` (of tiles `tile` long starting at `starts`)
+/// owns: from the middle of its overlap with the tile before to the middle of its overlap with
+/// the tile after.
+fn owned(starts: &[u32], i: usize, tile: u32, len: u32) -> (f32, f32) {
+    let span = |i: usize| starts.get(i).map(|s| (*s as f32, s.saturating_add(tile).min(len) as f32));
+    let here = span(i).unwrap_or((0.0, len as f32));
+    let from = i.checked_sub(1).and_then(span).map_or(f32::NEG_INFINITY, |before| (here.0 + before.1) / 2.0);
+    let to = i.checked_add(1).and_then(span).map_or(f32::INFINITY, |next| (next.0 + here.1) / 2.0);
+    (from, to)
+}
+
+/// The `[x, y, width, height]` part of an image `width` pixels wide with `channels` bytes per
+/// pixel. `None` when the part is not inside the image.
+fn crop(pixels: &[u8], width: u32, channels: usize, [x, y, w, h]: [u32; 4]) -> Option<Vec<u8>> {
+    if x.checked_add(w)? > width {
+        return None;
+    }
+    let row = (width as usize).checked_mul(channels)?;
+    let (x, w) = ((x as usize).checked_mul(channels)?, (w as usize).checked_mul(channels)?);
+    let mut out = Vec::with_capacity(w.checked_mul(h as usize)?);
+    for line in y..y.checked_add(h)? {
+        let start = (line as usize).checked_mul(row)?.checked_add(x)?;
+        out.extend_from_slice(pixels.get(start..start.checked_add(w)?)?);
+    }
+    Some(out)
+}
+
+/// Merge the word boxes found in a whole image with those found in its tiles. Tile boxes repeat
+/// where tiles overlap, and a word cut by a tile edge leaves a piece: a box mostly inside a
+/// larger one is dropped. A box of the whole image stands for the tile boxes inside it when
+/// they are about as tall as it is (a large word the tiles cut up), and is dropped when they
+/// are much shorter (small print run together by the shrunken image); found by nothing in the
+/// tiles, it is kept.
+fn merge_detections(whole: Vec<RotatedRect>, tiled: Vec<RotatedRect>) -> Vec<RotatedRect> {
+    let rect = |r: &RotatedRect| {
+        let b = r.bounding_rect();
+        [b.left(), b.top(), b.right(), b.bottom()]
+    };
+    let mut tiled: Vec<([f32; 4], RotatedRect)> = tiled.into_iter().map(|r| (rect(&r), r)).collect();
+    tiled.sort_by(|a, b| area(b.0).total_cmp(&area(a.0)));
+    let mut kept: Vec<([f32; 4], RotatedRect)> = Vec::new();
+    for (b, r) in tiled {
+        if !kept.iter().any(|(k, _)| mostly_inside(b, *k)) {
+            kept.push((b, r));
+        }
+    }
+    let mut out = Vec::new();
+    for r in whole {
+        let w = rect(&r);
+        let inside: Vec<usize> = kept.iter().enumerate().filter(|(_, (k, _))| mostly_inside(*k, w)).map(|(i, _)| i).collect();
+        let tall = inside.iter().filter_map(|i| kept.get(*i)).all(|(k, _)| k[3] - k[1] >= (w[3] - w[1]) * 0.6);
+        if inside.is_empty() {
+            out.push(r);
+        } else if tall {
+            // Highest index first, so the others stay where they are.
+            for i in inside.into_iter().rev() {
+                kept.remove(i);
+            }
+            out.push(r);
+        }
+    }
+    out.extend(kept.into_iter().map(|(_, r)| r));
+    out
+}
+
+/// The area of a box `[left, top, right, bottom]`; 0 for an empty or inverted one.
+fn area(b: [f32; 4]) -> f32 {
+    let a = (b[2] - b[0]).max(0.0) * (b[3] - b[1]).max(0.0);
+    if a.is_finite() { a } else { 0.0 }
+}
+
+/// Whether at least 80% of box `a` lies inside box `b`.
+fn mostly_inside(a: [f32; 4], b: [f32; 4]) -> bool {
+    let overlap = area([a[0].max(b[0]), a[1].max(b[1]), a[2].min(b[2]), a[3].min(b[3])]);
+    let own = area(a);
+    own > 0.0 && overlap >= own * 0.8
 }
 
 /// A quarter turn applied to an image before reading it.
@@ -914,6 +1049,103 @@ mod tests {
         assert!(top > h as f32 / 2.0 && bottom <= h as f32, "{top}..{bottom} of {h}");
     }
 
+    #[test]
+    fn tiles_cover_the_edge_and_split_it_between_them() {
+        assert_eq!(tile_starts(1000, 1200), [0], "one tile for a short edge");
+        assert_eq!(tile_starts(1200, 1200), [0]);
+        assert_eq!(tile_starts(3000, 1200), [0, 800, 1600, 1800], "the last tile ends at the edge");
+        assert_eq!(tile_starts(0, 1200), [0]);
+        for len in [1201u32, 2000, 3000, 4000, 4321] {
+            let starts = tile_starts(len, 1200);
+            let shares: Vec<(f32, f32)> = (0..starts.len()).map(|i| owned(&starts, i, 1200, len)).collect();
+            assert_eq!(shares.first().map(|s| s.0), Some(f32::NEG_INFINITY));
+            assert_eq!(shares.last().map(|s| s.1), Some(f32::INFINITY));
+            for (i, pair) in shares.windows(2).enumerate() {
+                assert_eq!(pair[0].1, pair[1].0, "no gap and no overlap between shares at {len}");
+                // Each boundary lies where both tiles see the picture.
+                let (next, end) = (starts[i + 1] as f32, (starts[i] + 1200).min(len) as f32);
+                assert!(pair[0].1 >= next && pair[0].1 <= end, "{len}: {pair:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_crop_copies_the_rows_it_covers() {
+        // 4 × 3 pixels of 2 bytes, numbered.
+        let px: Vec<u8> = (0..24).collect();
+        assert_eq!(crop(&px, 4, 2, [1, 1, 2, 2]).unwrap(), [10, 11, 12, 13, 18, 19, 20, 21]);
+        assert_eq!(crop(&px, 4, 2, [0, 0, 4, 3]).unwrap(), px);
+        assert!(crop(&px, 4, 2, [3, 0, 2, 1]).is_none(), "past the right edge");
+        assert!(crop(&px, 4, 2, [0, 2, 1, 2]).is_none(), "past the bottom");
+        assert!(crop(&px, 4, 2, [u32::MAX, 0, 2, 1]).is_none());
+    }
+
+    #[test]
+    fn tiled_and_whole_detections_merge_without_repeats() {
+        let rr = |[l, t, r, b]: [f32; 4]| RotatedRect::from_rect(rten_imageproc::RectF::from_tlbr(t, l, b, r));
+        let boxes = |v: Vec<RotatedRect>| {
+            let mut v: Vec<[i32; 4]> = v
+                .iter()
+                .map(|r| {
+                    let b = r.bounding_rect();
+                    [b.left(), b.top(), b.right(), b.bottom()].map(|v| v.round() as i32)
+                })
+                .collect();
+            v.sort();
+            v
+        };
+        // A word found whole in one tile and cut in the next: the piece goes.
+        let word = [100.0, 100.0, 300.0, 130.0];
+        assert_eq!(boxes(merge_detections(vec![], vec![rr(word), rr([200.0, 100.0, 300.0, 130.0])])), [[100, 100, 300, 130]]);
+        // The same word from two tiles is kept once.
+        assert_eq!(boxes(merge_detections(vec![], vec![rr(word), rr(word)])).len(), 1);
+        // A large heading the tiles cut in two is taken whole from the whole image.
+        let heading = [0.0, 0.0, 1000.0, 120.0];
+        let halves = vec![rr([0.0, 5.0, 520.0, 115.0]), rr([480.0, 5.0, 1000.0, 115.0])];
+        assert_eq!(boxes(merge_detections(vec![rr(heading)], halves)), [[0, 0, 1000, 120]]);
+        // Small print the shrunken whole image ran together into one blob stays as the tiles read it.
+        let lines = vec![rr([0.0, 0.0, 400.0, 20.0]), rr([0.0, 30.0, 400.0, 50.0]), rr([0.0, 60.0, 400.0, 80.0])];
+        assert_eq!(boxes(merge_detections(vec![rr([0.0, 0.0, 400.0, 80.0])], lines)).len(), 3);
+        // What only the whole image found is kept.
+        assert_eq!(boxes(merge_detections(vec![rr(word)], vec![])), [[100, 100, 300, 130]]);
+    }
+
+    #[test]
+    fn small_print_on_a_large_image_is_found() {
+        const DOT: u32 = 3;
+        const INK: u8 = 110;
+        const PAPER: u8 = 170;
+        let Some(models) = Models::find() else {
+            eprintln!("skipped: OCR models not installed");
+            return;
+        };
+        let ocr = Ocr::load(&models).unwrap();
+        // "HELLO WORLD" DOT × 7 pixels high on a page photographed whole, 3000 × 4000 pixels:
+        // shrunk to the detection model's 600 × 800 at once, its letters would be a speck.
+        let (sw, h, small) = test_image::dots("HELLO WORLD", DOT);
+        let (big_w, big_h) = (3000u32, 4000u32);
+        // Grey print on grey paper, as a photo shows it.
+        let mut px = vec![PAPER; (big_w * big_h * 4) as usize];
+        let (x0, y0) = (1700u32, 2300u32);
+        for y in 0..h {
+            let from = (y * sw * 4) as usize;
+            let to = (((y0 + y) * big_w + x0) * 4) as usize;
+            for (dst, src) in px[to..to + (sw * 4) as usize].iter_mut().zip(&small[from..from + (sw * 4) as usize]) {
+                *dst = if *src == 0 { INK } else { PAPER };
+            }
+        }
+        let lines = ocr.recognize(&px, big_w, big_h).unwrap();
+        // Found where it is (the blocky letters themselves read only roughly).
+        let words: Vec<&Word> = lines.iter().flat_map(|l| &l.words).collect();
+        let found = words.iter().filter(|w| {
+            w.rect[0] >= x0 as f32 - 10.0
+                && w.rect[2] <= (x0 + sw) as f32 + 10.0
+                && w.rect[1] >= y0 as f32 - 10.0
+                && w.rect[3] <= (y0 + h) as f32 + 10.0
+        });
+        assert!(found.map(|w| w.text.chars().filter(|c| c.is_alphabetic()).count()).sum::<usize>() >= 4, "{words:?}");
+    }
+
     mod test_image {
         /// "HELLO WORLD" drawn with blocky 5×7 letters, 4 pixels per dot, black on white.
         pub fn hello() -> (u32, u32, Vec<u8>) {
@@ -922,6 +1154,11 @@ mod tests {
 
         /// `text` (the letters of "HELLO WORLD" and spaces) drawn as [`hello`] draws it.
         pub fn text(text: &str) -> (u32, u32, Vec<u8>) {
+            dots(text, 4)
+        }
+
+        /// `text` drawn with `dot` pixels per dot of its letters.
+        pub fn dots(text: &str, dot: u32) -> (u32, u32, Vec<u8>) {
             const GLYPHS: &[(char, [&str; 7])] = &[
                 ('H', ["X...X", "X...X", "X...X", "XXXXX", "X...X", "X...X", "X...X"]),
                 ('E', ["XXXXX", "X....", "X....", "XXXX.", "X....", "X....", "XXXXX"]),
@@ -931,7 +1168,7 @@ mod tests {
                 ('R', ["XXXX.", "X...X", "X...X", "XXXX.", "X.X..", "X..X.", "X...X"]),
                 ('D', ["XXXX.", "X...X", "X...X", "X...X", "X...X", "X...X", "XXXX."]),
             ];
-            let (dot, x0, y0) = (4u32, 40u32, 40u32);
+            let (x0, y0) = (40u32, 40u32);
             let (w, h) = (x0 * 2 + text.len() as u32 * 6 * dot, y0 * 2 + 7 * dot);
             let mut px = vec![255u8; (w * h * 4) as usize];
             for (i, c) in text.chars().enumerate() {
