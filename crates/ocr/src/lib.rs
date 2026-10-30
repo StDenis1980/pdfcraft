@@ -316,7 +316,8 @@ impl Ocr {
                 })
                 .collect()
         };
-        Ok(boxed.into_iter().filter(|(s, _)| s.score >= MIN_WORD_SCORE).map(|(s, rect)| Word { text: s.text, rect }).collect())
+        let scores: Vec<f32> = boxed.iter().map(|(s, _)| s.score).collect();
+        Ok(boxed.into_iter().zip(kept(&scores)).filter(|(_, keep)| *keep).map(|((s, rect), _)| Word { text: s.text, rect }).collect())
     }
 
     /// [`Ocr::recognize_language`] for a page that may hold its text sideways (a book
@@ -613,7 +614,7 @@ fn mostly_tall(boxes: &[[f32; 4]]) -> bool {
 }
 
 /// How much text a reading holds: its characters, letters and digits only.
-fn text_amount(lines: &[Line]) -> usize {
+pub fn text_amount(lines: &[Line]) -> usize {
     lines.iter().flat_map(|l| &l.words).map(|w| w.text.chars().filter(|c| c.is_alphanumeric()).count()).sum()
 }
 
@@ -639,6 +640,22 @@ fn load_lexicon(dir: &Path, language: &str) -> Option<lexicon::Lexicon> {
 
 /// The least mean score a word read by the PaddleOCR models needs to be kept.
 const MIN_WORD_SCORE: f32 = 0.7;
+/// The least a word needs between two words sure enough to keep: a short word in running text
+/// ("і", "a", "y") is read from a letter or two, so its mean swings more than a long word's,
+/// while junk read from a picture or a stain rarely sits between sure words.
+const MIN_WORD_SCORE_IN_TEXT: f32 = 0.4;
+
+/// Which words of a run, scored `scores` in reading order, to keep: those sure enough, and
+/// those less sure between two that are.
+fn kept(scores: &[f32]) -> Vec<bool> {
+    let sure = |i: Option<usize>| i.and_then(|i| scores.get(i)).is_some_and(|s| *s >= MIN_WORD_SCORE);
+    (0..scores.len())
+        .map(|i| {
+            let s = scores.get(i).copied().unwrap_or(0.0);
+            s >= MIN_WORD_SCORE || (s >= MIN_WORD_SCORE_IN_TEXT && sure(i.checked_sub(1)) && sure(i.checked_add(1)))
+        })
+        .collect()
+}
 
 /// How many line heights wide a gap between word boxes must be to read the boxes either side
 /// apart. Measured on phone photos of flyers and of a textbook: inside a run of text the
@@ -693,6 +710,20 @@ impl Band {
         // Centres closer together than a line height (one word, or a short stack) say nothing.
         let slope = if centres.len() > 1 && var > (height * height).max(1.0) { (cov / var).clamp(-MAX_SLOPE, MAX_SLOPE) } else { 0.0 };
         let slope = if slope.is_finite() { slope } else { 0.0 };
+        // A line that climbs less than [`MAX_CLIMB`] across its length is level: its centres
+        // differ by its letters (capitals, descenders), and it is read in its own box, as tall
+        // as all its boxes together.
+        let span = centres.iter().map(|c| c.0).fold(f32::NEG_INFINITY, f32::max) - centres.iter().map(|c| c.0).fold(f32::INFINITY, f32::min);
+        let climb = slope.abs() * span;
+        if !climb.is_finite() || climb <= MAX_CLIMB * height {
+            let top = boxes.iter().map(|r| r[1]).fold(f32::INFINITY, f32::min);
+            let bottom = boxes.iter().map(|r| r[3]).fold(f32::NEG_INFINITY, f32::max);
+            return if top <= bottom {
+                Band { slope: 0.0, offset: (top + bottom) / 2.0, height: bottom - top }
+            } else {
+                Band { slope: 0.0, offset: 0.0, height: 0.0 }
+            };
+        }
         Band { slope, offset: my - slope * mx, height }
     }
 
@@ -1241,6 +1272,18 @@ mod tests {
         assert_eq!(boxes(merge_detections(vec![rr([0.0, 0.0, 400.0, 80.0])], lines)).len(), 3);
         // What only the whole image found is kept.
         assert_eq!(boxes(merge_detections(vec![rr(word)], vec![])), [[100, 100, 300, 130]]);
+    }
+
+    #[test]
+    fn an_unsure_short_word_between_sure_ones_is_kept() {
+        assert_eq!(kept(&[0.99, 0.83, 0.52, 0.97]), [true, true, true, true]);
+        // Alone, or at the edge of the run, it is not.
+        assert_eq!(kept(&[0.52]), [false]);
+        assert_eq!(kept(&[0.52, 0.97]), [false, true]);
+        assert_eq!(kept(&[0.99, 0.52, 0.5, 0.97]), [true, false, false, true]);
+        // Junk stays out whatever its neighbours.
+        assert_eq!(kept(&[0.99, 0.2, 0.97]), [true, false, true]);
+        assert_eq!(kept(&[]), Vec::<bool>::new());
     }
 
     #[test]

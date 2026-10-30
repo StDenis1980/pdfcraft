@@ -24,6 +24,8 @@ pub struct Warped {
     pub width: u32,
     pub height: u32,
     pub rgb: Vec<u8>,
+    /// Where a point of the straightened picture lies in the raster it was taken from.
+    pub to_source: Homography,
 }
 
 /// Warp the quadrilateral `quad` (raster pixels, any corner order) of a premultiplied RGBA
@@ -47,7 +49,7 @@ pub fn warp(rgba: &[u8], width: u32, height: u32, quad: [Point; 4]) -> Result<Wa
     // Both are at least 1 and their product is at most MAX_PIXELS, so the casts are exact.
     let (ow, oh) = (ow as u32, oh as u32);
     let rect = [[0.0, 0.0], [ow as f64, 0.0], [ow as f64, oh as f64], [0.0, oh as f64]];
-    let to_src = Homography::from_points(rect, [tl, tr, br, bl]).ok_or("the four corners must not be in a line")?;
+    let to_source = Homography::from_points(rect, [tl, tr, br, bl]).ok_or("the four corners must not be in a line")?;
 
     let px = |x: usize, y: usize| -> [f64; 4] {
         let i = (y * w + x) * 4;
@@ -61,7 +63,7 @@ pub fn warp(rgba: &[u8], width: u32, height: u32, quad: [Point; 4]) -> Result<Wa
         for x in 0..ow {
             // Sample at the pixel's centre; outside the page is white.
             let mut c = [0.0f64; 4];
-            if let Some([sx, sy]) = to_src.apply([x as f64 + 0.5, y as f64 + 0.5]) {
+            if let Some([sx, sy]) = to_source.apply([x as f64 + 0.5, y as f64 + 0.5]) {
                 let (fx, fy) = (sx - 0.5, sy - 0.5);
                 if fx > -1.0 && fy > -1.0 && fx < w as f64 && fy < h as f64 {
                     let (x0, y0) = (fx.floor(), fy.floor());
@@ -84,7 +86,7 @@ pub fn warp(rgba: &[u8], width: u32, height: u32, quad: [Point; 4]) -> Result<Wa
             }
         }
     }
-    Ok(Warped { width: ow, height: oh, rgb })
+    Ok(Warped { width: ow, height: oh, rgb, to_source })
 }
 
 /// The long side, in pixels, a page is rendered at to look for the document's edges.
