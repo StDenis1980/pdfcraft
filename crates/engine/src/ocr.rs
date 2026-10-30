@@ -136,26 +136,38 @@ impl OcrJob {
                 out.push(skip(&e));
                 continue;
             }
-            // A page whose text runs sideways is read turned; its words are mapped back.
-            let (lines, turn) = match ocr.recognize_upright(&shot.rgba, shot.width, shot.height, &self.settings.language) {
-                Ok(l) => l,
+            // A page whose text runs sideways is read turned, and a photographed sheet straightened
+            // too; its words are mapped back.
+            let read = match read_page(ocr, &shot.rgba, shot.width, shot.height, &self.settings.language) {
+                Ok(r) => r,
                 Err(e) => {
                     out.push(skip(&e.to_string()));
                     continue;
                 }
             };
             let scale = shot.width as f32 / info.width.max(1e-3);
-            let (sw, sh) = (shot.width, shot.height);
+            // A point of the picture read, in the page as rendered (pixels).
+            let to_shot = |x: f32, y: f32| -> (f32, f32) {
+                let (x, y) = read.turn.to_source(x, y, read.width, read.height);
+                match read.straightened.and_then(|h| h.apply([x as f64, y as f64])) {
+                    Some([sx, sy]) if sx.is_finite() && sy.is_finite() => (sx as f32, sy as f32),
+                    _ => (x, y),
+                }
+            };
             let to_user = |x: f32, y: f32| {
-                let (x, y) = turn.to_source(x, y, sw, sh);
+                let (x, y) = to_shot(x, y);
                 let [u, v] = info.view_to_user(x / scale, y / scale);
                 [u as f64, v as f64]
             };
-            // A word's box on the page as rendered, in view space.
+            // A word's box on the page as rendered, in view space (around its four corners).
             let view_rect = |r: [f32; 4]| {
-                let (a, b) = (turn.to_source(r[0], r[1], sw, sh), turn.to_source(r[2], r[3], sw, sh));
-                [a.0.min(b.0) / scale, a.1.min(b.1) / scale, a.0.max(b.0) / scale, a.1.max(b.1) / scale]
+                let corners = [to_shot(r[0], r[1]), to_shot(r[2], r[1]), to_shot(r[2], r[3]), to_shot(r[0], r[3])];
+                let (xs, ys) = (corners.map(|c| c.0), corners.map(|c| c.1));
+                let min = |v: [f32; 4]| v.into_iter().fold(f32::INFINITY, f32::min);
+                let max = |v: [f32; 4]| v.into_iter().fold(f32::NEG_INFINITY, f32::max);
+                [min(xs) / scale, min(ys) / scale, max(xs) / scale, max(ys) / scale]
             };
+            let lines = read.lines;
             // Words the page's own text already has are not added a second time.
             let (fresh, already): (Vec<_>, Vec<_>) =
                 lines.iter().flat_map(|l| &l.words).partition(|w| covered(view_rect(w.rect), &existing) < ALREADY_ON_PAGE);
@@ -177,6 +189,49 @@ impl OcrJob {
         let fit = (SHEET / info.width.max(info.height).max(1e-3)).min(1.0);
         native.clamp(fit, wanted * fit)
     }
+}
+
+/// A page's reading: its lines in the pixels of the picture read (`width` × `height`), the
+/// quarter turn it was read at, and, when it was read straightened, where that picture's points
+/// lie in the page as rendered.
+struct Reading {
+    lines: Vec<pdfcraft_ocr::Line>,
+    turn: pdfcraft_ocr::Turn,
+    width: u32,
+    height: u32,
+    straightened: Option<pdfcraft_geom::perspective::Homography>,
+}
+
+/// The most of the picture a sheet found in it may cover for the page to count as a photo of a
+/// sheet on something else: a scan, or a photo already cropped to its sheet, fills it.
+const SHEET_AT_MOST: f64 = 0.85;
+
+/// Read a rendered page (premultiplied RGBA). A photo of a sheet lying on a table, at an angle
+/// and in perspective, is also read straightened (Enhance ▸ Camera image's edges and warp, the
+/// page itself unchanged), and the reading with more text kept: measured on phone photos of
+/// whole pages, straightening reads 7 → 227 words on a sheet photographed in a shadow, but
+/// fewer where the edges found are a picture's on the sheet, not the sheet's.
+fn read_page(ocr: &Ocr, rgba: &[u8], width: u32, height: u32, language: &str) -> Result<Reading, OcrError> {
+    let (lines, turn) = ocr.recognize_upright(rgba, width, height, language)?;
+    let mut best = Reading { lines, turn, width, height, straightened: None };
+    let Some(quad) = crate::camera_edges::detect_document(rgba, width, height) else { return Ok(best) };
+    let area = (0..4)
+        .map(|k| {
+            let (p, n) = (quad[k], quad[(k + 1) % 4]);
+            p[0] * n[1] - n[0] * p[1]
+        })
+        .sum::<f64>()
+        .abs()
+        / 2.0;
+    if !area.is_finite() || area >= SHEET_AT_MOST * width as f64 * height as f64 {
+        return Ok(best);
+    }
+    let Ok(sheet) = crate::camera::warp(rgba, width, height, quad) else { return Ok(best) };
+    let (lines, turn) = ocr.recognize_upright(&sheet.rgb, sheet.width, sheet.height, language)?;
+    if pdfcraft_ocr::text_amount(&lines) > pdfcraft_ocr::text_amount(&best.lines) {
+        best = Reading { lines, turn, width: sheet.width, height: sheet.height, straightened: Some(sheet.to_source) };
+    }
+    Ok(best)
 }
 
 impl Session {
