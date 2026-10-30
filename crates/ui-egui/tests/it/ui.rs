@@ -396,6 +396,24 @@ fn the_mode_bar_has_no_read_tab() {
     assert_eq!(h.state().mode, Mode::Read);
 }
 
+/// The mode bar's search box makes room for the tabs: in Ukrainian at a laptop's width it used to
+/// cover the E-Sign tab ("Електронний підпис").
+#[test]
+fn the_search_box_never_covers_the_mode_tabs() {
+    for width in [1440.0, 1366.0, 1300.0] {
+        let mut h = Harness::builder().with_size(egui::vec2(width, 900.0)).build_eframe(|_cc| {
+            let mut app = PdfCraftApp::new();
+            app.set_option("language", "uk").unwrap();
+            app.open_bytes("fixture.pdf", None, FIXTURE.to_vec()).expect("fixture opens");
+            app
+        });
+        h.run_steps(4);
+        let tab = h.get_by_label("Електронний підпис").rect();
+        let search = h.get_by_label("Знайти інструменти й команди").rect();
+        assert!(tab.right() <= search.left(), "at {width} px the E-Sign tab {tab:?} runs under the search box {search:?}");
+    }
+}
+
 /// A document that asks to open in Full Screen mode (`/PageMode /FullScreen`) is asked about
 /// first, as in Acrobat: "Not now" leaves the window as it is, "Full Screen" enters it.
 #[test]
