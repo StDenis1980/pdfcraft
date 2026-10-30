@@ -471,6 +471,10 @@ fn tab(
     theme::hand(resp).on_hover_text(if dirty { crate::i18n::fmt(tl!("{name} — unsaved changes"), &[("name", &shown)]) } else { shown })
 }
 
+/// The mode bar's search box: its usual width, and the narrowest it gets in a small window.
+const SEARCH_WIDTH: f32 = 260.0;
+const SEARCH_MIN_WIDTH: f32 = 140.0;
+
 pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::top("mode_bar")
@@ -517,7 +521,16 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                         }
                     });
                     ui.add_space(8.0);
-                    if widgets::search_box(ui, tl!("Find tools and commands"), 260.0).clicked() {
+                    // Narrower in a window too small for the tabs and the full box (long
+                    // translations), and only its icon when even that doesn't fit, so it never
+                    // covers the tabs. A narrowed box elides its placeholder.
+                    let room = ui.available_width() - 8.0;
+                    let search = if room >= SEARCH_MIN_WIDTH {
+                        widgets::search_box(ui, tl!("Find tools and commands"), room.min(SEARCH_WIDTH))
+                    } else {
+                        icons::button(ui, "search", 32.0, false, tl!("Find tools and commands"))
+                    };
+                    if search.clicked() {
                         app.palette_open = true;
                     }
                 });
