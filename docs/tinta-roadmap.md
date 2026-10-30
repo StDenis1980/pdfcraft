@@ -1,6 +1,6 @@
 # Tinta PDF — Tinta Office roadmap
 
-> **Status:** 2026-10-28 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created; 2026-10-27 synced with upstream (#13), Help › Report a problem and issue forms added; government forms harness (#15); OCR in 12 more languages; 2026-10-28 timestamp servers (#17), Windows root trust; OCR tested on phone photos, column split and confidence filter.
+> **Status:** 2026-10-28 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created; 2026-10-27 synced with upstream (#13), Help › Report a problem and issue forms added; government forms harness (#15); OCR in 12 more languages; 2026-10-28 timestamp servers (#17), Windows root trust; OCR tested on phone photos, column split and confidence filter; 2026-10-30 Catalan textbook photos, sideways pages read upright.
 
 Tinta PDF is the Tinta Office build of PdfCraft and replaces Acrobat Pro. Upstream keeps the
 feature-parity roadmap ([ROADMAP.md](../ROADMAP.md), [roadmap.md](roadmap.md),
@@ -11,14 +11,14 @@ for users in Spain and Ukraine. It is a fork-only file, so upstream syncs never 
 
 Ready for real work ≈ 50% (essentials user ≈ 66%, upstream estimate); 203 commits behind
 upstream. Viewing, comments, pages, forms and protection are at 65–70%. Missing for Spain: OCR
-now reads Spanish, Catalan, Galician, Basque, Ukrainian and 7 other languages (PaddleOCR models, fork), tested on phone photos of Spanish flyers; there is no DNIe / smart-card signing.
+now reads Spanish, Catalan, Galician, Basque, Ukrainian and 7 other languages (PaddleOCR models, fork), tested on phone photos of Spanish flyers and a Catalan textbook; there is no DNIe / smart-card signing.
 
 ## Priorities
 
 | # | Task | Where | Stage |
 |---|---|---|---|
 | 1 | Signing with an FNMT certificate from the Windows store: test with a real certificate that Acrobat Reader, AutoFirma and VALIDe accept the signature; add a timestamp (TSA). **Checked 2026-10-28:** an ACCV certificate signature is valid in VALIDe and Acrobat; timestamps from ACCV, DigiCert and FreeTSA work (`tsa` on `sign_document`, `sign_timestamp`); Tinta trusts the Windows root store so it shows such signatures as valid itself. the Sign dialog has a Timestamp option (ACCV server by default). Next: AutoFirma, an FNMT certificate | upstream + fork | 1 |
-| 2 | OCR in Spanish, Catalan and Ukrainian (upstream gap 7). **Done in the fork:** PaddleOCR PP-OCRv5 Latin + Cyrillic models, 13 languages, Unicode text layer. **Tested 2026-10-28 on four phone photos of Spanish flyers:** body text and accents read almost perfectly. Fixed then: words of different columns or table cells on one line ran together (now read apart, with the gaps read too for words the detector missed), and pictures were read as junk words (now dropped below a 0.7 confidence). Still weak: large light-on-dark headings are partly missed, i/l confusions in small print, and `page_enhance_camera` makes OCR of such photos worse; next: Catalan/Ukrainian samples, offer upstream | fork → upstream | 1–2 |
+| 2 | OCR in Spanish, Catalan and Ukrainian (upstream gap 7). **Done in the fork:** PaddleOCR PP-OCRv5 Latin + Cyrillic models, 13 languages, Unicode text layer. **Tested 2026-10-28 on four phone photos of Spanish flyers:** body text and accents read almost perfectly. Fixed then: words of different columns or table cells on one line ran together (now read apart, with the gaps read too for words the detector missed), and pictures were read as junk words (now dropped below a 0.7 confidence). **Tested 2026-10-30 on three phone photos of a Catalan textbook:** Catalan letters (à è é í ò ó ú ç l·l) read correctly. Fixed then: pages photographed sideways read nothing (now read turned upright when most word boxes stand up; 1 → 484 and 2 → 620 words), and words split where the detector missed a few letters (columns are now split only at gaps of 3+ line heights). Still weak: large light-on-dark headings are partly missed, i/l confusions in small print, lines cut at the spine of a book spread, upside-down pages, and `page_enhance_camera` makes OCR of such photos worse; next: Ukrainian samples, offer upstream | fork → upstream | 1–2 |
 | 3 | Government forms: a set of public AEAT, Seguridad Social and DGT forms — fill, save, print; bugs found go upstream. **Harness done** (`crates/automation/tests/tinta_gov_forms.rs`, forms kept outside the repo in `PDFCRAFT_GOV_FORMS_DIR`); 8 forms, no engine bug found yet | our tests, fixes upstream | 1 |
 | 4 | Create PDF from .docx/.xlsx/.pptx and Word export that keeps layout (upstream rank 0, #773); in the suite this can go through Texto/Calculo/Presenta | upstream + suite integration | 2 |
 | 5 | DNIe and cards (PKCS #11), online revocation (LTV), the eIDAS trusted list | upstream (M9) | 2 |
