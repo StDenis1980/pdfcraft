@@ -1244,3 +1244,13 @@ fn date_languages_are_the_interface_languages() {
     let dates: Vec<(&str, &str)> = pdfcraft_engine::dates::DATE_LANGUAGES.iter().map(|l| (l.code, l.name)).collect();
     assert_eq!(dates, interface);
 }
+
+/// Tinta: the Window menu's title is translated in the languages Tinta PDF ships for Spain and
+/// Ukraine (it stayed English on the Linux build).
+#[test]
+fn tinta_languages_translate_the_window_menu() {
+    for (code, want) in [("uk", "Вікно"), ("es", "Ventana"), ("ca", "Finestra"), ("gl", "Xanela"), ("eu", "Leihoa")] {
+        let lang = Lang::from_code(code).expect("registered");
+        assert_eq!(tr(lang, "Window"), want, "{code}");
+    }
+}
