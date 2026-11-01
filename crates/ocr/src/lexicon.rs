@@ -1,8 +1,9 @@
 //! A Hunspell word list, read to tell a real word from a misread one (Tinta Office fork).
 //!
-//! Only what the Ukrainian dictionary of LibreOffice (dict_uk) uses is read: single-character
-//! flags and suffix rules. A word is known when it is a stem of the `.dic` file or a stem with
-//! one of its suffix rules applied.
+//! Only what the Ukrainian and Spanish dictionaries of LibreOffice use is read: single-character
+//! flags, suffix and prefix rules, and suffixes that allow a second suffix (continuation flags).
+//! A word is known when it is a stem of the `.dic` file, or a stem with up to two suffixes and a
+//! prefix applied as its flags allow.
 
 use std::collections::{HashMap, HashSet};
 
@@ -10,12 +11,15 @@ use std::collections::{HashMap, HashSet};
 const MAX_STEMS: usize = 2_000_000;
 const MAX_RULES: usize = 100_000;
 
-/// One suffix rule: strip `strip` from the end of a stem whose end matches `condition`, add `add`.
+/// One affix rule: strip `strip` from the end (a suffix) or the start (a prefix) of a stem whose
+/// end or start matches `condition`, and add the affix; a suffix may then take a second suffix of
+/// one of the flags `then`.
 #[derive(Debug)]
 struct Rule {
     flag: char,
     strip: String,
     condition: Vec<Class>,
+    then: Vec<char>,
 }
 
 /// One character of a rule's condition: any character, one of a set, or none of a set.
@@ -45,6 +49,10 @@ pub struct Lexicon {
     rules: HashMap<String, Vec<Rule>>,
     /// The longest added suffix, in characters.
     longest: usize,
+    /// Added prefix → the rules that add it.
+    prefixes: HashMap<String, Vec<Rule>>,
+    /// The longest added prefix, in characters.
+    longest_prefix: usize,
 }
 
 impl Lexicon {
@@ -54,9 +62,11 @@ impl Lexicon {
         let mut count = 0usize;
         for line in aff.lines() {
             let mut parts = line.split_whitespace();
-            if parts.next() != Some("SFX") {
-                continue;
-            }
+            let prefix = match parts.next() {
+                Some("SFX") => false,
+                Some("PFX") => true,
+                _ => continue,
+            };
             let fields: Vec<&str> = parts.collect();
             // The header of a rule set ("SFX f Y n") has three fields, a rule five or more.
             let [flag, strip, add, condition, ..] = fields.as_slice() else { continue };
@@ -66,11 +76,16 @@ impl Lexicon {
             }
             count += 1;
             let strip = if *strip == "0" { String::new() } else { (*strip).to_owned() };
-            // Continuation flags after a slash are not followed.
-            let add = add.split('/').next().unwrap_or_default();
+            let (add, then) = add.split_once('/').unwrap_or((add, ""));
             let add = if add == "0" { String::new() } else { add.to_owned() };
-            lex.longest = lex.longest.max(add.chars().count());
-            lex.rules.entry(add).or_default().push(Rule { flag, strip, condition: condition_classes(condition) });
+            let rule = Rule { flag, strip, condition: condition_classes(condition), then: then.chars().collect() };
+            if prefix {
+                lex.longest_prefix = lex.longest_prefix.max(add.chars().count());
+                lex.prefixes.entry(add).or_default().push(rule);
+            } else {
+                lex.longest = lex.longest.max(add.chars().count());
+                lex.rules.entry(add).or_default().push(rule);
+            }
         }
         for line in dic.lines().skip(1) {
             if lex.stems.len() >= MAX_STEMS {
@@ -115,28 +130,57 @@ impl Lexicon {
         capital != word && self.form(&capital)
     }
 
-    /// Whether `word` is a stem or a stem with one of its suffixes.
+    /// Whether `word` is a stem with its affixes: up to two suffixes, under a prefix.
     fn form(&self, word: &str) -> bool {
-        if self.stems.contains_key(word) {
+        if self.suffixed(word, None, true) {
             return true;
         }
         let chars: Vec<char> = word.chars().collect();
-        for n in 0..=self.longest.min(chars.len()) {
-            let Some(split) = chars.len().checked_sub(n) else { continue };
-            let (head, tail): (String, String) = (chars.iter().take(split).collect(), chars.iter().skip(split).collect());
-            let Some(rules) = self.rules.get(&tail) else { continue };
-            for rule in rules {
-                let stem = format!("{head}{}", rule.strip);
-                if stem.is_empty() || !self.stems.get(&stem).is_some_and(|flags| flags.contains(&rule.flag)) {
-                    continue;
-                }
-                let end: Vec<char> = stem.chars().rev().take(rule.condition.len()).collect();
-                if end.len() == rule.condition.len() && rule.condition.iter().rev().zip(&end).all(|(class, c)| class.matches(*c)) {
+        for n in 1..=self.longest_prefix.min(chars.len()) {
+            let (head, rest): (String, String) = (chars.iter().take(n).collect(), chars.iter().skip(n).collect());
+            for rule in self.prefixes.get(&head).into_iter().flatten() {
+                let stem = format!("{}{rest}", rule.strip);
+                let start: Vec<char> = stem.chars().take(rule.condition.len()).collect();
+                if start.len() == rule.condition.len()
+                    && rule.condition.iter().zip(&start).all(|(class, c)| class.matches(*c))
+                    && self.suffixed(&stem, Some(rule.flag), true)
+                {
                     return true;
                 }
             }
         }
         false
+    }
+
+    /// Whether `word` is a stem with the flag `with` (when given), or such a stem with a suffix
+    /// (and, when `twice`, a second suffix its first allows).
+    fn suffixed(&self, word: &str, with: Option<char>, twice: bool) -> bool {
+        let has = |stem: &str, flag: Option<char>| {
+            self.stems.get(stem).is_some_and(|flags| with.is_none_or(|w| flags.contains(&w)) && flag.is_none_or(|f| flags.contains(&f)))
+        };
+        if has(word, None) {
+            return true;
+        }
+        self.suffixes_of(word).any(|(base, rule)| {
+            has(&base, Some(rule.flag))
+                || twice && self.suffixes_of(&base).any(|(stem, inner)| inner.then.contains(&rule.flag) && has(&stem, Some(inner.flag)))
+        })
+    }
+
+    /// Each way `word` ends in a suffix rule's addition over a base the rule's condition allows:
+    /// the base (with the rule's strip put back) and the rule.
+    fn suffixes_of<'a>(&'a self, word: &str) -> impl Iterator<Item = (String, &'a Rule)> + 'a {
+        let chars: Vec<char> = word.chars().collect();
+        (0..=self.longest.min(chars.len())).flat_map(move |n| {
+            let split = chars.len().saturating_sub(n);
+            let (head, tail): (String, String) = (chars.iter().take(split).collect(), chars.iter().skip(split).collect());
+            self.rules.get(&tail).into_iter().flatten().filter_map(move |rule| {
+                let stem = format!("{head}{}", rule.strip);
+                let end: Vec<char> = stem.chars().rev().take(rule.condition.len()).collect();
+                (!stem.is_empty() && end.len() == rule.condition.len() && rule.condition.iter().rev().zip(&end).all(|(class, c)| class.matches(*c)))
+                    .then_some((stem, rule))
+            })
+        })
     }
 }
 
@@ -173,7 +217,7 @@ fn condition_classes(condition: &str) -> Vec<Class> {
 }
 
 /// Letters the Cyrillic model confuses in Ukrainian, each with the letters it is read for.
-fn confusable(c: char) -> &'static [char] {
+fn confusable_uk(c: char) -> &'static [char] {
     match c {
         'и' | 'і' | 'ї' => &['і', 'и', 'ї'],
         'И' | 'І' | 'Ї' => &['І', 'И', 'Ї'],
@@ -183,21 +227,69 @@ fn confusable(c: char) -> &'static [char] {
     }
 }
 
+/// Letters the Latin model confuses in small print: a thin "i" and "l".
+fn confusable_latin(c: char) -> &'static [char] {
+    match c {
+        'i' | 'l' => &['i', 'l'],
+        _ => &[],
+    }
+}
+
+/// What a recognition model gets wrong in a language: the letters it reads for one another, the
+/// letters it leaves out (lower case; upper case in a word in capitals), and the letters of a
+/// word it judges.
+struct Confusions {
+    swap: fn(char) -> &'static [char],
+    dropped: &'static [char],
+    /// When given, a letter is only put back beside one of these: the Latin model loses a thin
+    /// letter that runs into a thin neighbour ("disponiblidad", "caidades"), never one between
+    /// round letters ("Residence" is no "Residencie").
+    dropped_beside: Option<&'static [char]>,
+    letter: fn(char) -> bool,
+}
+
+/// An apostrophe or a hyphen inside a word.
+fn apostrophe(c: char) -> bool {
+    matches!(c, '\'' | '’' | 'ʼ' | '-')
+}
+
+/// The [`Confusions`] of the model reading `language`, for the languages with a word list.
+fn confusions(language: &str) -> Option<Confusions> {
+    match language {
+        "uk" => Some(Confusions {
+            swap: confusable_uk,
+            dropped: &['і'],
+            dropped_beside: None,
+            letter: |c| matches!(c, '\u{0400}'..='\u{04FF}') || apostrophe(c),
+        }),
+        "es" => Some(Confusions {
+            swap: confusable_latin,
+            dropped: &['i', 'l'],
+            dropped_beside: Some(&['i', 'l', 'í', 'I']),
+            letter: |c| (c.is_alphabetic() && !matches!(c, '\u{0400}'..='\u{04FF}')) || apostrophe(c),
+        }),
+        _ => None,
+    }
+}
+
 /// The most letters changed in one word.
 const MAX_CHANGES: usize = 3;
 /// The most spellings tried for one word.
 const MAX_TRIES: usize = 4096;
 
-/// `word` corrected to a word of `lex` by changing the letters the Cyrillic model confuses in
-/// Ukrainian (и/і/ї, е/є) and putting back an "і" it left out, the fewest changes first; `None`
-/// when it is known already, has no single best correction, or is not a Cyrillic word.
-/// Punctuation around the word is kept.
-pub fn correct(word: &str, lex: &Lexicon) -> Option<String> {
+/// `word`, read in `language`, corrected to a word of `lex` by changing the letters the model
+/// confuses (Ukrainian и/і/ї and е/є, Spanish i/l) and putting back one it left out (Ukrainian
+/// "і", Spanish "i" or "l"), the fewest changes first; `None` when it is known already, has no
+/// single best correction, is not written in the language's letters, or the language has no
+/// [`Confusions`]. Punctuation around the word is kept.
+pub fn correct(word: &str, lex: &Lexicon, language: &str) -> Option<String> {
+    let model = confusions(language)?;
+    let confusable = model.swap;
     let start = word.find(|c: char| c.is_alphabetic())?;
     let end = word.rfind(|c: char| c.is_alphabetic()).and_then(|i| Some(i + word.get(i..)?.chars().next()?.len_utf8()))?;
     let (before, core, after) = (word.get(..start)?, word.get(start..end)?, word.get(end..)?);
     let letters = core.chars().filter(|c| c.is_alphabetic()).count();
-    if letters < 3 || !core.chars().all(|c| matches!(c, '\u{0400}'..='\u{04FF}' | '\'' | '’' | 'ʼ' | '-')) || lex.knows(core) {
+    if letters < 3 || !core.chars().all(model.letter) || lex.knows(core) {
         return None;
     }
     let chars: Vec<char> = core.chars().collect();
@@ -234,10 +326,14 @@ pub fn correct(word: &str, lex: &Lexicon) -> Option<String> {
                 return None;
             }
         }
-        // An "і" left out, with the swaps of one change fewer.
+        // A letter left out, with the swaps of one change fewer.
         if found.is_empty() {
             for set in subsets(places.len(), changes - 1) {
-                for at in 1..chars.len() {
+                for (at, dropped) in (1..chars.len()).flat_map(|at| model.dropped.iter().map(move |d| (at, *d))) {
+                    let beside = |c: Option<&char>| c.is_some_and(|c| model.dropped_beside.is_none_or(|b| b.contains(c)));
+                    if model.dropped_beside.is_some() && !beside(chars.get(at.wrapping_sub(1))) && !beside(chars.get(at)) {
+                        continue;
+                    }
                     let mut s = chars.clone();
                     for i in set.iter().filter_map(|i| places.get(*i)) {
                         if let Some(slot) = s.get_mut(*i) {
@@ -245,7 +341,7 @@ pub fn correct(word: &str, lex: &Lexicon) -> Option<String> {
                         }
                     }
                     let upper = s.iter().all(|c| !c.is_lowercase());
-                    s.insert(at, if upper { 'І' } else { 'і' });
+                    s.insert(at, if upper { dropped.to_uppercase().next().unwrap_or(dropped) } else { dropped });
                     tries += 1;
                     let s: String = s.into_iter().collect();
                     if lex.knows(&s) {
@@ -315,25 +411,25 @@ mod tests {
     #[test]
     fn misread_letters_are_put_right_by_the_dictionary() {
         let lex = lexicon();
-        assert_eq!(correct("видповидно", &lex).as_deref(), Some("відповідно"));
-        assert_eq!(correct("ресстр", &lex), None, "с is not a misread є");
-        assert_eq!(correct("реестр,", &lex).as_deref(), Some("реєстр,"), "punctuation is kept");
-        assert_eq!(correct("сертифкатом", &lex).as_deref(), Some("сертифікатом"), "a dropped і is put back");
-        assert_eq!(correct("Киив", &lex).as_deref(), Some("Київ"));
-        assert_eq!(correct("КИІВ", &lex).as_deref(), Some("КИЇВ"));
-        assert_eq!(correct("життевий", &lex).as_deref(), Some("життєвий"));
-        assert_eq!(correct("він", &lex), None, "known");
-        assert_eq!(correct("вин", &lex).as_deref(), Some("він"));
-        assert_eq!(correct("hello", &lex), None, "not Cyrillic");
-        assert_eq!(correct("ви", &lex), None, "too short to judge");
-        assert_eq!(correct("", &lex), None);
-        assert_eq!(correct("...", &lex), None);
+        assert_eq!(correct("видповидно", &lex, "uk").as_deref(), Some("відповідно"));
+        assert_eq!(correct("ресстр", &lex, "uk"), None, "с is not a misread є");
+        assert_eq!(correct("реестр,", &lex, "uk").as_deref(), Some("реєстр,"), "punctuation is kept");
+        assert_eq!(correct("сертифкатом", &lex, "uk").as_deref(), Some("сертифікатом"), "a dropped і is put back");
+        assert_eq!(correct("Киив", &lex, "uk").as_deref(), Some("Київ"));
+        assert_eq!(correct("КИІВ", &lex, "uk").as_deref(), Some("КИЇВ"));
+        assert_eq!(correct("життевий", &lex, "uk").as_deref(), Some("життєвий"));
+        assert_eq!(correct("він", &lex, "uk"), None, "known");
+        assert_eq!(correct("вин", &lex, "uk").as_deref(), Some("він"));
+        assert_eq!(correct("hello", &lex, "uk"), None, "not Cyrillic");
+        assert_eq!(correct("ви", &lex, "uk"), None, "too short to judge");
+        assert_eq!(correct("", &lex, "uk"), None);
+        assert_eq!(correct("...", &lex, "uk"), None);
     }
 
     #[test]
     fn a_word_with_two_equal_corrections_is_left_alone() {
         let lex = Lexicon::parse("", "2\nбік\nбик\n");
-        assert_eq!(correct("бїк", &lex), None);
+        assert_eq!(correct("бїк", &lex, "uk"), None);
     }
 
     #[test]
@@ -343,5 +439,40 @@ mod tests {
         assert!(lex.knows("слово["), "a rule from an odd line still applies");
         assert_eq!(subsets(3, 2), [vec![0, 1], vec![0, 2], vec![1, 2]]);
         assert!(subsets(1, 2).is_empty());
+    }
+
+    /// A few Spanish stems with rules shaped as the LibreOffice es_ES dictionary's: a plural,
+    /// a suffix that takes the plural after it, and a prefix.
+    fn spanish() -> Lexicon {
+        let aff = "SET UTF-8\nFLAG UTF-8\nSFX S Y 2\nSFX S 0 s [aeiou]\nSFX S 0 es [^aeiou]\nSFX R Y 2\nSFX R ar ación ar\nSFX R ar ador/S ar\nPFX a Y 1\nPFX a 0 re .\n";
+        let dic = "6\ninformar/Ra\nprecio/S\nincluido/S\ncalidad/S\ncambio/S\nresidencie\n";
+        Lexicon::parse(aff, dic)
+    }
+
+    #[test]
+    fn prefixes_and_a_second_suffix_are_read() {
+        let lex = spanish();
+        assert!(lex.knows("información"), "a suffix that strips");
+        assert!(lex.knows("informadores"), "the plural its continuation flag allows");
+        assert!(!lex.knows("informaciónes"), "no plural without the flag");
+        assert!(lex.knows("Información"));
+        assert!(lex.knows("reinformar"), "a prefix");
+        assert!(lex.knows("reinformación"), "a prefix with a suffix");
+        assert!(!lex.knows("informares"), "no plural on the stem itself");
+        assert!(!lex.knows("precioación"), "the stem has no R");
+        assert!(!lex.knows("reprecio"), "the stem has no prefix flag");
+    }
+
+    #[test]
+    fn spanish_i_and_l_misread_in_small_print_are_corrected() {
+        let lex = spanish();
+        assert_eq!(correct("Preclo", &lex, "es").as_deref(), Some("Precio"));
+        assert_eq!(correct("Incluldos", &lex, "es").as_deref(), Some("Incluidos"));
+        assert_eq!(correct("camblos:", &lex, "es").as_deref(), Some("cambios:"));
+        assert_eq!(correct("caidades", &lex, "es").as_deref(), Some("calidades"), "an l lost beside an i");
+        assert_eq!(correct("Residence", &lex, "es"), None, "no letter put back between round ones");
+        assert_eq!(correct("precio", &lex, "es"), None, "known");
+        assert_eq!(correct("Preclo", &lex, "ca"), None, "no word list for the language");
+        assert_eq!(correct("видповидно", &lex, "es"), None, "not Latin");
     }
 }

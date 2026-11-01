@@ -3467,6 +3467,34 @@ kind = "model"
 usage = "Scan & OCR: Ukrainian word list that puts right letters the Cyrillic model misreads (і/ї/є), stems (cargo xtask models; Tinta Office fork)"
 sha256 = "2e5a9e67be63bdb089b3459addb5d71113319d13768e277bcae20f3cc1ad5a93"
 
+[[fetched]]
+file = "es_ES.aff"
+url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/es/es_ES.aff"
+mirrors = ["https://cdn.jsdelivr.net/gh/LibreOffice/dictionaries@4f1df64b2e8e14751aa7c2205d170ca016071315/es/es_ES.aff"]
+title = "Spanish Hunspell dictionary (affix rules)"
+author = "Santiago Bosio and the RLA-ES project (https://github.com/sbosio/rla-es)"
+source = "LibreOffice dictionaries repository, es (https://github.com/LibreOffice/dictionaries/tree/4f1df64b2e8e14751aa7c2205d170ca016071315/es), from the RLA-ES project, offered under GPL-3.0-or-later, LGPL-3.0-or-later or MPL-1.1, used under MPL-1.1; unmodified"
+licence = "MPL-1.1"
+licence_url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/es/MPL-1.1.txt"
+licence_sha256 = "53692a2ed6c6a2c6ec9b32dd0b820dfae91e0a1fcdf625ca9ed0bdf8705fcc4f"
+kind = "model"
+usage = "Scan & OCR: Spanish word list that puts right the i and l the Latin model confuses in small print, suffix and prefix rules (cargo xtask models; Tinta Office fork)"
+sha256 = "e73a9bf8e1383f4986a5dc9e2fbed49371c0c61f511c626d15586bd433c1cad9"
+
+[[fetched]]
+file = "es_ES.dic"
+url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/es/es_ES.dic"
+mirrors = ["https://cdn.jsdelivr.net/gh/LibreOffice/dictionaries@4f1df64b2e8e14751aa7c2205d170ca016071315/es/es_ES.dic"]
+title = "Spanish Hunspell dictionary (word stems)"
+author = "Santiago Bosio and the RLA-ES project (https://github.com/sbosio/rla-es)"
+source = "LibreOffice dictionaries repository, es (https://github.com/LibreOffice/dictionaries/tree/4f1df64b2e8e14751aa7c2205d170ca016071315/es), from the RLA-ES project, offered under GPL-3.0-or-later, LGPL-3.0-or-later or MPL-1.1, used under MPL-1.1; unmodified"
+licence = "MPL-1.1"
+licence_url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/4f1df64b2e8e14751aa7c2205d170ca016071315/es/MPL-1.1.txt"
+licence_sha256 = "53692a2ed6c6a2c6ec9b32dd0b820dfae91e0a1fcdf625ca9ed0bdf8705fcc4f"
+kind = "model"
+usage = "Scan & OCR: Spanish word list that puts right the i and l the Latin model confuses in small print, stems (cargo xtask models; Tinta Office fork)"
+sha256 = "6975dddec3d5d2c676069537bc67b4b5f786c65c5d4cf6703a82acf779ac9ec1"
+
 [[build_input]]
 name = "craft-fonts"
 option = "CRAFT_FONTS_DIR"

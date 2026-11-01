@@ -337,7 +337,7 @@ impl Ocr {
         paddle::tidy(&mut texts, language);
         if let Some(lex) = self.lexicon(language) {
             for t in texts.iter_mut() {
-                if let Some(fixed) = lexicon::correct(t, &lex) {
+                if let Some(fixed) = lexicon::correct(t, &lex, language) {
                     *t = fixed;
                 }
             }
@@ -662,7 +662,7 @@ pub fn text_amount(lines: &[Line]) -> usize {
 
 /// Languages with a word list that corrects what the models misread, and the Hunspell
 /// dictionary's file name (beside the models; `cargo xtask models` fetches it).
-const LEXICONS: &[(&str, &str)] = &[("uk", "uk_UA")];
+const LEXICONS: &[(&str, &str)] = &[("uk", "uk_UA"), ("es", "es_ES")];
 /// The largest dictionary file read: a Hunspell dictionary is a few megabytes.
 const MAX_LEXICON_BYTES: u64 = 64 << 20;
 
@@ -1496,7 +1496,7 @@ mod tests {
         std::fs::write(dir.path().join("uk_UA.aff"), "SET UTF-8\n").unwrap();
         std::fs::write(dir.path().join("uk_UA.dic"), "1\nвідповідно\n").unwrap();
         let lex = load_lexicon(dir.path(), "uk").unwrap();
-        assert_eq!(lexicon::correct("видповидно", &lex).as_deref(), Some("відповідно"));
+        assert_eq!(lexicon::correct("видповидно", &lex, "uk").as_deref(), Some("відповідно"));
         assert!(load_lexicon(dir.path(), "ru").is_none(), "Russian has no word list");
         std::fs::write(dir.path().join("uk_UA.dic"), "0\n").unwrap();
         assert!(load_lexicon(dir.path(), "uk").is_none(), "an empty list is no list");
