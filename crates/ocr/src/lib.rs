@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use rten_imageproc::{BoundingRect, RotatedRect};
 
+mod ink;
 pub mod lexicon;
 pub mod paddle;
 
@@ -192,6 +193,13 @@ impl Ocr {
 
     /// Recognise the text in an image written in `language` (a code from [`LANGUAGES`]).
     pub fn recognize_language(&self, pixels: &[u8], width: u32, height: u32, language: &str) -> Result<Vec<Line>, OcrError> {
+        self.read_language(pixels, width, height, language, true)
+    }
+
+    /// [`Ocr::recognize_language`]; with `again`, a page that shows a mark in light ink across
+    /// its text ([`ink::has_light_mark`]) is also read with only its dark ink, and the reading
+    /// with more text kept.
+    fn read_language(&self, pixels: &[u8], width: u32, height: u32, language: &str, again: bool) -> Result<Vec<Line>, OcrError> {
         let Some(script) = paddle::Script::for_language(language) else { return self.recognize(pixels, width, height) };
         let reader = self.paddle(script)?;
         let rgb = Self::channels(pixels, width, height)?;
@@ -209,6 +217,7 @@ impl Ocr {
                 [b.left(), b.top(), b.right(), b.bottom()]
             })
             .collect();
+        let marked = again && ink::has_light_mark(&rgb, width, height, channels, &boxes);
         let found: Vec<_> = found.iter().zip(&boxes).filter(|(_, b)| !boxes.iter().any(|other| mark_of(**b, *other))).map(|(r, _)| *r).collect();
         let lines: Vec<(Vec<[f32; 4]>, [f32; 4])> = self
             .engine
@@ -258,7 +267,14 @@ impl Ocr {
         if !blocks.is_empty() {
             out.sort_by(|(a, _), (b, _)| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.total_cmp(&b.2)));
         }
-        Ok(out.into_iter().map(|(_, line)| line).collect())
+        let lines: Vec<Line> = out.into_iter().map(|(_, line)| line).collect();
+        if let Some(dark) = marked.then(|| ink::without_light_ink(&rgb, width, height, channels)).flatten() {
+            let again = self.read_language(&dark, width, height, language, false)?;
+            if text_amount(&again) > text_amount(&lines) {
+                return Ok(again);
+            }
+        }
+        Ok(lines)
     }
 
     /// Read the word boxes (`[left, top, right, bottom]`) of one line the detector found.
