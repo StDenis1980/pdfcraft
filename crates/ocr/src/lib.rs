@@ -369,32 +369,38 @@ impl Ocr {
     /// whose [`Turn::to_source`] maps them back.
     pub fn recognize_upright(&self, pixels: &[u8], width: u32, height: u32, language: &str) -> Result<(Vec<Line>, Turn), OcrError> {
         let lines = self.recognize_language(pixels, width, height, language)?;
-        if !self.sideways(pixels, width, height)? {
-            return Ok((lines, Turn::None));
-        }
+        let boxes = self.boxes(pixels, width, height)?;
+        let words = lines.iter().map(|l| l.words.len()).sum::<usize>();
+        let turns: &[Turn] = if mostly_tall(&boxes) {
+            &[Turn::Clockwise, Turn::CounterClockwise]
+        } else if words.saturating_mul(UPSIDE_DOWN_WORDS) < boxes.len() {
+            &[Turn::Half]
+        } else {
+            &[]
+        };
         let mut best = (lines, Turn::None);
-        for turn in [Turn::Clockwise, Turn::CounterClockwise] {
-            let Some((turned, w, h)) = turn_image(pixels, width, height, turn) else { continue };
+        for turn in turns {
+            let Some((turned, w, h)) = turn_image(pixels, width, height, *turn) else { continue };
             let read = self.recognize_language(&turned, w, h, language)?;
             if text_amount(&read) > text_amount(&best.0) {
-                best = (read, turn);
+                best = (read, *turn);
             }
         }
         Ok(best)
     }
 
     /// Whether most of the words detected in the image are taller than wide.
-    fn sideways(&self, pixels: &[u8], width: u32, height: u32) -> Result<bool, OcrError> {
+    /// The word boxes (`[left, top, right, bottom]`) the detector finds in an image.
+    fn boxes(&self, pixels: &[u8], width: u32, height: u32) -> Result<Vec<[f32; 4]>, OcrError> {
         let rgb = Self::channels(pixels, width, height)?;
         let found = self.detect(&rgb, width, height)?;
-        let boxes: Vec<[f32; 4]> = found
+        Ok(found
             .iter()
             .map(|r| {
                 let b = r.bounding_rect();
                 [b.left(), b.top(), b.right(), b.bottom()]
             })
-            .collect();
-        Ok(mostly_tall(&boxes))
+            .collect())
     }
 
     /// The words found in an image of 1 or 3 channels (as [`Ocr::channels`] gives). The detection
@@ -595,6 +601,8 @@ pub enum Turn {
     Clockwise,
     /// A quarter turn counter-clockwise: the right edge becomes the top.
     CounterClockwise,
+    /// Half a turn: the bottom edge becomes the top.
+    Half,
 }
 
 impl Turn {
@@ -605,6 +613,7 @@ impl Turn {
             Turn::None => (x, y),
             Turn::Clockwise => (y, height as f32 - x),
             Turn::CounterClockwise => (width as f32 - y, x),
+            Turn::Half => (width as f32 - x, height as f32 - y),
         }
     }
 }
@@ -621,6 +630,7 @@ pub fn turn_image(pixels: &[u8], width: u32, height: u32, turn: Turn) -> Option<
     let (tw, th) = match turn {
         Turn::None => return Some((pixels.to_vec(), width, height)),
         Turn::Clockwise | Turn::CounterClockwise => (h, w),
+        Turn::Half => (w, h),
     };
     let mut out = Vec::with_capacity(pixels.len());
     for y in 0..th {
@@ -628,13 +638,17 @@ pub fn turn_image(pixels: &[u8], width: u32, height: u32, turn: Turn) -> Option<
             // The source pixel whose centre this one shows.
             let (sx, sy) = match turn {
                 Turn::Clockwise => (y, h - 1 - x),
+                Turn::Half => (w - 1 - x, h - 1 - y),
                 _ => (w - 1 - y, x),
             };
             let at = (sy * w + sx) * channels;
             out.extend_from_slice(pixels.get(at..at + channels)?);
         }
     }
-    Some((out, height, width))
+    Some(match turn {
+        Turn::Half => (out, width, height),
+        _ => (out, height, width),
+    })
 }
 
 /// Whether most of `boxes` (`[left, top, right, bottom]`) are clearly taller than wide, as the
@@ -663,6 +677,11 @@ pub fn text_amount(lines: &[Line]) -> usize {
 /// Languages with a word list that corrects what the models misread, and the Hunspell
 /// dictionary's file name (beside the models; `cargo xtask models` fetches it).
 const LEXICONS: &[(&str, &str)] = &[("uk", "uk_UA"), ("es", "es_ES")];
+/// A page whose words the reader keeps fewer than one in this many of the boxes the detector
+/// found is also read upside down: upside-down letters are found as text, but read as words too
+/// unsure to keep. Measured on phone photos: upright pages keep one word in 1–4 boxes (a flyer
+/// full of pictures the most), the same pages upside down one in 30 or fewer.
+const UPSIDE_DOWN_WORDS: usize = 10;
 /// The largest dictionary file read: a Hunspell dictionary is a few megabytes.
 const MAX_LEXICON_BYTES: u64 = 64 << 20;
 
@@ -1450,6 +1469,43 @@ mod tests {
         assert_eq!(cw, [3, 0, 4, 1, 5, 2], "the left column becomes the top row");
         assert!(turn_image(&px[..5], w, h, Turn::Clockwise).is_none(), "not whole pixels");
         assert!(turn_image(&[], 0, 0, Turn::Clockwise).is_none(), "no pixels");
+    }
+
+    #[test]
+    fn a_half_turn_maps_back_onto_the_image_as_given() {
+        // 3 × 2 pixels, one byte each: 0 1 2 / 3 4 5.
+        let px: Vec<u8> = (0..6).collect();
+        let (turned, w, h) = turn_image(&px, 3, 2, Turn::Half).unwrap();
+        assert_eq!((w, h), (3, 2));
+        assert_eq!(turned, [5, 4, 3, 2, 1, 0]);
+        assert_eq!(Turn::Half.to_source(0.0, 0.0, 3, 2), (3.0, 2.0));
+        assert_eq!(Turn::Half.to_source(1.0, 0.5, 3, 2), (2.0, 1.5));
+        assert_eq!(turn_image(&turned, 3, 2, Turn::Half).unwrap().0, px, "twice is the image as given");
+    }
+
+    #[test]
+    fn upside_down_text_is_read_turned_upright() {
+        let Some(models) = Models::find() else {
+            eprintln!("skipped: OCR models not installed");
+            return;
+        };
+        let ocr = Ocr::load(&models).unwrap();
+        let (w, h, px) = test_image::hello();
+        let (px, w, h) = turn_image(&px, w, h, Turn::Half).unwrap();
+        let (lines, turn) = match ocr.recognize_upright(&px, w, h, "es") {
+            Err(OcrError::NoModels) => {
+                eprintln!("skipped: the Latin model is not installed");
+                return;
+            }
+            other => other.unwrap(),
+        };
+        assert_eq!(turn, Turn::Half, "{lines:?}");
+        let words: Vec<&Word> = lines.iter().flat_map(|l| &l.words).collect();
+        let hello = words.iter().find(|w| w.text.starts_with("HELL")).unwrap_or_else(|| panic!("{words:?}"));
+        // Mapped back, HELLO lies right of the middle of the upside-down image: its words run
+        // from right to left there.
+        let (a, b) = (turn.to_source(hello.rect[0], hello.rect[1], w, h), turn.to_source(hello.rect[2], hello.rect[3], w, h));
+        assert!(a.0.min(b.0) > w as f32 / 2.0, "{a:?} {b:?} of {w}");
     }
 
     #[test]
