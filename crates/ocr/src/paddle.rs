@@ -171,10 +171,18 @@ pub fn tidy(words: &mut [String], language: &str) {
         let count = |f: fn(&char) -> bool| words.iter().flat_map(|w| w.chars()).filter(f).count();
         let line = count(|c| cyrillic(*c)) > count(char::is_ascii_alphabetic);
         for w in words.iter_mut() {
-            // A word of a Cyrillic line, or one with Cyrillic letters of its own ("Oпції").
-            if (line || w.chars().any(cyrillic)) && w.chars().filter(char::is_ascii_alphabetic).all(|c| cyrillic_twin(c, language).is_some()) {
-                *w = w.chars().map(|c| cyrillic_twin(c, language).unwrap_or(c)).collect();
+            // Each run of letters on its own, so a code or a hyphenated word ("№AB-1234",
+            // "Київ-Kyiv") is judged by its parts: a run of a Cyrillic line, or one with Cyrillic
+            // letters of its own ("Oпції"), whose Latin letters all have Cyrillic twins.
+            let chars: Vec<char> = w.chars().collect();
+            let mut out = String::with_capacity(w.len());
+            for run in chars.chunk_by(|a, b| a.is_alphabetic() == b.is_alphabetic()) {
+                let twin = (line || run.iter().any(|c| cyrillic(*c)))
+                    && run.iter().any(char::is_ascii_alphabetic)
+                    && run.iter().filter(|c| c.is_ascii_alphabetic()).all(|c| cyrillic_twin(*c, language).is_some());
+                out.extend(run.iter().map(|c| if twin { cyrillic_twin(*c, language).unwrap_or(*c) } else { *c }));
             }
+            *w = out;
         }
     }
     if language == "ca" {
@@ -337,6 +345,14 @@ mod tests {
         let mut words: Vec<String> = ["SOLAR", "Oпції:", "MPI", "Mодуль"].map(String::from).to_vec();
         tidy(&mut words, "uk");
         assert_eq!(words, ["SOLAR", "Опції:", "MPI", "Модуль"]);
+        // Inside a code or a hyphenated word, each run of letters is judged on its own.
+        let mut words: Vec<String> = ["Акт", "приймання-передачі", "№AB-1234", "Kиїв-Kyiv", "EMV-1"].map(String::from).to_vec();
+        tidy(&mut words, "uk");
+        assert_eq!(words, ["Акт", "приймання-передачі", "№АВ-1234", "Київ-Kyiv", "EMV-1"]);
+        // On a Latin line, a run with Cyrillic letters of its own still is.
+        let mut words: Vec<String> = ["Driver", "MPI-Мoдуль", "for", "Windows"].map(String::from).to_vec();
+        tidy(&mut words, "uk");
+        assert_eq!(words, ["Driver", "MPI-Модуль", "for", "Windows"]);
     }
 
     #[test]
