@@ -226,14 +226,39 @@ impl Ocr {
                 Some((rects, bounds))
             })
             .collect();
-        let mut out = Vec::new();
-        for (rects, _) in lines.iter().filter(|(_, b)| !lines.iter().any(|(_, other)| mark_of(*b, *other))) {
-            let words = self.read_line(&reader, &rgb, (width, height, channels), rects, language)?;
-            if !words.is_empty() {
-                out.push(Line { words });
+        let lines: Vec<&(Vec<[f32; 4]>, [f32; 4])> = lines.iter().filter(|(_, b)| !lines.iter().any(|(_, other)| mark_of(*b, *other))).collect();
+        // Columns of text side by side are read apart and one after the other, as a reader
+        // reads them, not line by line across the page.
+        let blocks = columns(&lines.iter().map(|(rects, _)| rects.as_slice()).collect::<Vec<_>>());
+        // Each line read, with where it goes: the top of its block of columns (its own top
+        // outside one), its column, its own top.
+        let mut out: Vec<((f32, usize, f32), Line)> = Vec::new();
+        for (rects, bounds) in lines {
+            let middle = (bounds[1] + bounds[3]) / 2.0;
+            let block = blocks.iter().find(|b| middle >= b.top && middle <= b.bottom);
+            let cuts = block.map_or(&[][..], |b| b.cuts.as_slice());
+            let words = self.read_line(&reader, &rgb, (width, height, channels), rects, cuts, language)?;
+            let Some(block) = block else {
+                if !words.is_empty() {
+                    out.push(((bounds[1], 0, bounds[1]), Line { words }));
+                }
+                continue;
+            };
+            let mut by_column: Vec<Vec<Word>> = vec![Vec::new(); cuts.len().saturating_add(1)];
+            for w in words {
+                let x = (w.rect[0] + w.rect[2]) / 2.0;
+                if let Some(column) = by_column.get_mut(cuts.iter().filter(|c| x > **c).count()) {
+                    column.push(w);
+                }
+            }
+            for (column, words) in by_column.into_iter().enumerate().filter(|(_, w)| !w.is_empty()) {
+                out.push(((block.top, column, bounds[1]), Line { words }));
             }
         }
-        Ok(out)
+        if !blocks.is_empty() {
+            out.sort_by(|(a, _), (b, _)| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.total_cmp(&b.2)));
+        }
+        Ok(out.into_iter().map(|(_, line)| line).collect())
     }
 
     /// Read the word boxes (`[left, top, right, bottom]`) of one line the detector found.
@@ -243,6 +268,7 @@ impl Ocr {
         rgb: &[u8],
         dims: (u32, u32, usize),
         rects: &[[f32; 4]],
+        cuts: &[f32],
         language: &str,
     ) -> Result<Vec<Word>, OcrError> {
         // Boxes far apart on one line (table cells, columns, a heading beside a picture) are
@@ -256,7 +282,7 @@ impl Ocr {
         let mut words = Vec::new();
         let pad = band.height * 0.15;
         let mut previous: Option<[f32; 4]> = None;
-        for part in segments(rects, band.height * SEGMENT_GAP) {
+        for part in segments(rects, band.height * SEGMENT_GAP, cuts) {
             for piece in band.pieces(part) {
                 let Some(piece_bounds) = band.around(&piece) else { continue };
                 if let Some(before) = previous.filter(|b| piece_bounds[0] - b[2] > band.height * SEGMENT_GAP) {
@@ -665,20 +691,208 @@ fn kept(scores: &[f32]) -> Vec<bool> {
 const SEGMENT_GAP: f32 = 3.0;
 
 /// Split a line's word boxes (`[left, top, right, bottom]`) into runs, left to right, wherever
-/// the gap between neighbours is wider than `min_gap`.
-fn segments(rects: &[[f32; 4]], min_gap: f32) -> Vec<Vec<[f32; 4]>> {
+/// the gap between neighbours is wider than `min_gap`, and at every x of `cuts` (the gutters
+/// [`columns`] found) between two boxes' centres.
+fn segments(rects: &[[f32; 4]], min_gap: f32, cuts: &[f32]) -> Vec<Vec<[f32; 4]>> {
     let mut sorted: Vec<[f32; 4]> = rects.iter().copied().filter(|r| r.iter().all(|v| v.is_finite())).collect();
     sorted.sort_by(|a, b| a[0].total_cmp(&b[0]));
     let mut out: Vec<Vec<[f32; 4]>> = Vec::new();
     let mut right = f32::NEG_INFINITY;
+    let mut centre = f32::NEG_INFINITY;
     for r in sorted {
+        let mid = (r[0] + r[2]) / 2.0;
         match out.last_mut() {
-            Some(run) if r[0] - right <= min_gap => run.push(r),
+            Some(run) if r[0] - right <= min_gap && !cuts.iter().any(|c| centre < *c && *c <= mid) => run.push(r),
             _ => out.push(vec![r]),
         }
         right = right.max(r[2]);
+        centre = mid;
     }
     out
+}
+
+/// How wide a gap must be, in line heights, to be a gutter between columns of text when it
+/// sits at the same place on line after line. Spaces between words are about a third of a
+/// line height; text set in two columns side by side (a document in Russian and Ukrainian, or
+/// Spanish and Catalan) leaves a line height or more.
+const GUTTER_GAP: f32 = 1.0;
+/// How many lines in a row must leave the gap open: a few lines of prose can line up their
+/// spaces by chance.
+const GUTTER_LINES: usize = 5;
+/// How many words a line usually holds on each side of a gutter: fewer, the columns are table
+/// cells, which read row by row.
+const GUTTER_WORDS: usize = 3;
+/// The most places across the page [`columns`] tries for a gutter, so a huge image costs no
+/// more than a page.
+const GUTTER_STEPS: usize = 4096;
+
+/// Columns of text side by side, from `top` to `bottom` of the image, split at the x of each
+/// of `cuts`, left to right.
+#[derive(Clone, Debug, PartialEq)]
+struct Columns {
+    top: f32,
+    bottom: f32,
+    cuts: Vec<f32>,
+}
+
+/// One row of text across the image: the word boxes of the detector lines at its height,
+/// left to right, and the height of its middle box.
+struct Row {
+    boxes: Vec<[f32; 4]>,
+    top: f32,
+    bottom: f32,
+    height: f32,
+}
+
+/// Where one row stands at an x: beside its text, across a word or a narrow space, or in a
+/// gap as wide as a gutter with so many words on its left and its right.
+enum At {
+    Outside,
+    Across,
+    Gap(usize, usize),
+}
+
+impl Row {
+    fn at(&self, x: f32) -> At {
+        let (Some(first), Some(last)) = (self.boxes.first(), self.boxes.iter().map(|b| b[2]).reduce(f32::max)) else { return At::Outside };
+        if x < first[0] || x > last {
+            return At::Outside;
+        }
+        let left = self.boxes.iter().filter(|b| b[2] <= x).count();
+        let gap_left = self.boxes.iter().filter(|b| b[2] <= x).map(|b| b[2]).reduce(f32::max);
+        let gap_right = self.boxes.iter().filter(|b| b[0] >= x).map(|b| b[0]).reduce(f32::min);
+        match (gap_left, gap_right) {
+            (Some(l), Some(r)) if self.boxes.iter().all(|b| b[2] <= x || b[0] >= x) && r - l >= GUTTER_GAP * self.height => {
+                At::Gap(left, self.boxes.len().saturating_sub(left))
+            }
+            _ => At::Across,
+        }
+    }
+}
+
+/// Gather the detector lines' boxes into rows: a line whose middle lies within the row being
+/// built joins it (a line of the next column, found apart), the others start a new row.
+fn rows(lines: &[&[[f32; 4]]]) -> Vec<Row> {
+    let mut lines: Vec<Vec<[f32; 4]>> = lines
+        .iter()
+        .map(|l| l.iter().copied().filter(|r| r.iter().all(|v| v.is_finite()) && r[3] > r[1]).collect::<Vec<_>>())
+        .filter(|l| !l.is_empty())
+        .collect();
+    let middle = |l: &[[f32; 4]]| {
+        let (top, bottom) = l.iter().fold((f32::INFINITY, f32::NEG_INFINITY), |(t, b), r| (t.min(r[1]), b.max(r[3])));
+        (top + bottom) / 2.0
+    };
+    lines.sort_by(|a, b| middle(a).total_cmp(&middle(b)));
+    let mut out: Vec<Row> = Vec::new();
+    for line in lines {
+        let mid = middle(&line);
+        match out.last_mut() {
+            Some(row) if mid >= row.top && mid <= row.bottom => row.boxes.extend(line),
+            _ => out.push(Row { boxes: line, top: 0.0, bottom: 0.0, height: 0.0 }),
+        }
+        if let Some(row) = out.last_mut() {
+            row.boxes.sort_by(|a, b| a[0].total_cmp(&b[0]));
+            row.top = row.boxes.iter().map(|b| b[1]).fold(f32::INFINITY, f32::min);
+            row.bottom = row.boxes.iter().map(|b| b[3]).fold(f32::NEG_INFINITY, f32::max);
+            let mut heights: Vec<f32> = row.boxes.iter().map(|b| b[3] - b[1]).collect();
+            heights.sort_by(f32::total_cmp);
+            row.height = heights.get(heights.len() / 2).copied().unwrap_or(0.0);
+        }
+    }
+    out
+}
+
+/// The middle of `values`, or 0 for none.
+fn median(mut values: Vec<usize>) -> usize {
+    values.sort_unstable();
+    values.get(values.len() / 2).copied().unwrap_or(0)
+}
+
+/// Find columns of text side by side among a page's detected lines (each its word boxes,
+/// `[left, top, right, bottom]`): an x that falls in a gap a gutter wide on
+/// [`GUTTER_LINES`] or more rows in a row, with [`GUTTER_WORDS`] words or more on each side,
+/// and that no row in between crosses with a word. Rows beside the gap (a short line of one
+/// column) neither count nor break it.
+fn columns(lines: &[&[[f32; 4]]]) -> Vec<Columns> {
+    let rows = rows(lines);
+    let (Some(left), Some(right)) = (
+        rows.iter().flat_map(|r| r.boxes.iter().map(|b| b[0])).reduce(f32::min),
+        rows.iter().flat_map(|r| r.boxes.iter().map(|b| b[2])).reduce(f32::max),
+    ) else {
+        return Vec::new();
+    };
+    let height = {
+        let mut heights: Vec<f32> = rows.iter().map(|r| r.height).filter(|h| *h > 0.0).collect();
+        heights.sort_by(f32::total_cmp);
+        heights.get(heights.len() / 2).copied().unwrap_or(0.0)
+    };
+    if height <= 0.0 || right <= left {
+        return Vec::new();
+    }
+    let step = (height / 4.0).max((right - left) / GUTTER_STEPS as f32);
+    // Each x and the run of rows (first, last) it is a gutter of.
+    let mut found: Vec<(f32, usize, usize)> = Vec::new();
+    let mut close = |x: f32, run: &mut Vec<(usize, usize, usize)>| {
+        let words_left = median(run.iter().map(|r| r.1).collect());
+        let words_right = median(run.iter().map(|r| r.2).collect());
+        if let (Some(first), Some(last)) = (run.first(), run.last())
+            && run.len() >= GUTTER_LINES
+            && words_left >= GUTTER_WORDS
+            && words_right >= GUTTER_WORDS
+        {
+            found.push((x, first.0, last.0));
+        }
+        run.clear();
+    };
+    for k in 0..=GUTTER_STEPS {
+        let x = left + step * k as f32;
+        if x > right {
+            break;
+        }
+        let mut run: Vec<(usize, usize, usize)> = Vec::new();
+        for (i, row) in rows.iter().enumerate() {
+            match row.at(x) {
+                At::Outside => {}
+                At::Across => close(x, &mut run),
+                At::Gap(l, r) => run.push((i, l, r)),
+            }
+        }
+        close(x, &mut run);
+    }
+    // Neighbouring xs of one gutter become its middle; gutters whose rows overlap one block.
+    let mut gutters: Vec<(f32, f32, usize, usize, usize)> = Vec::new(); // (first x, last x, first row, last row, xs)
+    found.sort_by(|a, b| (a.1, a.2).cmp(&(b.1, b.2)).then(a.0.total_cmp(&b.0)));
+    for (x, first, last) in found {
+        match gutters.last_mut() {
+            Some(g) if g.2 == first && g.3 == last && x - g.1 <= step * 1.5 => {
+                g.1 = x;
+                g.4 += 1;
+            }
+            _ => gutters.push((x, x, first, last, 1)),
+        }
+    }
+    let mut spans: Vec<(usize, usize, f32)> = gutters.iter().map(|g| (g.2, g.3, (g.0 + g.1) / 2.0)).collect();
+    spans.sort_by(|a, b| a.0.cmp(&b.0).then(a.2.total_cmp(&b.2)));
+    let mut blocks: Vec<(usize, usize, Vec<f32>)> = Vec::new();
+    for (first, last, x) in spans {
+        match blocks.last_mut() {
+            Some(b) if first <= b.1 => {
+                b.1 = b.1.max(last);
+                // A gutter found again over other rows, a little aside, is the same gutter.
+                if !b.2.iter().any(|c| (c - x).abs() <= height * GUTTER_GAP) {
+                    b.2.push(x);
+                }
+            }
+            _ => blocks.push((first, last, vec![x])),
+        }
+    }
+    blocks
+        .into_iter()
+        .filter_map(|(first, last, mut cuts)| {
+            cuts.sort_by(f32::total_cmp);
+            Some(Columns { top: rows.get(first)?.top, bottom: rows.get(last)?.bottom, cuts })
+        })
+        .collect()
 }
 
 /// The band a line of text runs along: the straight line through its word boxes' centres
@@ -908,18 +1122,77 @@ mod tests {
         assert!(!mark_of([0.0; 4], line), "an empty box");
     }
 
+    /// Rows 30 px apart from `top`, each the 20 px tall word boxes of `words` (left, width).
+    fn rows_of(top: f32, count: usize, words: &[(f32, f32)]) -> Vec<Vec<[f32; 4]>> {
+        (0..count).map(|k| words.iter().map(|&(x, w)| [x, top + 30.0 * k as f32, x + w, top + 30.0 * k as f32 + 20.0]).collect()).collect()
+    }
+
+    #[test]
+    fn columns_of_text_side_by_side_are_found() {
+        // Four words of a column, a gutter of 2 line heights (40 px), four of the next.
+        let two = [(0.0, 60.0), (70.0, 50.0), (130.0, 80.0), (220.0, 60.0), (320.0, 70.0), (400.0, 40.0), (450.0, 90.0), (550.0, 50.0)];
+        let heading = rows_of(0.0, 1, &[(0.0, 600.0)]);
+        let body = rows_of(40.0, 8, &two);
+        let lines: Vec<&[[f32; 4]]> = heading.iter().chain(&body).map(Vec::as_slice).collect();
+        let found = columns(&lines);
+        assert_eq!(found.len(), 1, "{found:?}");
+        let [cut] = found[0].cuts[..] else { panic!("{found:?}") };
+        assert!((282.0..=318.0).contains(&cut), "{cut}");
+        assert_eq!((found[0].top, found[0].bottom), (40.0, 40.0 + 30.0 * 7.0 + 20.0), "the heading across both is not in the block");
+        // The same columns found by the detector as lines of their own.
+        let apart: Vec<Vec<[f32; 4]>> = body.iter().flat_map(|row| [row[..4].to_vec(), row[4..].to_vec()]).collect();
+        let lines: Vec<&[[f32; 4]]> = apart.iter().map(Vec::as_slice).collect();
+        assert_eq!(columns(&lines), found);
+        // A short last line of the left column alone neither counts nor breaks the gutter.
+        let mut short = body.clone();
+        short.insert(4, rows_of(40.0 + 30.0 * 4.0 - 5.0, 1, &[(0.0, 60.0)]).remove(0));
+        let lines: Vec<&[[f32; 4]]> = short.iter().map(Vec::as_slice).collect();
+        assert_eq!(columns(&lines).len(), 1);
+    }
+
+    #[test]
+    fn text_that_only_lines_up_by_chance_has_no_columns() {
+        let two = [(0.0, 60.0), (70.0, 50.0), (130.0, 80.0), (220.0, 60.0), (320.0, 70.0), (400.0, 40.0), (450.0, 90.0), (550.0, 50.0)];
+        let few = rows_of(0.0, 4, &two);
+        let lines: Vec<&[[f32; 4]]> = few.iter().map(Vec::as_slice).collect();
+        assert!(columns(&lines).is_empty(), "four lines are not enough");
+        // A table: a word or two each side of the gap.
+        let table = rows_of(0.0, 10, &[(0.0, 120.0), (320.0, 60.0)]);
+        let lines: Vec<&[[f32; 4]]> = table.iter().map(Vec::as_slice).collect();
+        assert!(columns(&lines).is_empty(), "table cells read row by row");
+        // Prose: spaces of 10 px, never a line height.
+        let prose = rows_of(0.0, 10, &[(0.0, 60.0), (70.0, 50.0), (130.0, 80.0), (220.0, 60.0), (290.0, 70.0), (370.0, 40.0)]);
+        let lines: Vec<&[[f32; 4]]> = prose.iter().map(Vec::as_slice).collect();
+        assert!(columns(&lines).is_empty());
+        // A line across the gap halfway breaks it into runs too short.
+        let mut crossed = rows_of(0.0, 9, &two);
+        crossed[4] = vec![[0.0, 120.0, 600.0, 140.0]];
+        let lines: Vec<&[[f32; 4]]> = crossed.iter().map(Vec::as_slice).collect();
+        assert!(columns(&lines).is_empty());
+        assert!(columns(&[]).is_empty());
+        assert!(columns(&[&[[f32::NAN, 0.0, f32::INFINITY, 1.0]]]).is_empty());
+    }
+
+    #[test]
+    fn a_line_is_cut_at_a_gutter() {
+        let (a, b, c) = ([10.0, 0.0, 50.0, 20.0], [58.0, 0.0, 90.0, 20.0], [110.0, 2.0, 200.0, 20.0]);
+        assert_eq!(segments(&[a, b, c], 60.0, &[]), [vec![a, b, c]]);
+        assert_eq!(segments(&[a, b, c], 60.0, &[100.0]), [vec![a, b], vec![c]]);
+        assert_eq!(segments(&[a, b, c], 60.0, &[300.0]), [vec![a, b, c]], "a gutter beside the line cuts nothing");
+    }
+
     #[test]
     fn a_line_is_read_apart_where_its_boxes_are_far_apart() {
         // Words spaced 8 px, then a 60 px gutter (a second column), given out of order.
         let (a, b, c) = ([10.0, 0.0, 50.0, 20.0], [58.0, 0.0, 90.0, 20.0], [150.0, 2.0, 200.0, 20.0]);
-        assert_eq!(segments(&[c, a, b], 30.0), [vec![a, b], vec![c]]);
-        assert_eq!(segments(&[a, b], 30.0), [vec![a, b]], "a space between words is no gutter");
-        assert_eq!(segments(&[a, c], 100.0), [vec![a, c]], "a gap as wide as the least is kept");
+        assert_eq!(segments(&[c, a, b], 30.0, &[]), [vec![a, b], vec![c]]);
+        assert_eq!(segments(&[a, b], 30.0, &[]), [vec![a, b]], "a space between words is no gutter");
+        assert_eq!(segments(&[a, c], 100.0, &[]), [vec![a, c]], "a gap as wide as the least is kept");
         // A box inside a wider one before it is no gap.
         let wide = [0.0, 0.0, 300.0, 20.0];
-        assert_eq!(segments(&[wide, c], 30.0), [vec![wide, c]]);
-        assert!(segments(&[], 30.0).is_empty());
-        assert!(segments(&[[f32::NAN, 0.0, 1.0, 1.0]], 30.0).is_empty(), "boxes that are not numbers are dropped");
+        assert_eq!(segments(&[wide, c], 30.0, &[]), [vec![wide, c]]);
+        assert!(segments(&[], 30.0, &[]).is_empty());
+        assert!(segments(&[[f32::NAN, 0.0, 1.0, 1.0]], 30.0, &[]).is_empty(), "boxes that are not numbers are dropped");
     }
 
     #[test]
@@ -1371,7 +1644,7 @@ mod tests {
             boxes.push([x0, 40.0 + GAP as f32 + x0 * SLANT, x1, 68.0 + GAP as f32 + x1 * SLANT]);
             start += word.len() + 1;
         }
-        let words = ocr.read_line(&reader, &px, (w, h, 3), &boxes, "es").unwrap();
+        let words = ocr.read_line(&reader, &px, (w, h, 3), &boxes, &[], "es").unwrap();
         let read: Vec<String> = words.iter().map(|w| w.text.to_uppercase()).collect();
         // The blocky "D" reads as "O" at times; the neighbours' letters run into a level crop.
         let right = read.iter().filter(|t| t.starts_with("HELL") || t.starts_with("WOR")).count();
