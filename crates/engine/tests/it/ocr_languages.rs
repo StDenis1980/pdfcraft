@@ -199,3 +199,55 @@ fn columns_side_by_side_are_read_one_after_the_other() {
     assert!(!on_left.is_empty() && !on_right.is_empty(), "{read}");
     assert!(on_left.iter().max() < on_right.iter().min(), "{read}");
 }
+
+#[test]
+fn lines_under_a_light_stamp_are_read() {
+    if !language_available("es") {
+        eprintln!("skipped: the es OCR model is not installed");
+        return;
+    }
+    // A contract stamped DUPLICADO in grey across its last two lines, the stamp printed under
+    // the text as inks print: before, the detector took the stamp and those lines for one block.
+    let lines = [
+        "El contrato tiene una duración de doce meses",
+        "desde la fecha de inicio del suministro",
+        "y se renovará cada año salvo aviso previo",
+        "con quince días de antelación por escrito",
+        "las partes firman el presente documento",
+        "en la ciudad de Valencia en la fecha indicada",
+    ];
+    let text_png = {
+        let mut s = Session::new();
+        let id = s.open("t.pdf", None, page_showing_lines(&lines, 300.0), None).unwrap();
+        image::load_from_memory(&export::Exporter::new(s.get(id).unwrap()).png(0, 300.0).unwrap()).unwrap().to_rgb8()
+    };
+    // The stamp on a page of its own, rendered alike.
+    let mut doc = pdfcraft_cos::Document::open_with_password(page_showing_lines(&[], 300.0), None).unwrap();
+    let resource = pdfcraft_edit::text::register_text_font(&mut doc, 0, pdfcraft_fonts::INTER_REGULAR).unwrap();
+    let codes = pdfcraft_fonts::embedding::embedded_codes(pdfcraft_fonts::INTER_REGULAR).unwrap();
+    let font = pdfcraft_ocr::UnicodeFont { resource: &resource, codes: &codes, width: pdfcraft_fonts::inter_width };
+    let size = 60.0;
+    let width = pdfcraft_fonts::inter_width("DUPLICADO", size);
+    let word = pdfcraft_ocr::PlacedWord { text: "DUPLICADO".into(), origin: [80.0, 60.0], across: [width, 0.0], up: [0.0, size * 0.72] };
+    // The text layer's invisible text made visible, in 70% grey.
+    let layer = String::from_utf8(pdfcraft_ocr::text_layer_with(&[word], Some(&font))).unwrap().replace("q\nBT\n3 Tr", "q\n0.7 g\nBT\n0 Tr");
+    pdfcraft_edit::stamp(&mut doc, 0, "W", layer.into_bytes()).unwrap();
+    let bytes = std::sync::Arc::new(pdfcraft_cos::write_full(&doc, &pdfcraft_cos::SaveOptions::default()).unwrap());
+    let mut s = Session::new();
+    let id = s.open("text.pdf", None, bytes, None).unwrap();
+    let mark = image::load_from_memory(&export::Exporter::new(s.get(id).unwrap()).png(0, 300.0).unwrap()).unwrap().to_rgb8();
+    // Printed over each other, as inks: the darker of the two.
+    let both = image::RgbImage::from_fn(text_png.width(), text_png.height(), |x, y| {
+        let (a, b) = (text_png.get_pixel(x, y), mark.get_pixel(x.min(mark.width() - 1), y.min(mark.height() - 1)));
+        image::Rgb([a[0].min(b[0]), a[1].min(b[1]), a[2].min(b[2])])
+    });
+    let mut png = Vec::new();
+    image::DynamicImage::ImageRgb8(both).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+    let id = s.open("scan.pdf", None, s.create_from_images(&[("scan.png".into(), png)]).unwrap(), None).unwrap();
+    let job = s.ocr_job(id, &[], OcrSettings { language: "es".into(), ..Default::default() }).unwrap();
+    let pages = job.run(&engine().unwrap(), |_, _| true);
+    let read = pages[0].text();
+    let expected: Vec<&str> = lines.iter().flat_map(|l| l.split(' ')).collect();
+    let found = expected.iter().filter(|w| read.split(' ').any(|r| r == **w)).count();
+    assert_eq!(found, expected.len(), "{read}");
+}
