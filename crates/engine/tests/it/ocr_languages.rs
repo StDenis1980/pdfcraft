@@ -12,6 +12,11 @@ fn page_showing(text: &str) -> std::sync::Arc<Vec<u8>> {
 
 /// A page `height` points tall showing `lines` at 14 pt in Inter, 30 points apart from the top.
 fn page_showing_lines(lines: &[&str], height: f64) -> std::sync::Arc<Vec<u8>> {
+    page_showing_columns(&[(36.0, lines)], height)
+}
+
+/// A page `height` points tall showing each column's lines from its left edge (points).
+fn page_showing_columns(columns: &[(f64, &[&str])], height: f64) -> std::sync::Arc<Vec<u8>> {
     let s = Session::new();
     let blank = s.create_blank(595.0, height, 1).unwrap();
     let mut doc = pdfcraft_cos::Document::open_with_password(blank, None).unwrap();
@@ -20,13 +25,15 @@ fn page_showing_lines(lines: &[&str], height: f64) -> std::sync::Arc<Vec<u8>> {
     let font = pdfcraft_ocr::UnicodeFont { resource: &resource, codes: &codes, width: pdfcraft_fonts::inter_width };
     // Every word Inter-coded (a Latin one too), at its natural width, on its line's baseline.
     let mut words = Vec::new();
-    for (k, text) in lines.iter().enumerate() {
-        let y = if lines.len() == 1 { 100.0 } else { height - 50.0 - 30.0 * k as f64 };
-        let mut x = 36.0;
-        for w in text.split(' ') {
-            let width = pdfcraft_fonts::inter_width(w, 14.0);
-            words.push(pdfcraft_ocr::PlacedWord { text: w.into(), origin: [x, y], across: [width, 0.0], up: [0.0, 10.0] });
-            x += width + 4.0;
+    for (left, lines) in columns {
+        for (k, text) in lines.iter().enumerate() {
+            let y = if lines.len() == 1 { 100.0 } else { height - 50.0 - 30.0 * k as f64 };
+            let mut x = *left;
+            for w in text.split(' ') {
+                let width = pdfcraft_fonts::inter_width(w, 14.0);
+                words.push(pdfcraft_ocr::PlacedWord { text: w.into(), origin: [x, y], across: [width, 0.0], up: [0.0, 10.0] });
+                x += width + 4.0;
+            }
         }
     }
     let mut layer = pdfcraft_ocr::text_layer_with(&words, Some(&font));
@@ -146,4 +153,49 @@ fn a_sheet_photographed_at_an_angle_is_read_straightened() {
     };
     assert!(near(at("contrato"), corner(0.12, 0.25)), "{:?} {:?}", at("contrato"), corner(0.12, 0.25));
     assert!(near(at("escrito"), corner(0.6, 0.62)), "{:?} {:?}", at("escrito"), corner(0.6, 0.62));
+}
+
+#[test]
+fn columns_side_by_side_are_read_one_after_the_other() {
+    if !language_available("uk") {
+        eprintln!("skipped: the uk OCR model is not installed");
+        return;
+    }
+    // A document in Ukrainian and Russian side by side, the gutter about a line height wide.
+    let left: &'static [&'static str] = &[
+        "Сторони домовилися про таке",
+        "Продавець передає товар",
+        "Покупець сплачує вартість",
+        "протягом десяти робочих днів",
+        "після підписання цього акта",
+        "Акт складено у двох примірниках",
+    ];
+    let right: &'static [&'static str] = &[
+        "Стороны договорились о следующем",
+        "Продавец передаёт товар",
+        "Покупатель оплачивает стоимость",
+        "в течение десяти рабочих дней",
+        "после подписания этого акта",
+        "Акт составлен в двух экземплярах",
+    ];
+    let gutter = left.iter().map(|l| l.split(' ').map(|w| pdfcraft_fonts::inter_width(w, 14.0) + 4.0).sum::<f64>()).fold(0.0, f64::max) + 36.0 + 12.0;
+    let mut s = Session::new();
+    let id = s.open("text.pdf", None, page_showing_columns(&[(36.0, left), (gutter, right)], 260.0), None).unwrap();
+    let png = export::Exporter::new(s.get(id).unwrap()).png(0, 300.0).unwrap();
+    let id = s.open("scan.pdf", None, s.create_from_images(&[("scan.png".into(), png)]).unwrap(), None).unwrap();
+    let job = s.ocr_job(id, &[], OcrSettings { language: "uk".into(), ..Default::default() }).unwrap();
+    let pages = job.run(&engine().unwrap(), |_, _| true);
+    let words: Vec<&str> = pages.first().unwrap().words.iter().map(|w| w.text.as_str()).collect();
+    let read = words.join(" ");
+    // Every word of four letters or more found, and the whole left column before the right
+    // (words in both columns, "десяти", left out of the order).
+    let long = |column: &'static [&'static str]| column.iter().flat_map(|l| l.split(' ')).filter(|w| w.chars().count() >= 4);
+    let at = |column: &'static [&'static str], other: &'static [&'static str]| -> Vec<usize> {
+        long(column).filter(|w| !long(other).any(|o| o == *w)).filter_map(|w| words.iter().position(|r| *r == w)).collect()
+    };
+    let found = |column: &'static [&'static str]| long(column).filter(|w| words.contains(w)).count() * 10 >= long(column).count() * 8;
+    assert!(found(left) && found(right), "{read}");
+    let (on_left, on_right) = (at(left, right), at(right, left));
+    assert!(!on_left.is_empty() && !on_right.is_empty(), "{read}");
+    assert!(on_left.iter().max() < on_right.iter().min(), "{read}");
 }
