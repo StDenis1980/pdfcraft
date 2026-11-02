@@ -21,6 +21,7 @@ use crate::{
 mod editing;
 mod files;
 mod save;
+pub use save::TimestampedSigning;
 mod view;
 
 #[derive(Default)]

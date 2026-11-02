@@ -307,19 +307,26 @@ impl Session {
         &self,
         doc: DocId,
         id: &pdfcraft_sign::DigitalId,
-        mut opts: SignOptions,
+        opts: SignOptions,
         tsa: &dyn pdfcraft_sign::TimestampAuthority,
     ) -> Result<Arc<Vec<u8>>, EditError> {
+        let signed = self.timestamped_signing(doc, opts)?.run(id, tsa)?;
+        // Checked like a save before anyone writes it (#2166).
+        self.check_save(doc, &signed)?;
+        Ok(signed)
+    }
+
+    /// Tinta Office fork: [`Session::sign_with_timestamp`] in two halves, so the wait for the
+    /// timestamp server (up to 30 seconds) can happen away from the window. This takes the
+    /// document as it is now; [`TimestampedSigning::run`] signs it anywhere, and the caller
+    /// checks the result with [`Session::check_save`] before writing it.
+    pub fn timestamped_signing(&self, doc: DocId, mut opts: SignOptions) -> Result<TimestampedSigning, EditError> {
         let d = self.get(doc).ok_or(EditError::NoDocument)?;
         let editor = d.editor.as_ref().ok_or_else(|| EditError::ReadOnly(d.read_only_reason.clone().unwrap_or_default()))?;
         if opts.date.is_empty() {
             opts.date = self.signing_date();
         }
-        let cos = writable(&editor.cos)?;
-        let signed = Arc::new(pdfcraft_sign::sign_with_timestamp(&cos, id, &opts, tsa)?);
-        // Checked like a save before anyone writes it (#2166).
-        self.check_save(doc, &signed)?;
-        Ok(signed)
+        Ok(TimestampedSigning { cos: writable(&editor.cos)?.into_owned(), opts })
     }
 
     /// Append a standalone document timestamp (RFC 3161, `/ETSI.RFC3161`) covering the file's
@@ -355,5 +362,19 @@ impl Session {
             e.redo.clear();
         }
         Ok(())
+    }
+}
+
+/// Tinta Office fork: a document taken to be signed with a timestamp
+/// ([`Session::timestamped_signing`]), detached from the session.
+pub struct TimestampedSigning {
+    cos: pdfcraft_cos::Document,
+    opts: SignOptions,
+}
+
+impl TimestampedSigning {
+    /// Sign with `id`, asking `tsa` for the signature's timestamp.
+    pub fn run(&self, id: &pdfcraft_sign::DigitalId, tsa: &dyn pdfcraft_sign::TimestampAuthority) -> Result<Arc<Vec<u8>>, EditError> {
+        Ok(Arc::new(pdfcraft_sign::sign_with_timestamp(&self.cos, id, &self.opts, tsa)?))
     }
 }

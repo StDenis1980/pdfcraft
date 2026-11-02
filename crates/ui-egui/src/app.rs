@@ -197,6 +197,7 @@ impl PdfCraftApp {
             a11y_options: a11y_ui::A11yOptions::default(),
             ocr_draft: ocr_ui::OcrDraft::default(),
             ocr_run: None,
+            sign_run: None,
             ocr_batch: None,
             run_inline: false,
             custom_actions: Vec::new(),
@@ -614,6 +615,7 @@ impl eframe::App for PdfCraftApp {
         self.poll_export();
         self.auto_ocr_scanned_page();
         self.poll_ocr();
+        self.poll_sign();
         self.poll_optimize();
         self.poll_action();
         self.process_file_requests();
