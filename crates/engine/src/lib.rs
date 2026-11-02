@@ -145,6 +145,7 @@ use pictures::{embed_image, fit_picture, mark_source};
 use protection::unrestricted;
 pub use protection::{Changes, Printing, Protection, SecuritySummary};
 pub use session::Session;
+pub use session::TimestampedSigning;
 pub use sources::{CombineSource, Combined, combine_source_check, source_page_count};
 use sources::{open_source, open_source_with};
 #[cfg(test)]

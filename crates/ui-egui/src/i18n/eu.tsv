@@ -2817,6 +2817,10 @@ theme	Appearance	Itxura
 	Add a timestamp from a server	Gehitu zerbitzari baten denbora-zigilua
 	Only a fingerprint of the document is sent to the server, never the document.	Dokumentuaren hatz-marka bakarrik bidaltzen da zerbitzarira, inoiz ez dokumentua.
 	Timestamps need the desktop app.	Denbora-zigiluek mahaigaineko aplikazioa behar dute.
+	Another signature is still waiting for its timestamp.	Beste sinadura bat oraindik denbora-zigiluaren zain dago.
+	Asking the timestamp server…	Denbora-zigilua zerbitzariari eskatzen…
+	Signing stopped unexpectedly.	Sinadura ustekabean gelditu da.
+	The document changed while it was being signed. Sign it again.	Dokumentua aldatu egin da sinatzen ari zen bitartean. Sina ezazu berriro.
 	ID number (NIF)	Identifikazio-zenbakia (NIF)
 	Send error reports automatically?	Errore-txostenak automatikoki bidali?
 	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Programak huts egiten duenean edo erantzuteari uzten dionean, txosten bat bidal dezake arazoa konpontzeko, guri idatzi behar izan gabe. Txostenak programaren bertsioa, sistema, hizkuntza, errorea kodearen zein lekutan gertatu den eta erregistro teknikoaren azken lerroak ditu. Inoiz ez zure dokumentuen testua, fitxategi-izenak, karpetak, helbide elektronikoak edo pasahitzak.

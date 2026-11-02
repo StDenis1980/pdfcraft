@@ -2637,6 +2637,10 @@ animation effects	Off	Вимкнено
 	Add a timestamp from a server	Додати позначку часу із сервера
 	Only a fingerprint of the document is sent to the server, never the document.	На сервер надсилається лише відбиток документа, а не сам документ.
 	Timestamps need the desktop app.	Позначки часу доступні лише в програмі для комп'ютера.
+	Another signature is still waiting for its timestamp.	Інший підпис ще чекає на позначку часу.
+	Asking the timestamp server…	Запит позначки часу в сервера…
+	Signing stopped unexpectedly.	Підписування несподівано зупинилося.
+	The document changed while it was being signed. Sign it again.	Документ змінився під час підписування. Підпишіть його ще раз.
 	ID number (NIF)	Ідентифікаційний номер (NIF)
 	Send error reports automatically?	Надсилати звіти про помилки автоматично?
 	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Коли програма аварійно завершується або перестає відповідати, вона може надіслати звіт, щоб проблему виправили без вашого листа нам. У звіті є версія програми, система, мова, місце в коді, де сталася помилка, і останні рядки технічного журналу. Ніколи — текст ваших документів, назви файлів, папки, адреси email чи паролі.

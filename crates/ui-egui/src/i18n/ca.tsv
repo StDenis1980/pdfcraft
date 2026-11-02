@@ -2877,6 +2877,10 @@ theme	Appearance	Aspecte
 	Add a timestamp from a server	Afegeix una marca de temps d'un servidor
 	Only a fingerprint of the document is sent to the server, never the document.	Només s'envia al servidor una empremta del document, mai el document.
 	Timestamps need the desktop app.	Les marques de temps necessiten l'aplicació d'escriptori.
+	Another signature is still waiting for its timestamp.	Una altra signatura encara espera la seva marca de temps.
+	Asking the timestamp server…	S'està demanant la marca de temps al servidor…
+	Signing stopped unexpectedly.	La signatura s'ha aturat de manera inesperada.
+	The document changed while it was being signed. Sign it again.	El document ha canviat mentre se signava. Torneu-lo a signar.
 	ID number (NIF)	Número d'identificació (NIF)
 	Send error reports automatically?	Voleu enviar informes d'errors automàticament?
 	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Quan el programa falla o deixa de respondre, pot enviar un informe perquè el problema es corregeixi sense que ens hàgiu d'escriure. L'informe conté la versió del programa, el sistema, l'idioma, el lloc del codi on s'ha produït l'error i les últimes línies del registre tècnic. Mai el text dels vostres documents, noms de fitxers, carpetes, adreces electròniques ni contrasenyes.

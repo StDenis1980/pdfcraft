@@ -3,10 +3,11 @@
 //! Sign as dialogs, the Signatures panel, and the signature message bar.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use egui::{Align, Color32, CornerRadius, Layout, Pos2, Rect, Stroke, vec2};
 use pdfcraft_engine::sign::{self, Appearance, AppearanceLabels, Certificate, DigitalId, Name, PrivateKey};
-use pdfcraft_engine::{SignOptions, SignatureImage, SignatureInfo, SignatureStatus};
+use pdfcraft_engine::{DocId, SignOptions, SignatureImage, SignatureInfo, SignatureStatus};
 
 use crate::canvas::{DocView, PageXform, Snapshot, SnapshotKind};
 use crate::fill_sign::SavedSig;
@@ -32,6 +33,18 @@ pub use panel::{CertTab, CertViewer, PanelAction, certificate_pem};
 pub struct SignTimestamp {
     pub on: bool,
     pub url: String,
+}
+
+/// Tinta Office fork: a signing waiting for its timestamp on a worker thread
+/// ([`PdfCraftApp::poll_sign`]).
+pub struct SignRun {
+    doc: DocId,
+    /// The document's edit generation when it was signed.
+    generation: u64,
+    path: PathBuf,
+    choice: SignGraphic,
+    stamp: SignTimestamp,
+    result: std::sync::mpsc::Receiver<Result<Arc<Vec<u8>>, String>>,
 }
 
 /// The suggested server: ACCV's, the Valencian public certification authority's (free, on the EU
@@ -521,28 +534,17 @@ impl PdfCraftApp {
             if !app.commit_typing_in(doc_id) {
                 return Err(String::new());
             }
-            // The timestamp server is asked here, after the save was chosen (it waits for the
-            // reply, at most 30 seconds).
-            let signed = match &tsa {
+            let signed = match tsa {
+                // The timestamp server is asked here, after the save was chosen, away from the
+                // window: the wait (at most 30 seconds) doesn't freeze it.
+                #[cfg(not(target_arch = "wasm32"))]
+                Some(tsa) => return app.start_timestamped_signing(doc_id, id, opts, tsa, path, choice, stamp),
+                #[cfg(target_arch = "wasm32")]
                 Some(tsa) => app.session.sign_with_timestamp(doc_id, &id, opts, tsa.as_ref()),
                 None => app.session.sign(doc_id, &id, opts),
             }
             .map_err(|e| e.to_string())?;
-            crate::editing::write_atomically(&path.to_string_lossy(), signed.as_slice()).map_err(|e| format!("Could not save: {e}"))?;
-            // Our own write is not a change on disk to reload (#431).
-            #[cfg(not(target_arch = "wasm32"))]
-            app.watch.known_now(doc_id, &path.to_string_lossy());
-            app.session.mark_signed(doc_id, signed, Some(path.to_string_lossy().into_owned())).map_err(|e| e.to_string())?;
-            #[cfg(target_os = "macos")]
-            crate::macos_association::repair(&path);
-            app.sign_graphic = choice;
-            app.sign_timestamp = stamp;
-            if let Some(view) = app.views.iter_mut().find(|v| v.id == doc_id) {
-                view.invalidate_content();
-            }
-            app.right = Some(crate::RightPanel::Signatures);
-            app.notify_fmt("Signed and saved to {path}", &[("path", &path.display().to_string())]);
-            Ok(())
+            app.save_signed(doc_id, path, signed, choice, stamp)
         };
         match self.save_override.clone() {
             Some(p) => sign_and_save(self, PathBuf::from(p)),
@@ -568,6 +570,84 @@ impl PdfCraftApp {
                 let _ = (stem, sign_and_save);
                 Err(String::new())
             }
+        }
+    }
+
+    /// Write the signed file `signed` of document `doc_id` to `path` and show it signed.
+    fn save_signed(&mut self, doc_id: DocId, path: PathBuf, signed: Arc<Vec<u8>>, choice: SignGraphic, stamp: SignTimestamp) -> Result<(), String> {
+        crate::editing::write_atomically(&path.to_string_lossy(), signed.as_slice()).map_err(|e| format!("Could not save: {e}"))?;
+        // Our own write is not a change on disk to reload (#431).
+        #[cfg(not(target_arch = "wasm32"))]
+        self.watch.known_now(doc_id, &path.to_string_lossy());
+        self.session.mark_signed(doc_id, signed, Some(path.to_string_lossy().into_owned())).map_err(|e| e.to_string())?;
+        #[cfg(target_os = "macos")]
+        crate::macos_association::repair(&path);
+        self.sign_graphic = choice;
+        self.sign_timestamp = stamp;
+        if let Some(view) = self.views.iter_mut().find(|v| v.id == doc_id) {
+            view.invalidate_content();
+        }
+        self.right = Some(crate::RightPanel::Signatures);
+        self.notify_fmt("Signed and saved to {path}", &[("path", &path.display().to_string())]);
+        Ok(())
+    }
+
+    /// Tinta Office fork: sign document `doc_id` as it is now with a timestamp from `tsa` on a
+    /// worker thread; [`PdfCraftApp::poll_sign`] saves the result to `path` once it comes.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[allow(clippy::too_many_arguments)]
+    fn start_timestamped_signing(
+        &mut self,
+        doc_id: DocId,
+        id: DigitalId,
+        opts: SignOptions,
+        tsa: Box<dyn sign::TimestampAuthority + Send>,
+        path: PathBuf,
+        choice: SignGraphic,
+        stamp: SignTimestamp,
+    ) -> Result<(), String> {
+        if self.sign_run.is_some() {
+            return Err(crate::i18n::t("Another signature is still waiting for its timestamp.").to_string());
+        }
+        let generation = self.session.get(doc_id).map(|d| d.edit_generation()).ok_or("no document")?;
+        let job = self.session.timestamped_signing(doc_id, opts).map_err(|e| e.to_string())?;
+        let (tx, result) = std::sync::mpsc::channel();
+        std::thread::Builder::new()
+            .name("sign-timestamp".into())
+            .spawn(move || {
+                // A panic drops `tx`, which ends the run with an error.
+                let _ = tx.send(job.run(&id, tsa.as_ref()).map_err(|e| e.to_string()));
+            })
+            .map_err(|e| e.to_string())?;
+        self.sign_run = Some(SignRun { doc: doc_id, generation, path, choice, stamp, result });
+        self.notify(crate::i18n::t("Asking the timestamp server…").to_string());
+        Ok(())
+    }
+
+    /// Tinta Office fork: save a timestamped signing once its worker is done. A document edited
+    /// meanwhile is not overwritten with the state that was signed: it is left as it is.
+    pub(crate) fn poll_sign(&mut self) {
+        let Some(run) = &self.sign_run else { return };
+        let outcome = match run.result.try_recv() {
+            Ok(r) => r,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Err(crate::i18n::t("Signing stopped unexpectedly.").to_string()),
+        };
+        let Some(run) = self.sign_run.take() else { return };
+        let changed = self.session.get(run.doc).is_none_or(|d| d.edit_generation() != run.generation);
+        let saved = match outcome {
+            Ok(_) if changed => Err(crate::i18n::t("The document changed while it was being signed. Sign it again.").to_string()),
+            Ok(signed) => self
+                .session
+                .check_save(run.doc, &signed)
+                .map_err(|e| e.to_string())
+                .and_then(|()| self.save_signed(run.doc, run.path, signed, run.choice, run.stamp)),
+            Err(e) => Err(e),
+        };
+        if let Err(e) = saved
+            && !e.is_empty()
+        {
+            self.notify(e);
         }
     }
 
