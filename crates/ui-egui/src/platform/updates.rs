@@ -1,25 +1,28 @@
 //! Help ▸ Check for updates and the check at start, through `craft_update`: the flow itself is its
-//! `Updater`; this module supplies the suite, the quit path and the status dialog.
+//! `Updater`; this module supplies the suite and the quit path, and shows the result in
+//! `craft_update`'s `CheckResultDialog`.
 
 #[cfg(not(target_arch = "wasm32"))]
 use craft_update::updater::{Action, CheckSource, Status, Updater};
-use egui::{Align, Layout};
+#[cfg(not(target_arch = "wasm32"))]
+use craft_update::{CheckResultDialog, CheckResultResponse};
 
-use crate::{PdfCraftApp, theme, widgets};
+use crate::PdfCraftApp;
 
-/// Where every PdfCraft release is listed.
+/// Where every release of this build is listed.
 pub fn releases_page() -> &'static str {
     pdfcraft_engine::brand::releases_page()
 }
 
-/// The app the update check works on: the release, or a rebranded build pointed at its own
-/// repository (`crates/brand`), so it never offers the release's downloads in place of its own.
+/// The app the update check works on: the release ([`crate::UPDATE_APP`]), or a rebranded build
+/// pointed at its own repository (`crates/brand`), so it never offers the release's downloads in
+/// place of its own.
 #[cfg(not(target_arch = "wasm32"))]
-fn update_app() -> &'static craft_update::app::App {
+pub fn update_app() -> &'static craft_update::app::App {
     use pdfcraft_engine::brand;
     static APP: std::sync::OnceLock<craft_update::app::App> = std::sync::OnceLock::new();
     APP.get_or_init(|| {
-        let release = craft_update::suite::PDFCRAFT;
+        let release = crate::UPDATE_APP;
         if !brand::REBRANDED {
             return release;
         }
@@ -118,63 +121,18 @@ pub(crate) fn dialog(app: &mut PdfCraftApp, ctx: &egui::Context) {
         if app.updates.open && !app.updates.check_requested && matches!(app.updates.updater.status(), Status::Idle) {
             app.updates.open = false;
         }
-    }
-    if !app.updates.open {
-        return;
-    }
-    let t = theme::Tokens::get(ctx);
-    let current = env!("CARGO_PKG_VERSION");
-    let mut close = false;
-    let modal = crate::widgets::show_modal(ctx, "updates", |ui| {
-        ui.set_width(420.0);
-        ui.horizontal(|ui| {
-            ui.add(crate::icons::image("cloud", 22.0, t.accent));
-            ui.label(egui::RichText::new(tl!("Check for updates")).font(theme::semibold(16.0)));
-        });
-        ui.add_space(8.0);
-        #[cfg(not(target_arch = "wasm32"))]
-        match app.updates.updater.status() {
-            Status::Idle => {
-                ui.horizontal(|ui| {
-                    ui.spinner();
-                    ui.label(tl!("Checking for a newer version…"));
-                });
-            }
-            Status::Checking => {
-                ui.horizontal(|ui| {
-                    ui.spinner();
-                    ui.label(tl!("Checking for a newer version…"));
-                });
-            }
-            Status::UpToDate => {
-                ui.label(crate::i18n::fmt(tl!("PdfCraft {c} is up to date."), &[("c", current)]));
-            }
-            Status::Failed(e) => {
-                ui.label(crate::i18n::fmt(tl!("Couldn't check for updates: {e}"), &[("e", e)]));
-                ui.label(
-                    egui::RichText::new(crate::i18n::fmt(
-                        tl!("You have version {c}. All releases are listed at {page}."),
-                        &[("c", current), ("page", releases_page())],
-                    ))
-                    .color(t.text_muted),
-                );
+        if app.updates.open {
+            let dialog = CheckResultDialog::new(update_app(), env!("CARGO_PKG_VERSION"));
+            match dialog.show(ctx, app.updates.updater.status()) {
+                CheckResultResponse::None => {}
+                CheckResultResponse::Close => {
+                    app.updates.open = false;
+                    app.updates.updater.dismiss_status();
+                }
+                CheckResultResponse::CheckAgain => app.updates.check_requested = true,
             }
         }
-        #[cfg(target_arch = "wasm32")]
-        let _ = (&t, current);
-        ui.add_space(10.0);
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            if widgets::pill_button(ui, tl!("Close"), true).clicked() {
-                close = true;
-            }
-        });
-    });
-    if modal.should_close() {
-        close = true;
     }
-    if close {
-        app.updates.open = false;
-        #[cfg(not(target_arch = "wasm32"))]
-        app.updates.updater.dismiss_status();
-    }
+    #[cfg(target_arch = "wasm32")]
+    let _ = (app, ctx);
 }

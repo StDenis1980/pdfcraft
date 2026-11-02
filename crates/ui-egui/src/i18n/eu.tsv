@@ -2828,3 +2828,10 @@ theme	Appearance	Itxura
 	Delete my reports from the server	Ezabatu nire txostenak zerbitzaritik
 	Deletion requested: it completes the next time the app is online.	Ezabatzea eskatuta: programak konexioa duen hurrengo aldian osatuko da.
 	Open the reports folder	Ireki txostenen karpeta
+
+# Image paste and Home notifications (AI-assisted; not separately native-reviewed)
+	Search…	Bilatu…
+	Image pasted	Irudia itsatsi da
+	No image on clipboard to paste	Ez dago irudirik arbelean itsasteko
+	Pinned {tool} to Home	{tool} Hasieran ainguratu da
+	Unpinned {tool} from Home	{tool} Hasieratik askatu da

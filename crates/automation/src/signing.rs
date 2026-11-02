@@ -262,7 +262,7 @@ impl Automation {
             ..SignOptions::default()
         };
         let signed = match &tsa {
-            Some(tsa) => self.session.sign_with_timestamp(doc_id, &id, opts, tsa),
+            Some(tsa) => self.session.sign_with_timestamp(doc_id, &id, opts, tsa.as_ref()),
             None => self.session.sign(doc_id, &id, opts),
         };
         let signed = signed.map_err(|e| match e {
@@ -284,7 +284,7 @@ impl Automation {
         let tsa = timestamp_server(a.str("tsa")?)?;
         let doc_id = self.doc(a)?.id;
         let out = self.resolve(a.str("out")?, true)?;
-        let stamped = self.session.timestamp_document(doc_id, &tsa, String::new()).map_err(failed)?;
+        let stamped = self.session.timestamp_document(doc_id, tsa.as_ref(), String::new()).map_err(failed)?;
         write_atomic(&out, &stamped)?;
         let path = out.to_string_lossy().into_owned();
         self.session.mark_signed(doc_id, stamped.clone(), Some(path.clone())).map_err(failed)?;
@@ -369,7 +369,15 @@ impl Automation {
 
 /// Tinta Office fork: the RFC 3161 server at `url`, reached over the network only when a
 /// signature or timestamp asks for it.
-fn timestamp_server(url: &str) -> Result<pdfcraft_platform::tsa::HttpTsa> {
+#[cfg(not(target_arch = "wasm32"))]
+fn timestamp_server(url: &str) -> Result<Box<dyn sign::TimestampAuthority>> {
     let agent = format!("{}/{}", pdfcraft_engine::brand::NAME.replace(' ', ""), env!("CARGO_PKG_VERSION"));
-    pdfcraft_platform::tsa::HttpTsa::new(url, &agent).map_err(|e| bad(e.to_string()))
+    let tsa = pdfcraft_platform::tsa::HttpTsa::new(url, &agent).map_err(|e| bad(e.to_string()))?;
+    Ok(Box::new(tsa))
+}
+
+/// The web build has no direct network client, so a timestamp server is refused up front.
+#[cfg(target_arch = "wasm32")]
+fn timestamp_server(_url: &str) -> Result<Box<dyn sign::TimestampAuthority>> {
+    Err(bad("timestamp servers are not available in the web build"))
 }

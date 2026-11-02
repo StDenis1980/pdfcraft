@@ -2828,3 +2828,10 @@ theme	Appearance	Aparencia
 	Delete my reports from the server	Borrar os meus informes do servidor
 	Deletion requested: it completes the next time the app is online.	Borrado solicitado: completarase a próxima vez que o programa teña conexión.
 	Open the reports folder	Abrir o cartafol de informes
+
+# Image paste and Home notifications (AI-assisted; not separately native-reviewed)
+	Search…	Buscar…
+	Image pasted	Imaxe pegada
+	No image on clipboard to paste	Non hai ningunha imaxe no portapapeis para pegar
+	Pinned {tool} to Home	{tool} fixado en Inicio
+	Unpinned {tool} from Home	{tool} desfixado de Inicio
