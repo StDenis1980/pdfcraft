@@ -1245,6 +1245,15 @@ fn date_languages_are_the_interface_languages() {
     assert_eq!(dates, interface);
 }
 
+#[test]
+fn image_paste_and_home_notifications_are_translated() {
+    for language in Lang::all().filter(|l| *l != Lang::EN) {
+        for source in ["Search…", "Image pasted", "No image on clipboard to paste", "Pinned {tool} to Home", "Unpinned {tool} from Home"] {
+            assert!(language.catalog().plain(source).is_some(), "{}: {source}", language.code());
+        }
+    }
+}
+
 /// Tinta: the Window menu's title is translated in the languages Tinta PDF ships for Spain and
 /// Ukraine (it stayed English on the Linux build).
 #[test]

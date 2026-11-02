@@ -64,7 +64,11 @@ fn tsa_server() -> String {
         reader.read_exact(&mut query).unwrap();
         let q = sign::timestamp::parse_request(&query).unwrap();
         let time = Time { year: 2026, month: 10, day: 28, hour: 9, minute: 0, second: 0 };
-        let reply = sign::timestamp::respond(&id.key, &id.certificate, &id.chain, sign::DigestAlg::Sha256, &q, "1.2.3.4", time, 1).unwrap();
+        let reply = sign::timestamp::respond(
+            sign::timestamp::TimestampSigner { key: &id.key, certificate: &id.certificate, chain: &id.chain, digest: sign::DigestAlg::Sha256 },
+            sign::timestamp::TimestampIssuance { query: &q, policy: "1.2.3.4", generation_time: time, serial: 1 },
+        )
+        .unwrap();
         let mut stream = stream;
         write!(
             stream,
