@@ -127,11 +127,13 @@ bundle() {
   esac
   basename="$BRAND_SLUG-$VERSION-linux-$arch"
   tarball="${tarball:-$DIST/$basename.tar.gz}"
+  # A tarball named on the command line names the bundle, so its version is the bundle's.
+  basename="$(basename "$tarball" .tar.gz)"
   [[ -f "$tarball" ]] || { echo "error: $tarball not found (run packaging/linux/package.sh --formats tar first)" >&2; exit 1; }
   for tool in flatpak flatpak-builder; do
     command -v "$tool" >/dev/null || { echo "error: $tool not found (apt install flatpak flatpak-builder librsvg2-common)" >&2; exit 1; }
   done
-  echo "==> $BRAND_NAME $VERSION Flatpak bundle for $arch from $(basename "$tarball")"
+  echo "==> $BRAND_NAME Flatpak bundle $basename.flatpak from $(basename "$tarball")"
 
   work="$CARGO_TARGET_DIR/tinta-flatpak"
   rm -rf "$work"
