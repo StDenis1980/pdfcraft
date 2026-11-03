@@ -64,78 +64,81 @@ make_office "Tinta Texto" wordcraft-cli carta.docx run --template sample --save 
 make_office "Tinta Calculo" gridcraft-cli hoja.xlsx run --sample sales --out hoja.xlsx --quiet
 make_office "Tinta Presenta" deckcraft-cli deck.pptx run --sample --save deck.pptx
 
-# 4. OCR, the Office files, Combine and a signature, in one run of the automation tools.
+# 4. Two runs of the automation tools, so a failure in one doesn't hide the other: OCR, the
+# Office files and Combine; then a signature.
 {
     echo '[{"tool":"doc_create","args":{"from":"images","paths":["scan.png"]}},'
     echo ' {"tool":"ocr_recognize","args":{"doc":1,"language":"es"}},'
-    echo ' {"tool":"text_find","args":{"doc":1,"query":"Muñoz"}},'
+    printf '%s' ' {"tool":"text_find","args":{"doc":1,"query":"Muñoz"}}'
     paths='"texto.pdf"'
     for entry in ${OFFICE[@]+"${OFFICE[@]}"}; do
         file=${entry#*|}
-        echo " {\"tool\":\"doc_create\",\"args\":{\"from\":\"office\",\"path\":\"$file\"}},"
+        printf ',\n {"tool":"doc_create","args":{"from":"office","path":"%s"}}' "$file"
         paths="$paths,\"$file\""
     done
-    if [ ${#OFFICE[@]} -gt 0 ]; then echo " {\"tool\":\"doc_combine\",\"args\":{\"paths\":[$paths],\"out\":\"todo.pdf\"}},"; fi
-    signed=$((2 + ${#OFFICE[@]}))
-    echo ' {"tool":"sign_id_create","args":{"name":"Tinta Smoke Test","password":"smoke-test-1","path":"prueba.p12"}},'
-    echo ' {"tool":"doc_open","args":{"path":"texto.pdf"}},'
-    echo " {\"tool\":\"sign_document\",\"args\":{\"doc\":$signed,\"id\":\"prueba.p12\",\"password\":\"smoke-test-1\",\"out\":\"firmado.pdf\",\"page\":1,\"rect\":[50,50,250,120]}},"
-    echo ' {"tool":"doc_open","args":{"path":"firmado.pdf"}},'
-    echo " {\"tool\":\"sign_list\",\"args\":{\"doc\":$((signed + 1))}}]"
-} >steps.json
-"$CLI" run --script steps.json --root "$WORK" --report >report.json 2>err.txt
+    if [ ${#OFFICE[@]} -gt 0 ]; then printf ',\n {"tool":"doc_combine","args":{"paths":[%s],"out":"todo.pdf"}}' "$paths"; fi
+    echo ']'
+} >convert.json
+cat >sign.json <<'JSON'
+[{"tool":"sign_id_create","args":{"name":"Tinta Smoke Test","password":"smoke-test-1","path":"prueba.p12"}},
+ {"tool":"doc_open","args":{"path":"texto.pdf"}},
+ {"tool":"sign_document","args":{"doc":1,"id":"prueba.p12","password":"smoke-test-1","out":"firmado.pdf","page":1,"rect":[50,50,250,120]}},
+ {"tool":"doc_open","args":{"path":"firmado.pdf"}},
+ {"tool":"sign_list","args":{"doc":2}}]
+JSON
+"$CLI" run --script convert.json --root "$WORK" --report >convert-report.json 2>err.txt
+"$CLI" run --script sign.json --root "$WORK" --report >sign-report.json 2>err.txt
 printf '%s\n' ${OFFICE[@]+"${OFFICE[@]}"} >office.txt
 
-python3 -I - report.json office.txt "$RESULTS" <<'EOF'
+python3 -I - convert-report.json sign-report.json office.txt "$RESULTS" <<'PY'
 import json, sys
-report_path, office_path, results_path = sys.argv[1:4]
+convert_path, sign_path, office_path, results_path = sys.argv[1:5]
 out = open(results_path, "a", encoding="utf-8")
 def line(state, what, why=""):
     out.write(f"{state:<8} {what}" + (f": {why}" if why else "") + "\n")
-try:
-    report = json.load(open(report_path, encoding="utf-8"))
-except Exception as e:
-    line("FAILED", "automation run", f"no report ({e})")
-    sys.exit()
-steps = {s.get("step"): s for s in report.get("steps", [])}
-def result(n):
-    s = steps.get(n)
+def load(path, name):
+    try:
+        return {s.get("step"): s for s in json.load(open(path, encoding="utf-8")).get("steps", [])}
+    except Exception as e:
+        line("FAILED", f"automation run {name}", f"no report ({e})")
+        return {}
+def result(run, n):
+    s = run.get(n)
     if s and s.get("status") == "ok":
         r = s.get("result")
         return r[0] if isinstance(r, list) and r else r
     return None
-def error(n):
-    s = steps.get(n)
-    if not s or s.get("status") != "ok" and not s.get("error"):
-        return "not run: an earlier step failed"
-    return str(s.get("error"))
+def error(run, n):
+    s = run.get(n)
+    return str(s["error"]) if s and s.get("error") else "not run: an earlier step failed"
+run = load(convert_path, "convert")
 office = [l.strip().split("|", 1) for l in open(office_path, encoding="utf-8") if l.strip()]
-ocr, found = result(2), result(3)
+ocr, found = result(run, 2), result(run, 3)
 if ocr and found and found.get("count", 0) >= 1:
     line("ok", f"OCR read Spanish ({ocr.get('words')} words, Muñoz found)")
 else:
-    line("FAILED", "OCR in Spanish", f"read: {ocr['pages'][0]['text']}" if ocr else error(2))
+    line("FAILED", "OCR in Spanish", f"read: {ocr['pages'][0]['text']}" if ocr else error(run, 2))
 n = 4
 for app, file in office:
-    made = result(n)
+    made = result(run, n)
     if made and made.get("pages", 0) >= 1:
         line("ok", f"{app}: {file} to PDF ({made['pages']} pages)")
     else:
-        line("FAILED", f"{app}: {file} to PDF", error(n))
+        line("FAILED", f"{app}: {file} to PDF", error(run, n))
     n += 1
 if office:
-    if result(n):
+    if result(run, n):
         line("ok", f"Combine: a PDF and {len(office)} Office file(s) in one")
     else:
-        line("FAILED", "Combine with Office files", error(n))
-    n += 1
-listing = result(n + 4)
-sig = (listing or {}).get("signatures", [None])[0]
+        line("FAILED", "Combine with Office files", error(run, n))
+run = load(sign_path, "sign")
+sig = (result(run, 5) or {}).get("signatures", [None])[0]
 # A self-signed ID is not trusted, so "unknown" (intact, signer not trusted) is the right answer.
 if sig and sig.get("status") in ("valid", "unknown"):
     line("ok", f"signed and checked ({sig['status']}: intact, test ID not trusted)")
 else:
-    line("FAILED", "signing", f"status {sig.get('status')}" if sig else error(n + 2))
-EOF
+    first = next((error(run, i) for i in range(1, 6) if result(run, i) is None), "no signature listed")
+    line("FAILED", "signing", f"status {sig.get('status')}" if sig else first)
+PY
 
 if grep -q '^FAILED' "$RESULTS"; then exit 1; fi

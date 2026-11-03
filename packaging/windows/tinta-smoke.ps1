@@ -84,7 +84,18 @@ try {
     if ($r.Code -eq 0 -and (Test-Path -LiteralPath (Join-Path $work $m.File))) { $office += $m } else { Fail "$($m.App) sample $($m.File)" $r.Err }
   }
 
-  # 4. OCR, the Office files, Combine and a signature, in one run of the automation tools.
+  # 4. Two runs of the automation tools, so a failure in one doesn't hide the other: OCR, the
+  # Office files and Combine; then a signature.
+  function Invoke-Steps([string] $Name, [string[]] $Steps) {
+    Write-Utf8 (Join-Path $work "$Name.json") ('[' + ($Steps -join ",`n") + ']')
+    $r = Invoke-Tool $Cli @('run', '--script', "$Name.json", '--root', $work, '--report')
+    $byStep = @{}
+    try { foreach ($s in ($r.Out | ConvertFrom-Json).steps) { $byStep[[int] $s.step] = $s } } catch { Fail "automation run $Name" "no report: $($r.Err)" }
+    return $byStep
+  }
+  function Step-Result($Run, [int] $n) { $s = $Run[$n]; if ($s -and $s.status -eq 'ok') { return @($s.result)[0] } return $null }
+  function Step-Error($Run, [int] $n) { $s = $Run[$n]; if ($s -and $s.error) { return "$($s.error)" } return 'not run: an earlier step failed' }
+
   $steps = New-Object System.Collections.Generic.List[string]
   $steps.Add('{"tool":"doc_create","args":{"from":"images","paths":["scan.png"]}}')
   $steps.Add('{"tool":"ocr_recognize","args":{"doc":1,"language":"es"}}')
@@ -94,42 +105,35 @@ try {
     $paths = (@('"texto.pdf"') + ($office | ForEach-Object { '"' + $_.File + '"' })) -join ','
     $steps.Add('{"tool":"doc_combine","args":{"paths":[' + $paths + '],"out":"todo.pdf"}}')
   }
-  $signed = 2 + $office.Count
-  $steps.Add('{"tool":"sign_id_create","args":{"name":"Tinta Smoke Test","password":"smoke-test-1","path":"prueba.p12"}}')
-  $steps.Add('{"tool":"doc_open","args":{"path":"texto.pdf"}}')
-  $steps.Add('{"tool":"sign_document","args":{"doc":' + $signed + ',"id":"prueba.p12","password":"smoke-test-1","out":"firmado.pdf","page":1,"rect":[50,50,250,120]}}')
-  $steps.Add('{"tool":"doc_open","args":{"path":"firmado.pdf"}}')
-  $steps.Add('{"tool":"sign_list","args":{"doc":' + ($signed + 1) + '}}')
-  Write-Utf8 (Join-Path $work 'steps.json') ('[' + ($steps -join ",`n") + ']')
-  $r = Invoke-Tool $Cli @('run', '--script', 'steps.json', '--root', $work, '--report')
-  $report = $null
-  try { $report = $r.Out | ConvertFrom-Json } catch { Fail 'automation run' "no report: $($r.Err)" }
-  if ($report) {
-    $byStep = @{}
-    foreach ($s in $report.steps) { $byStep[[int] $s.step] = $s }
-    function Step-Result([int] $n) { $s = $byStep[$n]; if ($s -and $s.status -eq 'ok') { return @($s.result)[0] } return $null }
-    function Step-Error([int] $n) { $s = $byStep[$n]; if ($s -and $s.error) { return "$($s.error)" } return 'not run: an earlier step failed' }
+  $run = Invoke-Steps 'convert' $steps
+  $ocr = Step-Result $run 2
+  $found = Step-Result $run 3
+  if ($ocr -and $found -and $found.count -ge 1) { Pass "OCR read Spanish ($($ocr.words) words, Mu${nTilde}oz found)" }
+  else { Fail 'OCR in Spanish' $(if ($ocr) { "read: $(@($ocr.pages)[0].text)" } else { Step-Error $run 2 }) }
+  $n = 4
+  foreach ($m in $office) {
+    $made = Step-Result $run $n
+    if ($made -and $made.pages -ge 1) { Pass "$($m.App): $($m.File) to PDF ($($made.pages) pages)" } else { Fail "$($m.App): $($m.File) to PDF" (Step-Error $run $n) }
+    $n++
+  }
+  if ($office.Count -gt 0) {
+    if (Step-Result $run $n) { Pass "Combine: a PDF and $($office.Count) Office file(s) in one" } else { Fail 'Combine with Office files' (Step-Error $run $n) }
+  }
 
-    $ocr = Step-Result 2
-    $found = Step-Result 3
-    if ($ocr -and $found -and $found.count -ge 1) { Pass "OCR read Spanish ($($ocr.words) words, Mu${nTilde}oz found)" }
-    else { Fail 'OCR in Spanish' $(if ($ocr) { "read: $(@($ocr.pages)[0].text)" } else { Step-Error 2 }) }
-
-    $n = 4
-    foreach ($m in $office) {
-      $made = Step-Result $n
-      if ($made -and $made.pages -ge 1) { Pass "$($m.App): $($m.File) to PDF ($($made.pages) pages)" } else { Fail "$($m.App): $($m.File) to PDF" (Step-Error $n) }
-      $n++
-    }
-    if ($office.Count -gt 0) {
-      if (Step-Result $n) { Pass "Combine: a PDF and $($office.Count) Office file(s) in one" } else { Fail 'Combine with Office files' (Step-Error $n) }
-      $n++
-    }
-    $list = Step-Result ($n + 4)
-    $sig = if ($list) { @($list.signatures)[0] } else { $null }
-    # A self-signed ID is not trusted, so "unknown" (intact, signer not trusted) is the right answer.
-    if ($sig -and ($sig.status -eq 'valid' -or $sig.status -eq 'unknown')) { Pass "signed and checked ($($sig.status): intact, test ID not trusted)" }
-    else { Fail 'signing' $(if ($sig) { "status $($sig.status)" } else { Step-Error ($n + 2) }) }
+  $run = Invoke-Steps 'sign' @(
+    '{"tool":"sign_id_create","args":{"name":"Tinta Smoke Test","password":"smoke-test-1","path":"prueba.p12"}}',
+    '{"tool":"doc_open","args":{"path":"texto.pdf"}}',
+    '{"tool":"sign_document","args":{"doc":1,"id":"prueba.p12","password":"smoke-test-1","out":"firmado.pdf","page":1,"rect":[50,50,250,120]}}',
+    '{"tool":"doc_open","args":{"path":"firmado.pdf"}}',
+    '{"tool":"sign_list","args":{"doc":2}}'
+  )
+  $list = Step-Result $run 5
+  $sig = if ($list) { @($list.signatures)[0] } else { $null }
+  # A self-signed ID is not trusted, so "unknown" (intact, signer not trusted) is the right answer.
+  if ($sig -and ($sig.status -eq 'valid' -or $sig.status -eq 'unknown')) { Pass "signed and checked ($($sig.status): intact, test ID not trusted)" }
+  else {
+    $why = if ($sig) { "status $($sig.status)" } else { @(1..5 | Where-Object { -not (Step-Result $run $_) } | ForEach-Object { Step-Error $run $_ })[0] }
+    Fail 'signing' $why
   }
 } finally {
   $results | Format-Table -AutoSize -Wrap | Out-String -Width 160 | Write-Host
