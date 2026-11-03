@@ -73,7 +73,9 @@ before the public beta in February.
 
 Beta sign-up, decided 2026-11-03: a form on tintaoffice.com.
 
-Owner decisions still open: the Preview 3 date, which apps enter the public beta, time
+Preview 3 date, decided 2026-11-03: 12 November 2026.
+
+Owner decisions still open: which apps enter the public beta, time
 for the Ukrainian review, the video channel and playlists.
 
 ## Suite-wide work (all five Tinta Office apps)

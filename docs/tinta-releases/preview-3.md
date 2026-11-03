@@ -1,6 +1,6 @@
 # Tinta PDF — Preview 3
 
-> **Status:** 2026-11-03 · draft for the Preview 3 release (planned 10–14 November 2026), to be
+> **Status:** 2026-11-03 · draft for the Preview 3 release (12 November 2026), to be
 > finished after the 9 November upstream sync · **Revision history:** 2026-11-03 created (changes
 > from Preview 2, 27 October, to #46).
 
