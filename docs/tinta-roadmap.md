@@ -11,7 +11,7 @@ for users in Spain and Ukraine. It is a fork-only file, so upstream syncs never 
 
 Ready for real work ≈ 50% (essentials user ≈ 66%, upstream estimate); 203 commits behind
 upstream. Viewing, comments, pages, forms and protection are at 65–70%. Missing for Spain: OCR
-now reads Spanish, Catalan, Galician, Basque, Ukrainian and 7 other languages (PaddleOCR models, fork), tested on phone photos of Spanish flyers and a Catalan textbook; there is no DNIe / smart-card signing.
+now reads Spanish, Catalan, Galician, Basque, Ukrainian and 8 other languages, English among them (13 in all; PaddleOCR models, fork), tested on phone photos of Spanish flyers and a Catalan textbook; there is no DNIe / smart-card signing.
 
 ## Priorities
 
@@ -81,8 +81,8 @@ the most ready apps), **3** = 2027 (1.0). Dates are indicative.
 | Our changes upstream | 1 | Offer storytold the configurable brand, Presenta's translations, the codec feature flag and the ca/gl/eu catalogs (craft-i18n#53), so the fork stays small. |
 | GitHub Actions | 1 | GitHub disabled Actions in pdfcraft, wordcraft and deckcraft; ask GitHub Support. Until then, run the gates locally. |
 | Releases | 1 | A preview every month for all five apps, release notes in es/uk/en, one build script. |
-| Linux | 1 | AppImage + .deb with Tinta names for all five (built in the cloud); Flatpak in stage 2. **PDF: test build done 2026-10-28** (`packaging/linux/package.sh` already applies the Tinta identity). Built in the cloud with `cargo zigbuild --target x86_64-unknown-linux-gnu.2.35` so it runs on glibc 2.35 and newer (Ubuntu 22.04+, Debian 12+, Fedora 36+), then `package.sh --skip-build` with `CROSS_TARGET=x86_64-unknown-linux-gnu`; the .deb installs, finds the OCR models and the AppImage opens (checked under Xvfb). On X11 the app needs libxkbcommon-x11 (now recommended by the packages). |
-| Flatpak | 2 | Bundle manifest under the Tinta id (`packaging/linux/flatpak/io.github.stdenis1980.tintapdf.bundle.yml`, generated from upstream's by `packaging/linux/tinta-flatpak.sh generate`; `tinta-flatpak.sh bundle` turns the Linux tarball into a `.flatpak`). Requested by Vilna OS (tintaoffice-web#14): bundles in releases by April 2027; Flathub only with Denys's approval. |
+| Linux | 1 | AppImage + .deb with Tinta names for all five (built in the cloud); a Flatpak bundle from Preview 3, Flathub in stage 2. **PDF: test build done 2026-10-28** (`packaging/linux/package.sh` already applies the Tinta identity). Built in the cloud with `cargo zigbuild --target x86_64-unknown-linux-gnu.2.35` so it runs on glibc 2.35 and newer (Ubuntu 22.04+, Debian 12+, Fedora 36+), then `package.sh --skip-build` with `CROSS_TARGET=x86_64-unknown-linux-gnu`; the .deb installs, finds the OCR models and the AppImage opens (checked under Xvfb). On X11 the app needs libxkbcommon-x11 (now recommended by the packages). |
+| Flatpak | 1 (bundle), 2 (Flathub) | Bundle manifest under the Tinta id (`packaging/linux/flatpak/io.github.stdenis1980.tintapdf.bundle.yml`, generated from upstream's by `packaging/linux/tinta-flatpak.sh generate`; `tinta-flatpak.sh bundle` turns the Linux tarball into a `.flatpak`). Requested by Vilna OS (tintaoffice-web#14): bundles in releases by April 2027; Flathub only with Denys's approval. |
 | Windows installers | 1 | Desktop shortcuts for Texto and Calculo; Presenta registered for .pptx. |
 | Code signing | 2 | Windows (Certum Open Source or Azure Trusted Signing; scripts exist), macOS (Apple Developer + notarization). Owner decision and payment. |
 | Automated tests | 1–2 | Coverage audit per app; tests for every fork change (brand, languages, installers); a smoke test of each release installer on Windows; investigate the flaky tests upstream. |
