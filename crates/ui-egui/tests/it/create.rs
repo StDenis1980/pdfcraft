@@ -401,3 +401,19 @@ fn a_blank_page_is_on_the_system_regions_paper() {
         );
     }
 }
+
+/// Tinta Office fork: a Word file is handed to Tinta Texto to convert, never read as a PDF.
+/// Without Texto installed (as here) the error says which app it needs; with it, this junk
+/// fails in Texto, and the error names it all the same.
+#[test]
+fn a_word_file_is_converted_by_tinta_texto_not_read_as_a_pdf() {
+    let mut app = PdfCraftApp::new();
+    app.set_option("language", "en").unwrap();
+    let error = app.open_bytes("Carta.docx", None, b"PK\x03\x04 not really a document".to_vec()).unwrap_err();
+    assert!(error.contains("Tinta Texto"), "{error}");
+    assert!(app.views.is_empty(), "nothing opened");
+    // In Spanish, the missing app is said in Spanish.
+    app.set_option("language", "es").unwrap();
+    let error = app.open_bytes("Hoja.xlsx", None, b"PK\x03\x04".to_vec()).unwrap_err();
+    assert!(error.contains("Tinta Calculo") && (error.contains("no está instalado") || error.contains("could not convert")), "{error}");
+}

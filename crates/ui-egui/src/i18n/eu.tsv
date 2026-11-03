@@ -2817,6 +2817,8 @@ theme	Appearance	Itxura
 	Add a timestamp from a server	Gehitu zerbitzari baten denbora-zigilua
 	Only a fingerprint of the document is sent to the server, never the document.	Dokumentuaren hatz-marka bakarrik bidaltzen da zerbitzarira, inoiz ez dokumentua.
 	Timestamps need the desktop app.	Denbora-zigiluek mahaigaineko aplikazioa behar dute.
+	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel eta PowerPoint (Tinta Office-rekin bihurtuak)
+	this needs {app}, which is not installed; install it from tintaoffice.com	{app} behar da, eta ez dago instalatuta; instalatu tintaoffice.com webgunetik
 	Another signature is still waiting for its timestamp.	Beste sinadura bat oraindik denbora-zigiluaren zain dago.
 	Asking the timestamp server…	Denbora-zigilua zerbitzariari eskatzen…
 	Signing stopped unexpectedly.	Sinadura ustekabean gelditu da.

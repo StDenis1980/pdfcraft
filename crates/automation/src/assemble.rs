@@ -44,6 +44,18 @@ impl Automation {
                 })?;
                 (format!("{title}.pdf"), bytes)
             }
+            // Tinta Office fork: converted by the suite app that reads the file.
+            #[cfg(not(target_arch = "wasm32"))]
+            "office" => {
+                let path = self.resolve(a.str("path")?, false)?;
+                let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                if pdfcraft_platform::office::OfficeApp::for_name(&name).is_none() {
+                    return Err(ToolError::InvalidArgs(format!("{name}: not a Word, Excel or PowerPoint file")));
+                }
+                let bytes = read_input(&path)?;
+                let pdf = pdfcraft_platform::office::convert(&name, &bytes).map_err(failed)?;
+                (format!("{}.pdf", name.rsplit_once('.').map_or(name.as_str(), |(s, _)| s)), Arc::new(pdf))
+            }
             other => return Err(ToolError::InvalidArgs(format!("unknown source {other:?}"))),
         };
         let name = a.opt_str("name")?.map(str::to_owned).unwrap_or(name);

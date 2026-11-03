@@ -20,7 +20,12 @@ pub(crate) enum Input {
 
 pub(crate) enum ResultKind {
     Conversion(Arc<Vec<u8>>),
-    Prepared { bytes: Arc<Vec<u8>>, result: Box<Result<PreparedDocument, OpenError>> },
+    /// Tinta Office fork: an Office file converted to PDF by the suite app that reads it.
+    Office(Result<Vec<u8>, String>),
+    Prepared {
+        bytes: Arc<Vec<u8>>,
+        result: Box<Result<PreparedDocument, OpenError>>,
+    },
     ReadFailed(String),
     RemoteFailed(String),
     RecoveryFailed(String),
@@ -175,6 +180,9 @@ fn prepare(job: Job) -> ResultKind {
         },
         Input::Bytes(bytes) => bytes.clone(),
     };
+    if let Some(pdf) = crate::create_ui::office_pdf(&job.name, &bytes) {
+        return ResultKind::Office(pdf);
+    }
     if matches!(pdfcraft_engine::source_kind(&job.name, &bytes), Some(SourceKind::Image | SourceKind::Text)) {
         return ResultKind::Conversion(bytes);
     }

@@ -19,6 +19,7 @@ mod split;
 mod stderr;
 mod stdout;
 mod text;
+mod tinta_office;
 mod ui_control;
 mod version_resource;
 mod xfa;
