@@ -103,7 +103,7 @@ impl Automation {
         let mut session = Session::new();
         session.set_system_trust(pdfcraft_platform::trust::system_roots());
         // Tinta Office fork: Word, Excel and PowerPoint files become PDFs through the suite's apps
-        // (doc_combine, doc_create_multiple, doc_batch convert, pages_insert…).
+        // (doc_combine, doc_create_multiple, doc_batch convert).
         #[cfg(not(target_arch = "wasm32"))]
         pdfcraft_engine::set_document_converter(
             pdfcraft_engine::DocumentConverter {
