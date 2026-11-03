@@ -2637,6 +2637,8 @@ animation effects	Off	Вимкнено
 	Add a timestamp from a server	Додати позначку часу із сервера
 	Only a fingerprint of the document is sent to the server, never the document.	На сервер надсилається лише відбиток документа, а не сам документ.
 	Timestamps need the desktop app.	Позначки часу доступні лише в програмі для комп'ютера.
+	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel і PowerPoint (перетворені через Tinta Office)
+	this needs {app}, which is not installed; install it from tintaoffice.com	для цього потрібна програма {app}, але її не встановлено; встановіть її з tintaoffice.com
 	Another signature is still waiting for its timestamp.	Інший підпис ще чекає на позначку часу.
 	Asking the timestamp server…	Запит позначки часу в сервера…
 	Signing stopped unexpectedly.	Підписування несподівано зупинилося.

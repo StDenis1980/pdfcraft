@@ -2877,6 +2877,8 @@ theme	Appearance	Aspecte
 	Add a timestamp from a server	Afegeix una marca de temps d'un servidor
 	Only a fingerprint of the document is sent to the server, never the document.	Només s'envia al servidor una empremta del document, mai el document.
 	Timestamps need the desktop app.	Les marques de temps necessiten l'aplicació d'escriptori.
+	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel i PowerPoint (convertits amb Tinta Office)
+	this needs {app}, which is not installed; install it from tintaoffice.com	cal {app}, que no està instal·lat; instal·leu-lo des de tintaoffice.com
 	Another signature is still waiting for its timestamp.	Una altra signatura encara espera la seva marca de temps.
 	Asking the timestamp server…	S'està demanant la marca de temps al servidor…
 	Signing stopped unexpectedly.	La signatura s'ha aturat de manera inesperada.

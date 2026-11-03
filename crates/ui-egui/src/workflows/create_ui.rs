@@ -98,6 +98,24 @@ pub(crate) fn png_from_rgba(width: usize, height: usize, rgba: &[u8]) -> Result<
     Ok(out)
 }
 
+/// Tinta Office fork: the PDF of an Office file (by its name, when its bytes are not a PDF, an
+/// image or text), converted by the suite app that reads it; `None` for any other file.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn office_pdf(name: &str, bytes: &[u8]) -> Option<Result<Vec<u8>, String>> {
+    pdfcraft_platform::office::OfficeApp::for_name(name)?;
+    if pdfcraft_engine::source_kind(name, bytes).is_some() {
+        return None;
+    }
+    use pdfcraft_platform::office::{OfficeError, convert};
+    Some(convert(name, bytes).map_err(|e| match e {
+        // The one most people meet: said in their language.
+        OfficeError::NotInstalled(app) => {
+            crate::i18n::fmt(tl!("this needs {app}, which is not installed; install it from tintaoffice.com"), &[("app", app.name())])
+        }
+        e => e.to_string(),
+    }))
+}
+
 fn stem(name: &str) -> &str {
     name.rsplit_once('.').map_or(name, |(s, _)| s)
 }
@@ -107,11 +125,25 @@ impl PdfCraftApp {
     /// something Create understands (the caller then tries to open it as a PDF).
     pub(crate) fn open_converted(&mut self, name: &str, bytes: &[u8]) -> Option<Result<(), String>> {
         use pdfcraft_engine::SourceKind;
+        // Tinta Office fork: Word, Excel and PowerPoint files are converted by the suite's app
+        // that reads them (here, before the first frame and in tests; the open worker does it
+        // away from the window otherwise).
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(pdf) = office_pdf(name, bytes) {
+            return Some(self.open_office_pdf(name, pdf));
+        }
         if !matches!(pdfcraft_engine::source_kind(name, bytes), Some(SourceKind::Image | SourceKind::Text)) {
             return None;
         }
         let created = self.session.convert_to_pdf(name, &Arc::new(bytes.to_vec())).map(|(_, pdf)| pdf);
         Some(self.open_created_bytes(&format!("{}.pdf", stem(name)), created.map_err(|e| e.to_string())))
+    }
+
+    /// Tinta Office fork: open the PDF an Office file `name` was converted to as a new, unsaved
+    /// document named after it.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn open_office_pdf(&mut self, name: &str, pdf: Result<Vec<u8>, String>) -> Result<(), String> {
+        self.open_created_bytes(&format!("{}.pdf", stem(name)), pdf.map(Arc::new))
     }
 
     fn open_created_bytes(&mut self, name: &str, created: Result<Arc<Vec<u8>>, String>) -> Result<(), String> {
