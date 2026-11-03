@@ -27,6 +27,7 @@ pub mod compare;
 mod copy_image;
 pub mod dates;
 mod document;
+mod document_converter;
 mod edit;
 mod error;
 pub mod export;
@@ -79,6 +80,7 @@ pub use pdfcraft_organize::Standard;
 pub use pdfcraft_organize::check_custom_key;
 pub use pdfcraft_organize::view::{InitialView, Layout as InitialLayout, Magnification, Navigation};
 
+pub use document_converter::{DocumentConverter, convertible_extensions, set_document_converter};
 pub use pdfcraft_cos::Algorithm;
 pub use pdfcraft_create::{CONVERTIBLE, CreateError, ImageResolution, SourceKind, decode_text, source_kind};
 pub use pdfcraft_edit::added::{

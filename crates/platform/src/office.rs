@@ -73,9 +73,14 @@ impl OfficeApp {
     }
 }
 
+/// Every extension in [`EXTENSIONS`], in the same order.
+pub const ALL_EXTENSIONS: &[&str] = &[
+    "docx", "docm", "dotx", "dotm", "doc", "dot", "odt", "rtf", "xlsx", "xlsm", "xltx", "xltm", "xls", "xlt", "xlsb", "ods", "pptx", "potx", "ppsx",
+];
+
 /// Every Office extension converted, for file pickers.
 pub fn all_extensions() -> Vec<&'static str> {
-    EXTENSIONS.iter().flat_map(|(_, exts)| exts.iter().copied()).collect()
+    ALL_EXTENSIONS.to_vec()
 }
 
 /// Why a conversion failed.
@@ -240,6 +245,12 @@ pub fn convert_with(tool: &Path, app: OfficeApp, name: &str, bytes: &[u8], timeo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_flat_list_is_every_apps_extensions_in_order() {
+        let flat: Vec<&str> = EXTENSIONS.iter().flat_map(|(_, exts)| exts.iter().copied()).collect();
+        assert_eq!(ALL_EXTENSIONS, flat.as_slice());
+    }
 
     #[test]
     fn each_office_file_goes_to_the_app_that_reads_it() {

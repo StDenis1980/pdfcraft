@@ -210,3 +210,18 @@ fn removing_pages_drops_emptied_parts_and_joins_what_meets() {
     // A page that isn't there: nothing changes, and it says so.
     assert_eq!(removed_pages(&two, &BTreeSet::from([(1, 9)]), &mut new_id), None);
 }
+
+/// Tinta Office fork: a Word, Excel or PowerPoint file joins the list as a file the suite's app
+/// makes into a PDF. Without that app (none is installed where tests run) its row says which app
+/// to install, not that the file type can't be combined.
+#[test]
+fn an_office_file_in_combine_asks_for_the_tinta_app_that_converts_it() {
+    let mut app = PdfCraftApp::new();
+    app.set_option("language", "en").unwrap();
+    app.stage_combine(vec![("Carta.docx".into(), b"PK\x03\x04 not really a document".to_vec()), ("Deck.pptx".into(), b"PK\x03\x04".to_vec())]);
+    let problems: Vec<String> = app.combine_draft.iter().map(|f| f.problem.clone().unwrap_or_default()).collect();
+    assert!(problems[0].contains("Tinta Texto") && problems[0].contains("not installed"), "{problems:?}");
+    assert!(problems[1].contains("Tinta Presenta"), "{problems:?}");
+    // Its bookmark is named without the extension, like an image's or a text file's.
+    assert_eq!(parts::title_of("Carta.docx"), "Carta");
+}

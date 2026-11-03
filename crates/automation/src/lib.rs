@@ -102,6 +102,16 @@ impl Automation {
         // the app; `sign_trust` with `system: false` turns it off.
         let mut session = Session::new();
         session.set_system_trust(pdfcraft_platform::trust::system_roots());
+        // Tinta Office fork: Word, Excel and PowerPoint files become PDFs through the suite's apps
+        // (doc_combine, doc_create_multiple, doc_batch convert).
+        #[cfg(not(target_arch = "wasm32"))]
+        pdfcraft_engine::set_document_converter(
+            pdfcraft_engine::DocumentConverter {
+                extensions: pdfcraft_platform::office::ALL_EXTENSIONS,
+                convert: |name, bytes| pdfcraft_platform::office::convert(name, bytes).map_err(|e| e.to_string()),
+            },
+            false,
+        );
         Self {
             session,
             root: None,

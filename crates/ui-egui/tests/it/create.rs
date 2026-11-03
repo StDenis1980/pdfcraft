@@ -413,7 +413,10 @@ fn a_word_file_is_converted_by_tinta_texto_not_read_as_a_pdf() {
     assert!(error.contains("Tinta Texto"), "{error}");
     assert!(app.views.is_empty(), "nothing opened");
     // In Spanish, the missing app is said in Spanish.
+    // (The window sets the drawing language every frame; here it is set by hand.)
     app.set_option("language", "es").unwrap();
+    pdfcraft_ui_egui::i18n::set_current(pdfcraft_ui_egui::i18n::Lang::from_code("es").unwrap());
     let error = app.open_bytes("Hoja.xlsx", None, b"PK\x03\x04".to_vec()).unwrap_err();
-    assert!(error.contains("Tinta Calculo") && (error.contains("no está instalado") || error.contains("could not convert")), "{error}");
+    pdfcraft_ui_egui::i18n::set_current(pdfcraft_ui_egui::i18n::Lang::from_code("en").unwrap());
+    assert!(error.contains("Tinta Calculo") && error.contains("no está instalado"), "{error}");
 }

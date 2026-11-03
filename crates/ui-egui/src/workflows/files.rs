@@ -101,7 +101,7 @@ fn files_picker(purpose: FilePurpose) -> rfd::AsyncFileDialog {
     if !matches!(purpose, FilePurpose::CreateMultiple | FilePurpose::CreateMultipleSeparate | FilePurpose::InsertPages | FilePurpose::Combine) {
         return dialog.add_filter("PDF", &["pdf"]);
     }
-    let all: Vec<&str> = std::iter::once("pdf").chain(pdfcraft_engine::CONVERTIBLE).collect();
+    let all: Vec<&str> = std::iter::once("pdf").chain(pdfcraft_engine::convertible_extensions()).collect();
     dialog.add_filter(tl!("PDF, images and text"), &all).add_filter("PDF", &["pdf"])
 }
 

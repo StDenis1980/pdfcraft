@@ -106,14 +106,30 @@ pub(crate) fn office_pdf(name: &str, bytes: &[u8]) -> Option<Result<Vec<u8>, Str
     if pdfcraft_engine::source_kind(name, bytes).is_some() {
         return None;
     }
+    Some(office_convert(name, bytes))
+}
+
+/// Convert an Office file with the suite app that reads it, the error in the user's words.
+#[cfg(not(target_arch = "wasm32"))]
+fn office_convert(name: &str, bytes: &[u8]) -> Result<Vec<u8>, String> {
     use pdfcraft_platform::office::{OfficeError, convert};
-    Some(convert(name, bytes).map_err(|e| match e {
+    convert(name, bytes).map_err(|e| match e {
         // The one most people meet: said in their language.
         OfficeError::NotInstalled(app) => {
             crate::i18n::fmt(tl!("this needs {app}, which is not installed; install it from tintaoffice.com"), &[("app", app.name())])
         }
         e => e.to_string(),
-    }))
+    })
+}
+
+/// Tinta Office fork: let every path that makes files into PDFs (Combine, Insert pages, Create
+/// from multiple files) take Word, Excel and PowerPoint files too, through the suite's apps.
+pub(crate) fn register_office_converter() {
+    #[cfg(not(target_arch = "wasm32"))]
+    pdfcraft_engine::set_document_converter(
+        pdfcraft_engine::DocumentConverter { extensions: pdfcraft_platform::office::ALL_EXTENSIONS, convert: office_convert },
+        true,
+    );
 }
 
 fn stem(name: &str) -> &str {
