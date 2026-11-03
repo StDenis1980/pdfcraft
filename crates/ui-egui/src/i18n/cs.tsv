@@ -19,9 +19,8 @@
 # commands is kept. Messages with a count but no `@plural` entry use count-neutral wording
 # ("Vybráno stránek: {n}"), because Czech has three plural forms.
 
-# Untranslated: English text until a translator fills these in.
-	Lowering this forgets the oldest files. At 0 there is no list.	Lowering this forgets the oldest files. At 0 there is no list.
-	Recent files to keep	Recent files to keep
+	Lowering this forgets the oldest files. At 0 there is no list.	Snížením se zapomenou nejstarší soubory. Při 0 se seznam nevede.
+	Recent files to keep	Počet uchovávaných nedávných souborů
 
 	Menu	Nabídka
 	File	Soubor
