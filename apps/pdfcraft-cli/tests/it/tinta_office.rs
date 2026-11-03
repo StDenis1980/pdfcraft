@@ -79,3 +79,70 @@ fn without_tinta_texto_the_error_says_to_install_it() {
     assert!(!dir.join("out.pdf").exists());
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A stand-in for `wordcraft-cli` in `dir` that writes `pdf` for any .docx it is asked to convert.
+fn fake_texto(dir: &Path, pdf: &Path) -> PathBuf {
+    let tool = dir.join("wordcraft-cli");
+    std::fs::write(&tool, format!("#!/bin/sh\n[ \"$1\" = convert ] && case \"$2\" in *.docx) cp '{}' \"$3\";; esac\n", pdf.display())).unwrap();
+    std::fs::set_permissions(&tool, std::fs::Permissions::from_mode(0o755)).unwrap();
+    tool
+}
+
+/// Run `steps` under `--root dir`, with the Texto converter at `tool`.
+fn run_steps(dir: &Path, tool: &Path, steps: serde_json::Value) -> Output {
+    let script = dir.join("steps.json");
+    std::fs::write(&script, steps.to_string()).unwrap();
+    Command::new(env!("CARGO_BIN_EXE_pdfcraft-cli"))
+        .env("TINTA_TEXTO_CLI", tool)
+        .arg("run")
+        .arg("--script")
+        .arg(&script)
+        .arg("--root")
+        .arg(dir)
+        .current_dir(dir)
+        .output()
+        .unwrap()
+}
+
+fn page_count(path: &Path) -> usize {
+    pdfcraft_render::inspect(std::sync::Arc::new(std::fs::read(path).unwrap()), None).unwrap().pages.len()
+}
+
+#[test]
+fn combine_takes_a_word_file_between_pdfs() {
+    let dir = sandbox("combine");
+    let pdf = blank_pdf(&dir);
+    let tool = fake_texto(&dir, &pdf);
+    std::fs::write(dir.join("Carta.docx"), b"PK\x03\x04 not really a document").unwrap();
+    let o = run_steps(
+        &dir,
+        &tool,
+        serde_json::json!([
+            { "tool": "doc_combine", "args": { "paths": ["blank.pdf", "Carta.docx", "blank.pdf"], "out": "all.pdf" } },
+        ]),
+    );
+    assert!(o.status.success(), "{}{}", String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr));
+    assert_eq!(page_count(&dir.join("all.pdf")), 3, "the letter's page between the two PDFs");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn batch_convert_makes_a_pdf_of_a_word_file() {
+    let dir = sandbox("batch");
+    let pdf = blank_pdf(&dir);
+    let tool = fake_texto(&dir, &pdf);
+    std::fs::create_dir_all(dir.join("in")).unwrap();
+    std::fs::write(dir.join("in/Carta.docx"), b"PK\x03\x04 not really a document").unwrap();
+    let o = run_steps(
+        &dir,
+        &tool,
+        serde_json::json!([
+            { "tool": "doc_batch", "args": { "paths": ["in"], "out_dir": "out", "steps": ["convert"] } },
+        ]),
+    );
+    assert!(o.status.success(), "{}{}", String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr));
+    let stdout = String::from_utf8_lossy(&o.stdout);
+    assert!(stdout.contains("\"completed\":1") || stdout.contains("\"completed\": 1"), "{stdout}");
+    assert_eq!(page_count(&dir.join("out/Carta.pdf")), 1, "{stdout}");
+    let _ = std::fs::remove_dir_all(&dir);
+}

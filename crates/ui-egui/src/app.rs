@@ -67,6 +67,8 @@ impl PdfCraftApp {
         // Tinta Office fork: signers chaining to a system root (FNMT, ACCV…) validate.
         let mut session = Session::new();
         session.set_system_trust(pdfcraft_platform::trust::system_roots());
+        // Tinta Office fork: Word, Excel and PowerPoint files become PDFs through the suite's apps.
+        crate::create_ui::register_office_converter();
         Self {
             session,
             views: Vec::new(),

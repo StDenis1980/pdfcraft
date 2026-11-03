@@ -579,6 +579,10 @@ pub enum SourceKind {
     Pdf,
     Image,
     Text,
+    /// A document another program converts (Tinta Office fork: Word, Excel and PowerPoint files
+    /// through the suite's apps, `pdfcraft_engine::DocumentConverter`). [`source_kind`] never
+    /// returns it: these files are recognised by their name, by whoever converts them.
+    Document,
 }
 
 /// File extensions Create converts to PDF (images and plain text).
