@@ -66,8 +66,14 @@ This app's next steps:
 | 2 — December 2026 – January 2027 | Word export that keeps the layout; DNIe and smart cards (PKCS #11) when upstream reaches M9 |
 | 3 — 2027 | PDF/A; editing existing text; Ukrainian KEP/Diia signing assessed in Q2 |
 
-Owner decisions still open: the Preview 3 date, code signing for Windows by 1 December (Certum Open
-Source or Azure Trusted Signing), the beta sign-up channel, which apps enter the public beta, time
+Code signing for Windows, decided 2026-11-03: Certum Open Source, registered at the start of January
+2027 once the owner has his new ID card (December); Preview 3 and the closed beta stay unsigned.
+Certum's identity check takes days to two weeks, so signed installers are expected late January,
+before the public beta in February.
+
+Beta sign-up, decided 2026-11-03: a form on tintaoffice.com.
+
+Owner decisions still open: the Preview 3 date, which apps enter the public beta, time
 for the Ukrainian review, the video channel and playlists.
 
 ## Suite-wide work (all five Tinta Office apps)
@@ -84,7 +90,7 @@ the most ready apps), **3** = 2027 (1.0). Dates are indicative.
 | Linux | 1 | AppImage + .deb with Tinta names for all five (built in the cloud); a Flatpak bundle from Preview 3, Flathub in stage 2. **PDF: test build done 2026-10-28** (`packaging/linux/package.sh` already applies the Tinta identity). Built in the cloud with `cargo zigbuild --target x86_64-unknown-linux-gnu.2.35` so it runs on glibc 2.35 and newer (Ubuntu 22.04+, Debian 12+, Fedora 36+), then `package.sh --skip-build` with `CROSS_TARGET=x86_64-unknown-linux-gnu`; the .deb installs, finds the OCR models and the AppImage opens (checked under Xvfb). On X11 the app needs libxkbcommon-x11 (now recommended by the packages). |
 | Flatpak | 1 (bundle), 2 (Flathub) | Bundle manifest under the Tinta id (`packaging/linux/flatpak/io.github.stdenis1980.tintapdf.bundle.yml`, generated from upstream's by `packaging/linux/tinta-flatpak.sh generate`; `tinta-flatpak.sh bundle` turns the Linux tarball into a `.flatpak`). Requested by Vilna OS (tintaoffice-web#14): bundles in releases by April 2027; Flathub only with Denys's approval. |
 | Windows installers | 1 | Desktop shortcuts for Texto and Calculo; Presenta registered for .pptx. |
-| Code signing | 2 | Windows (Certum Open Source or Azure Trusted Signing; scripts exist), macOS (Apple Developer + notarization). Owner decision and payment. |
+| Code signing | 2 | Windows: Certum Open Source (decided 2026-11-03; registration early January 2027, scripts exist), macOS (Apple Developer + notarization). Owner decision and payment. |
 | Automated tests | 1–2 | Coverage audit per app; tests for every fork change (brand, languages, installers); a smoke test of each release installer on Windows; investigate the flaky tests upstream. |
 | User guide | 2 | A short "first steps" guide per app in Spanish and Ukrainian on tintaoffice.com (Correo has one). |
 | Fork documentation | 1 | This file: what the fork changes, how to build a release, how to sync. |
