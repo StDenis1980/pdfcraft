@@ -71,7 +71,9 @@ Code signing for Windows, decided 2026-11-03: Certum Open Source, registered at 
 Certum's identity check takes days to two weeks, so signed installers are expected late January,
 before the public beta in February.
 
-Owner decisions still open: the Preview 3 date, the beta sign-up channel, which apps enter the public beta, time
+Beta sign-up, decided 2026-11-03: a form on tintaoffice.com.
+
+Owner decisions still open: the Preview 3 date, which apps enter the public beta, time
 for the Ukrainian review, the video channel and playlists.
 
 ## Suite-wide work (all five Tinta Office apps)
