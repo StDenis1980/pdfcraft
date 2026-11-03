@@ -1,6 +1,6 @@
 # Tinta PDF — Tinta Office roadmap
 
-> **Status:** 2026-11-03 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created; 2026-10-27 synced with upstream (#13), Help › Report a problem and issue forms added; government forms harness (#15); OCR in 12 more languages; 2026-10-28 timestamp servers (#17), Windows root trust; OCR tested on phone photos, column split and confidence filter; 2026-10-30 Catalan textbook photos, sideways pages read upright; Ukrainian photos, text found in tiles; Spanish contract photos, tile repeats and slanted lines fixed; Ukrainian і/ї/є corrected with a word list; photographed sheets read straightened; 2026-11-01 columns side by side read one after the other; lines under a light stamp read; Spanish i/l corrected with a word list; upside-down pages read; small print, light headings and camera edges on flyers checked; 2026-11-02 signing with a timestamp no longer freezes the window; signing item closed; 2026-11-03 Flatpak bundle manifest under the Tinta id; PDFs created from Word, Excel and PowerPoint files through Texto, Calculo and Presenta; 2026-11-03 plan revision 2 (owner-approved): Preview 3 and a closed beta first, stage gates, next steps per stage.
+> **Status:** 2026-11-03 · approved by the owner (Denys) · **Revision history:** 2026-10-27 created; 2026-10-27 synced with upstream (#13), Help › Report a problem and issue forms added; government forms harness (#15); OCR in 12 more languages; 2026-10-28 timestamp servers (#17), Windows root trust; OCR tested on phone photos, column split and confidence filter; 2026-10-30 Catalan textbook photos, sideways pages read upright; Ukrainian photos, text found in tiles; Spanish contract photos, tile repeats and slanted lines fixed; Ukrainian і/ї/є corrected with a word list; photographed sheets read straightened; 2026-11-01 columns side by side read one after the other; lines under a light stamp read; Spanish i/l corrected with a word list; upside-down pages read; small print, light headings and camera edges on flyers checked; 2026-11-02 signing with a timestamp no longer freezes the window; signing item closed; 2026-11-03 Flatpak bundle manifest under the Tinta id; PDFs created from Word, Excel and PowerPoint files through Texto, Calculo and Presenta; 2026-11-03 plan revision 2 (owner-approved): Preview 3 and a closed beta first, stage gates, next steps per stage; 2026-11-03 owner decisions recorded: Preview 3 on 12 November, Certum signing from January, beta sign-up form on tintaoffice.com/beta.
 
 Tinta PDF is the Tinta Office build of PdfCraft and replaces Acrobat Pro. Upstream keeps the
 feature-parity roadmap ([ROADMAP.md](../ROADMAP.md), [roadmap.md](roadmap.md),
@@ -35,12 +35,12 @@ the last releases are from 2026-10-26/27. So November is about delivery, not new
 
 Suite priorities for November (stage 1), in order:
 
-1. **Preview 3 for all five apps, 10–14 November**, after the 9 November upstream sync: Windows MSI
+1. **Preview 3 for all five apps on 12 November**, after the 9 November upstream sync: Windows MSI
    and portable, Linux .deb, AppImage and .flatpak, the extra dictionary pack as its own file,
    release notes in es/uk/en, the site's Download section; every installer smoke-tested on the
    owner's PC first.
-2. **Closed beta in Spain** from Preview 3: a sign-up form on tintaoffice.com (none yet), a page for
-   testers (what to check, how to report), 20–50 autónomos and 1–2 gestorías, Ukrainians in Spain
+2. **Closed beta in Spain** from Preview 3: a sign-up form on tintaoffice.com/beta and a guide
+   for testers at /beta/testers/ (what to check, how to report), 20–50 autónomos and 1–2 gestorías, Ukrainians in Spain
    as testers; weekly triage of error reports and issues.
 3. **Tinta Presenta catches up** (it has barely moved since 2026-10-27): #74, a .pptx test set, #70/#77.
 4. **Tinta Correo finishes M5**: calendar and contacts from .pst, export, the Outlook migration guide.
@@ -71,7 +71,8 @@ Code signing for Windows, decided 2026-11-03: Certum Open Source, registered at 
 Certum's identity check takes days to two weeks, so signed installers are expected late January,
 before the public beta in February.
 
-Beta sign-up, decided 2026-11-03: a form on tintaoffice.com.
+Beta sign-up, decided 2026-11-03: a form on tintaoffice.com
+([tintaoffice.com/beta](https://tintaoffice.com/beta/), with a testers' guide at `/beta/testers/`).
 
 Preview 3 date, decided 2026-11-03: 12 November 2026.
 
