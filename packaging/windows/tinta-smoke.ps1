@@ -18,15 +18,25 @@
   powershell -ExecutionPolicy Bypass -File packaging\windows\tinta-smoke.ps1
 .EXAMPLE
   powershell -File tinta-smoke.ps1 -Cli 'D:\portable\Tinta PDF\pdfcraft-cli.exe' -Keep
+  Portable builds side by side (D:\portable\Tinta PDF, D:\portable\Tinta Texto, ...): the sample
+  Office files come from the apps in D:\portable, as -Suite defaults to the folder above -Cli's.
+.EXAMPLE
+  powershell -File tinta-smoke.ps1 -Cli 'D:\rc\pdf\pdfcraft-cli.exe' -Suite 'D:\rc\suite'
 #>
 param(
   # The pdfcraft-cli.exe to test (default: the installed one).
   [string] $Cli = (Join-Path ${env:ProgramFiles} 'Tinta Office\Tinta PDF\pdfcraft-cli.exe'),
+  # The folder holding the 'Tinta Texto', 'Tinta Calculo' and 'Tinta Presenta' folders whose CLIs
+  # make the sample Office files (default: the folder above -Cli's, where pdfcraft-cli itself
+  # looks for its sibling apps; for the installed copy that is Program Files\Tinta Office).
+  [string] $Suite = '',
   # Keep the temporary folder (with every file made) for a look afterwards.
   [switch] $Keep
 )
 $ErrorActionPreference = 'Stop'
-$suite = Join-Path ${env:ProgramFiles} 'Tinta Office'
+if (-not $Suite) {
+  $Suite = Split-Path -Parent (Split-Path -Parent $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Cli))
+}
 $results = New-Object System.Collections.Generic.List[object]
 function Pass([string] $What) { $results.Add([pscustomobject]@{ Check = $What; Result = 'ok' }) }
 function Fail([string] $What, [string] $Why) { $results.Add([pscustomobject]@{ Check = $What; Result = "FAILED: $Why" }) }
@@ -78,7 +88,7 @@ try {
     @{ App = 'Tinta Presenta'; Exe = 'deckcraft-cli.exe'; File = 'deck.pptx'; Args = @('run', '--sample', '--save', 'deck.pptx') }
   )
   foreach ($m in $makers) {
-    $exe = Join-Path (Join-Path $suite $m.App) $m.Exe
+    $exe = Join-Path (Join-Path $Suite $m.App) $m.Exe
     if (-not (Test-Path -LiteralPath $exe)) { Skip "$($m.App): $($m.File) to PDF" "$($m.App) is not installed"; continue }
     $r = Invoke-Tool $exe $m.Args
     if ($r.Code -eq 0 -and (Test-Path -LiteralPath (Join-Path $work $m.File))) { $office += $m } else { Fail "$($m.App) sample $($m.File)" $r.Err }
