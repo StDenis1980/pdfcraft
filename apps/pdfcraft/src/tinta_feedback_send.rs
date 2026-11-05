@@ -116,14 +116,15 @@ enum Sent {
     Taken(Option<String>),
     /// Refused for good (malformed, too large): retrying would not help.
     Refused,
-    /// No connection, a server error or too busy: try again later.
+    /// No connection, a server error, too busy, or a server that has no feedback endpoint yet
+    /// (404): try again later.
     NotNow,
 }
 
 fn send(endpoint: &str, body: &Value) -> Sent {
     match report::post_json(endpoint, "/v1/feedback", body) {
         Some((s, reply)) if (200..300).contains(&s) => Sent::Taken(reply.get("id").and_then(Value::as_str).map(|id| id.chars().take(36).collect())),
-        Some((s, _)) if (400..500).contains(&s) && s != 429 => Sent::Refused,
+        Some((s, _)) if (400..500).contains(&s) && s != 429 && s != 404 => Sent::Refused,
         _ => Sent::NotNow,
     }
 }
@@ -218,5 +219,54 @@ mod tests {
         let mut fb = Feedback::default();
         tick(&mut fb, "es");
         assert_eq!(fb.available, report::ENDPOINT.is_some());
+    }
+
+    /// Read one whole request (headers, then a `Content-Length` or chunked body), so the reply
+    /// never races the client still sending.
+    fn read_request(s: &mut std::net::TcpStream) {
+        use std::io::Read;
+        let mut got = Vec::new();
+        let mut buf = [0u8; 8192];
+        loop {
+            let Ok(n) = s.read(&mut buf) else { return };
+            if n == 0 {
+                return;
+            }
+            got.extend_from_slice(&buf[..n]);
+            let Some(end) = got.windows(4).position(|w| w == b"\r\n\r\n") else { continue };
+            let head = String::from_utf8_lossy(&got[..end]).to_ascii_lowercase();
+            let body = got.len() - end - 4;
+            let length = head.lines().find_map(|l| l.strip_prefix("content-length:")).and_then(|v| v.trim().parse::<usize>().ok());
+            match length {
+                Some(len) if body >= len => return,
+                None if !head.contains("chunked") || got.ends_with(b"0\r\n\r\n") => return,
+                _ => {}
+            }
+        }
+    }
+
+    /// A server answering every request with `status`, for `n` requests.
+    fn server(status: u16, n: usize) -> String {
+        use std::io::Write;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for stream in listener.incoming().take(n) {
+                let mut s = stream.unwrap();
+                read_request(&mut s);
+                let _ = write!(s, "HTTP/1.1 {status} X\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{{}}");
+            }
+        });
+        format!("http://{addr}")
+    }
+
+    #[test]
+    fn a_server_without_the_endpoint_keeps_it_queued_and_a_refusal_drops_it() {
+        let body = body(&draft(), "es");
+        assert!(matches!(send(&server(404, 1), &body), Sent::NotNow));
+        assert!(matches!(send(&server(503, 1), &body), Sent::NotNow));
+        assert!(matches!(send(&server(429, 1), &body), Sent::NotNow));
+        assert!(matches!(send(&server(400, 1), &body), Sent::Refused));
+        assert!(matches!(send(&server(200, 1), &body), Sent::Taken(None)));
     }
 }
