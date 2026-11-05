@@ -44,6 +44,7 @@ mod settings;
 mod single_instance;
 mod startup;
 mod text_scale;
+mod tinta_feedback_send;
 mod tinta_report;
 #[cfg(test)]
 #[path = "windows_manifest.rs"]

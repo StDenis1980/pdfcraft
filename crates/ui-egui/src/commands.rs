@@ -214,6 +214,8 @@ impl PdfCraftApp {
                     self.notify_tr("Security will be removed when you save");
                 }
             }
+            // Tinta Office: Help › Report a problem opens the feedback dialog where it can send.
+            "help.report" if self.tinta_feedback.available => self.tinta_feedback.request(),
             link if pdfcraft_engine::links::for_command(link).is_some() => {
                 if let Some(l) = pdfcraft_engine::links::for_command(link) {
                     self.open_url(l.url);

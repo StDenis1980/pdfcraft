@@ -29,7 +29,7 @@ const KEY: &str = match option_env!("TINTA_REPORT_KEY") {
     None => "",
 };
 /// The app's name on the server.
-const APP: &str = "pdf";
+pub(crate) const APP: &str = "pdf";
 /// A window busy this long in one frame counts as not responding.
 pub const FREEZE_SECS: u64 = 15;
 /// Reports kept waiting to be sent, and sent ones kept to read; older ones are deleted.
@@ -60,7 +60,7 @@ pub fn dir(data: Option<PathBuf>) -> Option<PathBuf> {
 /// What the app's window plugs in, once [`install`] ran.
 pub fn hooks() -> Option<Hooks> {
     let dir = DIR.get()?.clone();
-    Some(Hooks { dir, busy, idle, tick: Box::new(tick) })
+    Some(Hooks { dir, busy, idle, tick: Box::new(tick), feedback: Some(Box::new(crate::tinta_feedback_send::tick)) })
 }
 
 /// Start: remember where reports go, add the report to the panic hook (after the logger's) and
@@ -195,7 +195,7 @@ fn digits(s: &str) -> String {
 }
 
 /// The last [`LOG_LINES`] lines of the log, scrubbed.
-fn log_tail() -> Vec<String> {
+pub(crate) fn log_tail() -> Vec<String> {
     use std::io::{Read, Seek, SeekFrom};
     let Some(path) = LOG_FILE.get() else { return Vec::new() };
     let Ok(mut f) = std::fs::File::open(path) else { return Vec::new() };
@@ -443,6 +443,32 @@ fn post(agent: &ureq::Agent, endpoint: &str, path: &str, body: &Value) -> Option
     let url = format!("{}{path}", endpoint.trim_end_matches('/'));
     let res = agent.post(&url).header("content-type", "application/json").header("x-tinta-report", KEY).send(body.to_string()).ok()?;
     Some(res.status().as_u16())
+}
+
+/// POST JSON; the status and the reply (`null` when it isn't JSON), or `None` when the server
+/// could not be reached.
+pub(crate) fn post_json(endpoint: &str, path: &str, body: &Value) -> Option<(u16, Value)> {
+    let url = format!("{}{path}", endpoint.trim_end_matches('/'));
+    let mut res = agent().post(&url).header("content-type", "application/json").header("x-tinta-report", KEY).send(body.to_string()).ok()?;
+    let status = res.status().as_u16();
+    let reply =
+        res.body_mut().with_config().limit(64 * 1024).read_to_string().ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or(Value::Null);
+    Some((status, reply))
+}
+
+/// The technical details a feedback carries when the person ticks them: system, build and the
+/// scrubbed last lines of the log.
+pub(crate) fn diagnostics() -> Value {
+    json!({
+        "os": format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+        "commit": COMMIT.get().copied().unwrap_or("dev"),
+        "log": log_tail(),
+    })
+}
+
+/// Where feedback waits for a connection, once [`install`] ran.
+pub(crate) fn feedback_dir() -> Option<PathBuf> {
+    DIR.get().map(|d| d.join("feedback"))
 }
 
 /// Send the pending reports oldest first; stop at the first one the server can't take now.
