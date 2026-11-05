@@ -50,6 +50,8 @@ impl ReportsPrefs {
 
 /// Each frame after `logic`: follow the choice (the interface language is the second argument).
 pub type Tick = Box<dyn FnMut(&mut ReportsPrefs, &str)>;
+/// Each frame: send what the feedback dialog left ([`crate::tinta_feedback`]).
+pub type FeedbackTick = Box<dyn FnMut(&mut crate::tinta_feedback::Feedback, &str)>;
 
 /// What the desktop app plugs in.
 pub struct Hooks {
@@ -60,6 +62,8 @@ pub struct Hooks {
     pub idle: fn(),
     /// Each frame after `logic`: follow the choice, make the id, start sending or deleting.
     pub tick: Tick,
+    /// Sends feedback; `None` leaves the feedback dialog out.
+    pub feedback: Option<FeedbackTick>,
 }
 
 /// Calls `idle` when a frame phase ends, whichever way it returns.
@@ -85,6 +89,9 @@ pub(crate) fn tick(app: &mut PdfCraftApp) {
     let lang = crate::i18n::current().code().to_owned();
     if let Some(h) = app.tinta_hooks.as_mut() {
         (h.tick)(&mut app.tinta_reports, &lang);
+        if let Some(feedback) = h.feedback.as_mut() {
+            feedback(&mut app.tinta_feedback, &lang);
+        }
     }
 }
 
@@ -163,7 +170,7 @@ mod tests {
     use super::*;
 
     fn hooks() -> Hooks {
-        Hooks { dir: std::env::temp_dir().join("tinta-reports-test"), busy: || {}, idle: || {}, tick: Box::new(|_, _| {}) }
+        Hooks { dir: std::env::temp_dir().join("tinta-reports-test"), busy: || {}, idle: || {}, tick: Box::new(|_, _| {}), feedback: None }
     }
 
     fn harness(app: PdfCraftApp, preferences: bool) -> egui_kittest::Harness<'static, PdfCraftApp> {

@@ -42,6 +42,7 @@ pub use combine_ui::{Columns as CombineColumns, CombineView, Lock as CombineLock
 mod commands;
 pub mod control;
 mod menus;
+pub mod tinta_feedback;
 pub mod tinta_reports;
 /// Header & footer / watermark / background dialog types (tests and automation).
 pub mod marks {
@@ -520,6 +521,9 @@ pub struct PdfCraftApp {
     pub tinta_reports: tinta_reports::ReportsPrefs,
     /// Tinta Office: set by the desktop app when this build can send error reports.
     pub tinta_hooks: Option<tinta_reports::Hooks>,
+    /// Tinta Office: the Send feedback dialog (Help › Report a problem and the title bar's
+    /// smiling face; [`tinta_feedback`]). The desktop app sends through [`tinta_reports::Hooks`].
+    pub tinta_feedback: tinta_feedback::Feedback,
     pub cert_viewer: Option<sign_ui::CertViewer>,
     /// The last space audit.
     pub space_audit: Vec<pdfcraft_engine::optimize::SpaceUse>,
