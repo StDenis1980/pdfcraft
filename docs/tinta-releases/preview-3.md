@@ -6,8 +6,9 @@
 
 Release notes for the GitHub release and the site, in Spanish, Ukrainian and English. Changes since
 Preview 2 (27 October 2026). Before publishing: add what the 9 November upstream sync brings, set the
-version, and run the smoke test on the installers (`packaging/windows/tinta-smoke.ps1`,
-`packaging/linux/tinta-smoke.sh`).
+version, build the Windows installers of all five apps with `packaging/windows/tinta-build-release.ps1`
+(MSI, portable zip, SHA256SUMS.txt), and run the smoke test on the installers
+(`packaging/windows/tinta-smoke.ps1`, `packaging/linux/tinta-smoke.sh`).
 
 ## Español
 
