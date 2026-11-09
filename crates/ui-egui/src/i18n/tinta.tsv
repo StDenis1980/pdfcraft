@@ -1,0 +1,402 @@
+ar	Get help and support	احصل على المساعدة والدعم
+ar	Get help, share feedback and follow development.	احصل على المساعدة وشارك ملاحظاتك وتابع التطوير.
+ar	Help and support	المساعدة والدعم
+ar	Original project (ArtCraft)	المشروع الأصلي (ArtCraft)
+ar	Remove this leaf tag from reading order and mark its direct content as an artifact	أزل هذه العلامة من ترتيب القراءة وضع علامة على محتواها المباشر كعنصر زخرفي
+ar	Report a problem	الإبلاغ عن مشكلة
+ar	Support	الدعم
+ar	The password must have at least 6 characters.	يجب أن تحوي كلمة المرور 6 محارف على الأقل.
+bg	Get help and support	Получете помощ и поддръжка
+bg	Get help, share feedback and follow development.	Получете помощ, споделете мнение и следете развитието.
+bg	Help and support	Помощ и поддръжка
+bg	Original project (ArtCraft)	Оригинален проект (ArtCraft)
+bg	Remove this leaf tag from reading order and mark its direct content as an artifact	Премахнете този листов етикет от реда на четене и маркирайте прякото му съдържание като артефакт
+bg	Report a problem	Съобщаване за проблем
+bg	Support	Поддръжка
+ca	Add a timestamp from a server	Afegeix una marca de temps d'un servidor
+ca	Another signature is still waiting for its timestamp.	Una altra signatura encara espera la seva marca de temps.
+ca	Asking the timestamp server…	S'està demanant la marca de temps al servidor…
+ca	Delete my reports from the server	Esborra els meus informes del servidor
+ca	Deletion requested: it completes the next time the app is online.	Esborrament sol·licitat: es completarà la propera vegada que el programa tingui connexió.
+ca	Error reports	Informes d'errors
+ca	Get help and support	Obtén ajuda i assistència
+ca	Get help, share feedback and follow development.	Obteniu ajuda, envieu comentaris i seguiu el desenvolupament.
+ca	Help and support	Ajuda i assistència
+ca	ID number (NIF)	Número d'identificació (NIF)
+ca	Installation id: {id}	Identificador de la instal·lació: {id}
+ca	Only a fingerprint of the document is sent to the server, never the document.	Només s'envia al servidor una empremta del document, mai el document.
+ca	Open the reports folder	Obre la carpeta d'informes
+ca	Original project (ArtCraft)	Projecte original (ArtCraft)
+ca	Report a problem	Informa d'un problema
+ca	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Els informes van a Tinta Office (report.tintaoffice.com, emmagatzemats a la UE) i s'esborren als 90 dies. Podeu canviar-ho quan vulgueu a Preferències i esborrar-hi els vostres informes del servidor. Detalls: tintaoffice.com/aviso-legal
+ca	Send error reports automatically	Envia els informes d'errors automàticament
+ca	Send error reports automatically?	Voleu enviar informes d'errors automàticament?
+ca	Signing stopped unexpectedly.	La signatura s'ha aturat de manera inesperada.
+ca	Support	Assistència
+ca	The document changed while it was being signed. Sign it again.	El document ha canviat mentre se signava. Torneu-lo a signar.
+ca	Timestamps need the desktop app.	Les marques de temps necessiten l'aplicació d'escriptori.
+ca	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Quan el programa falla o deixa de respondre, pot enviar un informe perquè el problema es corregeixi sense que ens hàgiu d'escriure. L'informe conté la versió del programa, el sistema, l'idioma, el lloc del codi on s'ha produït l'error i les últimes línies del registre tècnic. Mai el text dels vostres documents, noms de fitxers, carpetes, adreces electròniques ni contrasenyes.
+ca	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel i PowerPoint (convertits amb Tinta Office)
+ca	Yes, send reports	Sí, envia els informes
+ca	this needs {app}, which is not installed; install it from tintaoffice.com	cal {app}, que no està instal·lat; instal·leu-lo des de tintaoffice.com
+ckb	Get help and support	یارمەتی و پشتگیری وەربگرە
+ckb	Get help, share feedback and follow development.	یارمەتی وەربگرە، ڕاوبۆچوون بنێرە و پەرەپێدان بەدوادا بچۆ.
+ckb	Help and support	یارمەتی و پشتگیری
+ckb	Original project (ArtCraft)	پڕۆژەی بنەڕەتی (ArtCraft)
+ckb	Report a problem	ڕاپۆرتکردنی کێشەیەک
+ckb	Support	پشتگیری
+cs	Get help and support	Získat pomoc a podporu
+cs	Get help, share feedback and follow development.	Získejte pomoc, sdílejte zpětnou vazbu a sledujte vývoj.
+cs	Help and support	Nápověda a podpora
+cs	Original project (ArtCraft)	Původní projekt (ArtCraft)
+cs	Remove this leaf tag from reading order and mark its direct content as an artifact	Odebrat tento koncový tag z pořadí čtení a jeho přímý obsah označit jako artefakt
+cs	Report a problem	Nahlásit problém
+cs	Support	Podpora
+de	Delete my reports from the server	Meine Berichte vom Server löschen
+de	Deletion requested: it completes the next time the app is online.	Löschung angefordert: Sie wird abgeschlossen, sobald die App das nächste Mal online ist.
+de	Error reports	Fehlerberichte
+de	Get help and support	Hilfe und Support erhalten
+de	Get help, share feedback and follow development.	Hilfe erhalten, Feedback geben und die Entwicklung verfolgen.
+de	Help and support	Hilfe und Support
+de	Installation id: {id}	Installations-ID: {id}
+de	Open the reports folder	Berichtsordner öffnen
+de	Original project (ArtCraft)	Ursprüngliches Projekt (ArtCraft)
+de	Remove this leaf tag from reading order and mark its direct content as an artifact	Dieses Blatt-Tag aus der Lesereihenfolge entfernen und seinen direkten Inhalt als Artefakt markieren
+de	Report a problem	Problem melden
+de	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Berichte gehen an Tinta Office (report.tintaoffice.com, Speicherung in der EU) und werden nach 90 Tagen gelöscht. Sie können das jederzeit in den Einstellungen ändern und dort Ihre Berichte vom Server löschen. Details: tintaoffice.com/en/legal
+de	Send error reports automatically	Fehlerberichte automatisch senden
+de	Send error reports automatically?	Fehlerberichte automatisch senden?
+de	Support	Support
+de	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Wenn die App abstürzt oder nicht mehr reagiert, kann sie einen Bericht senden, damit das Problem behoben wird, ohne dass Sie uns schreiben müssen. Der Bericht enthält die App-Version, das System, die Sprache, die Stelle im Code, an der der Fehler auftrat, und die letzten Zeilen des technischen Protokolls. Niemals den Text Ihrer Dokumente, Dateinamen, Ordner, E-Mail-Adressen oder Passwörter.
+de	Yes, send reports	Ja, Berichte senden
+el	Get help and support	Λάβετε βοήθεια και υποστήριξη
+el	Get help, share feedback and follow development.	Λάβετε βοήθεια, μοιραστείτε σχόλια και παρακολουθήστε την ανάπτυξη.
+el	Help and support	Βοήθεια και υποστήριξη
+el	Original project (ArtCraft)	Αρχικό έργο (ArtCraft)
+el	Remove this leaf tag from reading order and mark its direct content as an artifact	Αφαιρέστε αυτήν την ετικέτα φύλλου από τη σειρά ανάγνωσης και σημειώστε το άμεσο περιεχόμενό της ως τεχνούργημα
+el	Report a problem	Αναφορά προβλήματος
+el	Support	Υποστήριξη
+es	Add a timestamp from a server	Añadir una marca de tiempo de un servidor
+es	Another signature is still waiting for its timestamp.	Otra firma todavía espera su marca de tiempo.
+es	Asking the timestamp server…	Pidiendo la marca de tiempo al servidor…
+es	Delete my reports from the server	Borrar mis informes del servidor
+es	Deletion requested: it completes the next time the app is online.	Borrado solicitado: se completará la próxima vez que el programa tenga conexión.
+es	Error reports	Informes de errores
+es	Get help and support	Obtener ayuda y soporte
+es	Get help, share feedback and follow development.	Obtén ayuda, comparte tus comentarios y sigue el desarrollo.
+es	Help and support	Ayuda y soporte
+es	ID number (NIF)	Número de identificación (NIF)
+es	Installation id: {id}	Identificador de la instalación: {id}
+es	Only a fingerprint of the document is sent to the server, never the document.	Solo se envía al servidor una huella del documento, nunca el documento.
+es	Open the reports folder	Abrir la carpeta de informes
+es	Original project (ArtCraft)	Proyecto original (ArtCraft)
+es	Remove this leaf tag from reading order and mark its direct content as an artifact	Quite esta etiqueta hoja del orden de lectura y marque su contenido directo como artefacto
+es	Report a problem	Informar de un problema
+es	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Los informes van a Tinta Office (report.tintaoffice.com, almacenados en la UE) y se borran a los 90 días. Puedes cambiarlo cuando quieras en Preferencias y borrar allí tus informes del servidor. Detalles: tintaoffice.com/aviso-legal
+es	Send error reports automatically	Enviar informes de errores automáticamente
+es	Send error reports automatically?	¿Enviar informes de errores automáticamente?
+es	Signing stopped unexpectedly.	La firma se detuvo de forma inesperada.
+es	Support	Soporte
+es	The document changed while it was being signed. Sign it again.	El documento cambió mientras se firmaba. Fírmelo de nuevo.
+es	Timestamps need the desktop app.	Las marcas de tiempo requieren la aplicación de escritorio.
+es	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Cuando el programa falla o deja de responder, puede enviar un informe para que el problema se corrija sin que tengas que escribirnos. El informe contiene la versión del programa, el sistema, el idioma, el lugar del código donde ocurrió el error y las últimas líneas del registro técnico. Nunca el texto de tus documentos, nombres de archivos, carpetas, direcciones de correo ni contraseñas.
+es	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel y PowerPoint (convertidos con Tinta Office)
+es	Yes, send reports	Sí, enviar informes
+es	this needs {app}, which is not installed; install it from tintaoffice.com	esto necesita {app}, que no está instalado; instálelo desde tintaoffice.com
+eu	Add a timestamp from a server	Gehitu zerbitzari baten denbora-zigilua
+eu	Another signature is still waiting for its timestamp.	Beste sinadura bat oraindik denbora-zigiluaren zain dago.
+eu	Asking the timestamp server…	Denbora-zigilua zerbitzariari eskatzen…
+eu	Delete my reports from the server	Ezabatu nire txostenak zerbitzaritik
+eu	Deletion requested: it completes the next time the app is online.	Ezabatzea eskatuta: programak konexioa duen hurrengo aldian osatuko da.
+eu	Error reports	Errore-txostenak
+eu	Get help and support	Lortu laguntza eta euskarria
+eu	Get help, share feedback and follow development.	Lortu laguntza, partekatu iritziak eta jarraitu garapena.
+eu	Help and support	Laguntza eta euskarria
+eu	ID number (NIF)	Identifikazio-zenbakia (NIF)
+eu	Installation id: {id}	Instalazioaren identifikatzailea: {id}
+eu	Only a fingerprint of the document is sent to the server, never the document.	Dokumentuaren hatz-marka bakarrik bidaltzen da zerbitzarira, inoiz ez dokumentua.
+eu	Open the reports folder	Ireki txostenen karpeta
+eu	Original project (ArtCraft)	Jatorrizko proiektua (ArtCraft)
+eu	Remove this leaf tag from reading order and mark its direct content as an artifact	Kendu hosto-etiketa hau irakurketa-ordenatik eta markatu bere eduki zuzena artefaktu gisa
+eu	Report a problem	Arazo baten berri eman
+eu	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Txostenak Tinta Officera doaz (report.tintaoffice.com, EBn gordeta) eta 90 egunen buruan ezabatzen dira. Nahi duzunean alda dezakezu Hobespenak atalean, eta zure txostenak zerbitzaritik ezabatu bertan. Xehetasunak: tintaoffice.com/aviso-legal
+eu	Send error reports automatically	Bidali errore-txostenak automatikoki
+eu	Send error reports automatically?	Errore-txostenak automatikoki bidali?
+eu	Signing stopped unexpectedly.	Sinadura ustekabean gelditu da.
+eu	Support	Laguntza
+eu	The document changed while it was being signed. Sign it again.	Dokumentua aldatu egin da sinatzen ari zen bitartean. Sina ezazu berriro.
+eu	The password must have at least 6 characters.	Pasahitzak gutxienez 6 karaktere izan behar ditu.
+eu	Timestamps need the desktop app.	Denbora-zigiluek mahaigaineko aplikazioa behar dute.
+eu	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Programak huts egiten duenean edo erantzuteari uzten dionean, txosten bat bidal dezake arazoa konpontzeko, guri idatzi behar izan gabe. Txostenak programaren bertsioa, sistema, hizkuntza, errorea kodearen zein lekutan gertatu den eta erregistro teknikoaren azken lerroak ditu. Inoiz ez zure dokumentuen testua, fitxategi-izenak, karpetak, helbide elektronikoak edo pasahitzak.
+eu	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel eta PowerPoint (Tinta Office-rekin bihurtuak)
+eu	Yes, send reports	Bai, bidali txostenak
+eu	this needs {app}, which is not installed; install it from tintaoffice.com	{app} behar da, eta ez dago instalatuta; instalatu tintaoffice.com webgunetik
+fa	Get help and support	دریافت راهنما و پشتیبانی
+fa	Get help, share feedback and follow development.	کمک بگیرید، بازخورد بدهید و روند توسعه را دنبال کنید.
+fa	Help and support	راهنما و پشتیبانی
+fa	Original project (ArtCraft)	پروژهٔ اصلی (ArtCraft)
+fa	Report a problem	گزارش مشکل
+fa	Support	پشتیبانی
+fi	Get help and support	Hae apua ja tukea
+fi	Get help, share feedback and follow development.	Hae apua, anna palautetta ja seuraa kehitystä.
+fi	Help and support	Ohje ja tuki
+fi	Original project (ArtCraft)	Alkuperäinen projekti (ArtCraft)
+fi	Report a problem	Ilmoita ongelmasta
+fi	Support	Tuki
+fr	Delete my reports from the server	Supprimer mes rapports du serveur
+fr	Deletion requested: it completes the next time the app is online.	Suppression demandée : elle aura lieu la prochaine fois que l'application sera en ligne.
+fr	Error reports	Rapports d'erreur
+fr	Get help and support	Obtenir de l'aide et de l'assistance
+fr	Get help, share feedback and follow development.	Obtenez de l'aide, partagez vos retours et suivez le développement.
+fr	Help and support	Aide et assistance
+fr	Installation id: {id}	Identifiant de l'installation : {id}
+fr	Open the reports folder	Ouvrir le dossier des rapports
+fr	Original project (ArtCraft)	Projet d'origine (ArtCraft)
+fr	Report a problem	Signaler un problème
+fr	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Les rapports sont envoyés à Tinta Office (report.tintaoffice.com, stockés dans l'UE) et supprimés après 90 jours. Vous pouvez changer ce choix à tout moment dans les Préférences et y supprimer vos rapports du serveur. Détails : tintaoffice.com/en/legal
+fr	Send error reports automatically	Envoyer automatiquement les rapports d'erreur
+fr	Send error reports automatically?	Envoyer automatiquement les rapports d'erreur ?
+fr	Support	Assistance
+fr	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Quand l'application plante ou ne répond plus, elle peut envoyer un rapport pour que le problème soit corrigé sans que vous ayez à nous écrire. Le rapport contient la version de l'application, le système, la langue, l'endroit du code où l'erreur s'est produite et les dernières lignes du journal technique. Jamais le texte de vos documents, les noms de fichiers, les dossiers, les adresses e-mail ni les mots de passe.
+fr	Yes, send reports	Oui, envoyer les rapports
+gl	Add a timestamp from a server	Engadir unha marca de tempo dun servidor
+gl	Another signature is still waiting for its timestamp.	Outra sinatura aínda agarda a súa marca de tempo.
+gl	Asking the timestamp server…	Pedindo a marca de tempo ao servidor…
+gl	Delete my reports from the server	Borrar os meus informes do servidor
+gl	Deletion requested: it completes the next time the app is online.	Borrado solicitado: completarase a próxima vez que o programa teña conexión.
+gl	Error reports	Informes de erros
+gl	Get help and support	Obter axuda e soporte
+gl	Get help, share feedback and follow development.	Obteña axuda, comparta comentarios e siga o desenvolvemento.
+gl	Help and support	Axuda e soporte
+gl	ID number (NIF)	Número de identificación (NIF)
+gl	Installation id: {id}	Identificador da instalación: {id}
+gl	Only a fingerprint of the document is sent to the server, never the document.	Só se envía ao servidor unha pegada do documento, nunca o documento.
+gl	Open the reports folder	Abrir o cartafol de informes
+gl	Original project (ArtCraft)	Proxecto orixinal (ArtCraft)
+gl	Remove this leaf tag from reading order and mark its direct content as an artifact	Quitar esta etiqueta folla da orde de lectura e marcar o seu contido directo como artefacto
+gl	Report a problem	Informar dun problema
+gl	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Os informes van a Tinta Office (report.tintaoffice.com, almacenados na UE) e bórranse aos 90 días. Podes cambialo cando queiras en Preferencias e borrar alí os teus informes do servidor. Detalles: tintaoffice.com/aviso-legal
+gl	Send error reports automatically	Enviar informes de erros automaticamente
+gl	Send error reports automatically?	Enviar informes de erros automaticamente?
+gl	Signing stopped unexpectedly.	A sinatura detívose de forma inesperada.
+gl	Support	Soporte
+gl	The document changed while it was being signed. Sign it again.	O documento cambiou mentres se asinaba. Asíneo de novo.
+gl	The password must have at least 6 characters.	O contrasinal debe ter polo menos 6 caracteres.
+gl	Timestamps need the desktop app.	As marcas de tempo precisan a aplicación de escritorio.
+gl	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Cando o programa falla ou deixa de responder, pode enviar un informe para que o problema se corrixa sen que teñas que escribirnos. O informe contén a versión do programa, o sistema, o idioma, o lugar do código onde se produciu o erro e as últimas liñas do rexistro técnico. Nunca o texto dos teus documentos, nomes de ficheiros, cartafoles, enderezos de correo nin contrasinais.
+gl	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel e PowerPoint (convertidos con Tinta Office)
+gl	Yes, send reports	Si, enviar informes
+gl	this needs {app}, which is not installed; install it from tintaoffice.com	isto precisa {app}, que non está instalado; instáleo desde tintaoffice.com
+hi	Get help and support	सहायता और समर्थन पाएँ
+hi	Get help, share feedback and follow development.	सहायता पाएँ, प्रतिक्रिया साझा करें और विकास पर नज़र रखें।
+hi	Help and support	सहायता और समर्थन
+hi	Original project (ArtCraft)	मूल परियोजना (ArtCraft)
+hi	Report a problem	समस्या की रिपोर्ट करें
+hi	Support	समर्थन
+hu	Get help and support	Segítség és támogatás
+hu	Get help, share feedback and follow development.	Kérjen segítséget, ossza meg véleményét, és kövesse a fejlesztést.
+hu	Help and support	Súgó és támogatás
+hu	Original project (ArtCraft)	Eredeti projekt (ArtCraft)
+hu	Remove this leaf tag from reading order and mark its direct content as an artifact	Távolítsa el ezt a levélcímkét az olvasási sorrendből, és jelölje meg a közvetlen tartalmát műtárgyként
+hu	Report a problem	Probléma bejelentése
+hu	Support	Támogatás
+id	Get help and support	Dapatkan bantuan dan dukungan
+id	Get help, share feedback and follow development.	Dapatkan bantuan, bagikan masukan, dan ikuti pengembangan.
+id	Help and support	Bantuan dan dukungan
+id	Original project (ArtCraft)	Proyek asli (ArtCraft)
+id	Report a problem	Laporkan masalah
+id	Support	Dukungan
+it	Delete my reports from the server	Elimina le mie segnalazioni dal server
+it	Deletion requested: it completes the next time the app is online.	Eliminazione richiesta: verrà completata la prossima volta che l'app sarà online.
+it	Error reports	Segnalazioni di errore
+it	Get help and support	Ottieni aiuto e assistenza
+it	Get help, share feedback and follow development.	Ricevi aiuto, condividi feedback e segui lo sviluppo.
+it	Help and support	Aiuto e assistenza
+it	Installation id: {id}	ID dell'installazione: {id}
+it	Open the reports folder	Apri la cartella delle segnalazioni
+it	Original project (ArtCraft)	Progetto originale (ArtCraft)
+it	Remove this leaf tag from reading order and mark its direct content as an artifact	Rimuovi questo tag foglia dall'ordine di lettura e segna il suo contenuto diretto come artefatto
+it	Report a problem	Segnala un problema
+it	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Le segnalazioni vanno a Tinta Office (report.tintaoffice.com, archiviate nell'UE) e vengono eliminate dopo 90 giorni. Puoi cambiare la scelta in qualsiasi momento nelle Preferenze ed eliminare lì le tue segnalazioni dal server. Dettagli: tintaoffice.com/en/legal
+it	Send error reports automatically	Invia automaticamente le segnalazioni di errore
+it	Send error reports automatically?	Inviare automaticamente le segnalazioni di errore?
+it	Support	Assistenza
+it	The password must have at least 6 characters.	La password deve contenere almeno 6 caratteri.
+it	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Quando l'app si blocca o smette di rispondere, può inviare una segnalazione perché il problema venga corretto senza che tu debba scriverci. La segnalazione contiene la versione dell'app, il sistema, la lingua, il punto del codice in cui si è verificato l'errore e le ultime righe del registro tecnico. Mai il testo dei tuoi documenti, nomi di file, cartelle, indirizzi e-mail o password.
+it	Yes, send reports	Sì, invia le segnalazioni
+ja	Get help and support	ヘルプとサポートを受ける
+ja	Get help, share feedback and follow development.	ヘルプを受け、フィードバックを共有し、開発をフォローできます。
+ja	Help and support	ヘルプとサポート
+ja	Original project (ArtCraft)	元のプロジェクト (ArtCraft)
+ja	Remove this leaf tag from reading order and mark its direct content as an artifact	このリーフタグを読み上げ順序から削除し、その直接のコンテンツをアーティファクトとしてマークします
+ja	Report a problem	問題を報告
+ja	Support	サポート
+kk	Get help and support	Көмек пен қолдау алу
+kk	Get help, share feedback and follow development.	Көмек алыңыз, пікір бөлісіңіз және әзірлеуді қадағалаңыз.
+kk	Help and support	Көмек және қолдау
+kk	Original project (ArtCraft)	Бастапқы жоба (ArtCraft)
+kk	Remove this leaf tag from reading order and mark its direct content as an artifact	Осы жапырақ тегін оқу ретінен алып тастап, оның тікелей мазмұнын артефакт ретінде белгілеңіз
+kk	Report a problem	Мәселе туралы хабарлау
+kk	Support	Қолдау
+ko	Get help and support	도움말 및 지원 받기
+ko	Get help, share feedback and follow development.	도움을 받고, 의견을 공유하고, 개발 소식을 확인하세요.
+ko	Help and support	도움말 및 지원
+ko	Original project (ArtCraft)	원래 프로젝트(ArtCraft)
+ko	Report a problem	문제 신고
+ko	Support	지원
+lo	Get help and support	ຮັບການຊ່ວຍເຫຼືອ ແລະ ສະໜັບສະໜູນ
+lo	Get help, share feedback and follow development.	ຮັບການຊ່ວຍເຫຼືອ, ແບ່ງປັນຄຳຄິດເຫັນ ແລະ ຕິດຕາມການພັດທະນາ.
+lo	Help and support	ຊ່ວຍເຫຼືອ ແລະ ສະໜັບສະໜູນ
+lo	Original project (ArtCraft)	ໂຄງການຕົ້ນສະບັບ (ArtCraft)
+lo	Report a problem	ລາຍງານບັນຫາ
+lo	Support	ສະໜັບສະໜູນ
+lt	Get help and support	Gauti pagalbos ir palaikymo
+lt	Get help, share feedback and follow development.	Gaukite pagalbos, pasidalykite atsiliepimais ir sekite kūrimą.
+lt	Help and support	Pagalba ir palaikymas
+lt	Original project (ArtCraft)	Originalus projektas (ArtCraft)
+lt	Report a problem	Pranešti apie problemą
+lt	Support	Pagalba
+nb	Get help and support	Få hjelp og støtte
+nb	Get help, share feedback and follow development.	Få hjelp, gi tilbakemelding og følg utviklingen.
+nb	Help and support	Hjelp og støtte
+nb	Original project (ArtCraft)	Opprinnelig prosjekt (ArtCraft)
+nb	Report a problem	Rapporter et problem
+nb	Support	Støtte
+pl	Delete my reports from the server	Usuń moje raporty z serwera
+pl	Deletion requested: it completes the next time the app is online.	Usunięcie zlecone: zakończy się, gdy aplikacja następnym razem będzie online.
+pl	Error reports	Raporty o błędach
+pl	Get help and support	Uzyskaj pomoc i wsparcie
+pl	Get help, share feedback and follow development.	Uzyskaj pomoc, podziel się opinią i śledź rozwój.
+pl	Help and support	Pomoc i wsparcie
+pl	Installation id: {id}	Identyfikator instalacji: {id}
+pl	Open the reports folder	Otwórz folder raportów
+pl	Original project (ArtCraft)	Projekt oryginalny (ArtCraft)
+pl	Remove this leaf tag from reading order and mark its direct content as an artifact	Usuń ten znacznik liścia z kolejności odczytu i oznacz jego bezpośrednią zawartość jako artefakt
+pl	Report a problem	Zgłoś problem
+pl	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Raporty trafiają do Tinta Office (report.tintaoffice.com, przechowywane w UE) i są usuwane po 90 dniach. Możesz to zmienić w dowolnej chwili w Preferencjach i tam usunąć swoje raporty z serwera. Szczegóły: tintaoffice.com/en/legal
+pl	Send error reports automatically	Wysyłaj raporty o błędach automatycznie
+pl	Send error reports automatically?	Wysyłać raporty o błędach automatycznie?
+pl	Support	Wsparcie
+pl	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Gdy aplikacja ulegnie awarii lub przestanie odpowiadać, może wysłać raport, aby problem został naprawiony bez pisania do nas. Raport zawiera wersję aplikacji, system, język, miejsce w kodzie, w którym wystąpił błąd, i ostatnie wiersze dziennika technicznego. Nigdy treści Twoich dokumentów, nazw plików, folderów, adresów e-mail ani haseł.
+pl	Yes, send reports	Tak, wysyłaj raporty
+pt-br	Delete my reports from the server	Excluir meus relatórios do servidor
+pt-br	Deletion requested: it completes the next time the app is online.	Exclusão solicitada: será concluída na próxima vez que o aplicativo estiver online.
+pt-br	Error reports	Relatórios de erro
+pt-br	Get help and support	Obter ajuda e suporte
+pt-br	Get help, share feedback and follow development.	Obtenha ajuda, compartilhe feedback e acompanhe o desenvolvimento.
+pt-br	Help and support	Ajuda e suporte
+pt-br	Installation id: {id}	ID da instalação: {id}
+pt-br	Open the reports folder	Abrir a pasta de relatórios
+pt-br	Original project (ArtCraft)	Projeto original (ArtCraft)
+pt-br	Report a problem	Relatar um problema
+pt-br	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Os relatórios vão para a Tinta Office (report.tintaoffice.com, armazenados na UE) e são excluídos após 90 dias. Você pode mudar isso a qualquer momento em Preferências e excluir lá seus relatórios do servidor. Detalhes: tintaoffice.com/en/legal
+pt-br	Send error reports automatically	Enviar relatórios de erro automaticamente
+pt-br	Send error reports automatically?	Enviar relatórios de erro automaticamente?
+pt-br	Support	Suporte
+pt-br	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Quando o aplicativo trava ou para de responder, ele pode enviar um relatório para que o problema seja corrigido sem que você precise nos escrever. O relatório contém a versão do aplicativo, o sistema, o idioma, o ponto do código onde o erro ocorreu e as últimas linhas do registro técnico. Nunca o texto dos seus documentos, nomes de arquivos, pastas, endereços de e-mail ou senhas.
+pt-br	Yes, send reports	Sim, enviar relatórios
+ro	Export value	Valoare de export
+ro	Get help and support	Obțineți ajutor și asistență
+ro	Get help, share feedback and follow development.	Obțineți ajutor, trimiteți feedback și urmăriți dezvoltarea.
+ro	Help and support	Ajutor și asistență
+ro	Original project (ArtCraft)	Proiectul original (ArtCraft)
+ro	Report a problem	Raportați o problemă
+ro	Show Page Edge Shadows	Afișare umbre la marginile paginilor
+ro	Support	Asistență
+ru	Delete my reports from the server	Удалить мои отчёты с сервера
+ru	Deletion requested: it completes the next time the app is online.	Удаление запрошено: оно завершится, когда программа в следующий раз будет в сети.
+ru	Error reports	Отчёты об ошибках
+ru	Get help and support	Получить помощь и поддержку
+ru	Get help, share feedback and follow development.	Получите помощь, поделитесь отзывом и следите за развитием.
+ru	Help and support	Помощь и поддержка
+ru	Installation id: {id}	Идентификатор установки: {id}
+ru	Open the reports folder	Открыть папку отчётов
+ru	Original project (ArtCraft)	Исходный проект (ArtCraft)
+ru	Remove this leaf tag from reading order and mark its direct content as an artifact	Удалите этот конечный тег из порядка чтения и пометьте его непосредственное содержимое как артефакт
+ru	Report a problem	Сообщить о проблеме
+ru	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Отчёты поступают в Tinta Office (report.tintaoffice.com, хранятся в ЕС) и удаляются через 90 дней. Изменить это можно в любое время в Параметрах, там же можно удалить свои отчёты с сервера. Подробнее: tintaoffice.com/en/legal
+ru	Send error reports automatically	Отправлять отчёты об ошибках автоматически
+ru	Send error reports automatically?	Отправлять отчёты об ошибках автоматически?
+ru	Support	Поддержка
+ru	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Когда программа аварийно завершается или перестаёт отвечать, она может отправить отчёт, чтобы проблему исправили без вашего письма нам. В отчёте есть версия программы, система, язык, место в коде, где произошла ошибка, и последние строки технического журнала. Никогда — текст ваших документов, имена файлов, папки, адреса email или пароли.
+ru	Yes, send reports	Да, отправлять отчёты
+sl	Get help and support	Pridobite pomoč in podporo
+sl	Get help, share feedback and follow development.	Poiščite pomoč, delite povratne informacije in spremljajte razvoj.
+sl	Help and support	Pomoč in podpora
+sl	Original project (ArtCraft)	Izvirni projekt (ArtCraft)
+sl	Remove this leaf tag from reading order and mark its direct content as an artifact	Odstranite to listno oznako iz vrstnega reda branja in označite njeno neposredno vsebino kot artefakt
+sl	Report a problem	Prijavi težavo
+sl	Support	Podpora
+sq	Get help and support	Merrni ndihmë dhe mbështetje
+sq	Get help, share feedback and follow development.	Merrni ndihmë, ndani komente dhe ndiqni zhvillimin.
+sq	Help and support	Ndihmë dhe mbështetje
+sq	Original project (ArtCraft)	Projekti origjinal (ArtCraft)
+sq	Report a problem	Raporto një problem
+sq	Support	Mbështetje
+te	Get help and support	సహాయం మరియు మద్దతు పొందండి
+te	Get help, share feedback and follow development.	సహాయం పొందండి, అభిప్రాయాన్ని పంచుకోండి మరియు అభివృద్ధిని అనుసరించండి.
+te	Help and support	సహాయం మరియు మద్దతు
+te	Original project (ArtCraft)	అసలు ప్రాజెక్ట్ (ArtCraft)
+te	Remove this leaf tag from reading order and mark its direct content as an artifact	ఈ లీఫ్ ట్యాగ్‌ను పఠన క్రమం నుంచి తీసివేసి, దాని ప్రత్యక్ష కంటెంట్‌ను ఆర్టిఫాక్ట్‌గా గుర్తించండి
+te	Report a problem	సమస్యను నివేదించండి
+te	Support	మద్దతు
+th	Get help and support	รับความช่วยเหลือและการสนับสนุน
+th	Get help, share feedback and follow development.	รับความช่วยเหลือ แบ่งปันความคิดเห็น และติดตามการพัฒนา
+th	Help and support	ความช่วยเหลือและการสนับสนุน
+th	Original project (ArtCraft)	โครงการต้นฉบับ (ArtCraft)
+th	Report a problem	รายงานปัญหา
+th	Support	การสนับสนุน
+tr	Get help and support	Yardım ve destek alın
+tr	Get help, share feedback and follow development.	Yardım alın, geri bildirim paylaşın ve geliştirmeyi takip edin.
+tr	Help and support	Yardım ve destek
+tr	Original project (ArtCraft)	Özgün proje (ArtCraft)
+tr	Remove this leaf tag from reading order and mark its direct content as an artifact	Bu yaprak etiketini okuma sırasından kaldırın ve doğrudan içeriğini yapıt olarak işaretleyin
+tr	Report a problem	Sorun bildir
+tr	Support	Destek
+uk	Add a timestamp from a server	Додати позначку часу із сервера
+uk	Another signature is still waiting for its timestamp.	Інший підпис ще чекає на позначку часу.
+uk	Asking the timestamp server…	Запит позначки часу в сервера…
+uk	Delete my reports from the server	Видалити мої звіти із сервера
+uk	Deletion requested: it completes the next time the app is online.	Видалення запитано: воно завершиться, коли програма наступного разу буде в мережі.
+uk	Error reports	Звіти про помилки
+uk	Get help and support	Отримати допомогу та підтримку
+uk	Get help, share feedback and follow development.	Отримайте допомогу, поділіться відгуком і стежте за розвитком.
+uk	Help and support	Довідка та підтримка
+uk	ID number (NIF)	Ідентифікаційний номер (NIF)
+uk	Installation id: {id}	Ідентифікатор встановлення: {id}
+uk	Only a fingerprint of the document is sent to the server, never the document.	На сервер надсилається лише відбиток документа, а не сам документ.
+uk	Open the reports folder	Відкрити папку звітів
+uk	Original project (ArtCraft)	Оригінальний проєкт (ArtCraft)
+uk	Remove this leaf tag from reading order and mark its direct content as an artifact	Вилучіть цей кінцевий тег із порядку читання та позначте його безпосередній вміст як артефакт
+uk	Report a problem	Повідомити про проблему
+uk	Reports go to Tinta Office (report.tintaoffice.com, stored in the EU) and are deleted after 90 days. You can change this at any time in Preferences and delete your reports from the server there. Details: tintaoffice.com/aviso-legal	Звіти надходять до Tinta Office (report.tintaoffice.com, зберігаються в ЄС) і видаляються через 90 днів. Змінити це можна будь-коли у Параметрах, там само можна видалити свої звіти із сервера. Докладніше: tintaoffice.com/uk/pravova-informatsiia
+uk	Send error reports automatically	Надсилати звіти про помилки автоматично
+uk	Send error reports automatically?	Надсилати звіти про помилки автоматично?
+uk	Signing stopped unexpectedly.	Підписування несподівано зупинилося.
+uk	Support	Підтримка
+uk	The document changed while it was being signed. Sign it again.	Документ змінився під час підписування. Підпишіть його ще раз.
+uk	Timestamps need the desktop app.	Позначки часу доступні лише в програмі для комп'ютера.
+uk	When the app crashes or stops responding, it can send a report so the problem gets fixed without you writing to us. A report holds the app version, the system, the language, where in the code the error happened and the last lines of the technical log. Never the text of your documents, file names, folders, e-mail addresses or passwords.	Коли програма аварійно завершується або перестає відповідати, вона може надіслати звіт, щоб проблему виправили без вашого листа нам. У звіті є версія програми, система, мова, місце в коді, де сталася помилка, і останні рядки технічного журналу. Ніколи — текст ваших документів, назви файлів, папки, адреси email чи паролі.
+uk	Word, Excel and PowerPoint (converted with Tinta Office)	Word, Excel і PowerPoint (перетворені через Tinta Office)
+uk	Yes, send reports	Так, надсилати звіти
+uk	this needs {app}, which is not installed; install it from tintaoffice.com	для цього потрібна програма {app}, але її не встановлено; встановіть її з tintaoffice.com
+vi	Get help and support	Nhận trợ giúp và hỗ trợ
+vi	Get help, share feedback and follow development.	Nhận trợ giúp, chia sẻ phản hồi và theo dõi quá trình phát triển.
+vi	Help and support	Trợ giúp và hỗ trợ
+vi	Original project (ArtCraft)	Dự án gốc (ArtCraft)
+vi	Report a problem	Báo cáo sự cố
+vi	Support	Hỗ trợ
+zh-hans	Get help and support	获取帮助与支持
+zh-hans	Get help, share feedback and follow development.	获取帮助、分享反馈并关注开发进展。
+zh-hans	Help and support	帮助与支持
+zh-hans	Original project (ArtCraft)	原始项目 (ArtCraft)
+zh-hans	Remove this leaf tag from reading order and mark its direct content as an artifact	从阅读顺序中移除此叶标签，并将其直接内容标记为工件
+zh-hans	Report a problem	报告问题
+zh-hans	Support	支持
+zh-hant	Get help and support	取得協助與支援
+zh-hant	Get help, share feedback and follow development.	取得協助、分享意見回饋並追蹤開發進度。
+zh-hant	Help and support	說明與支援
+zh-hant	Original project (ArtCraft)	原始專案 (ArtCraft)
+zh-hant	Remove this leaf tag from reading order and mark its direct content as an artifact	從閱讀順序中移除此葉標記，並將其直接內容標記為成品
+zh-hant	Report a problem	回報問題
+zh-hant	Support	支援
