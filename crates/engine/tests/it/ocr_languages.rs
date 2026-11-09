@@ -1,7 +1,7 @@
 //! Tinta Office fork: Recognize Text reads Spanish, Catalan and Ukrainian with the PaddleOCR
 //! models (skipped when they are not installed: `cargo xtask models`). Synthetic pages only.
 
-use pdfcraft_engine::ocr::{OcrSettings, engine, language_available};
+use pdfcraft_engine::ocr::{OcrSettings, language_available, recognizers};
 use pdfcraft_engine::{Session, export};
 
 /// A page showing `text` at 14 pt in Inter, which draws Cyrillic as well as Latin: the OCR text
@@ -22,7 +22,6 @@ fn page_showing_columns(columns: &[(f64, &[&str])], height: f64) -> std::sync::A
     let mut doc = pdfcraft_cos::Document::open_with_password(blank, None).unwrap();
     let resource = pdfcraft_edit::text::register_text_font(&mut doc, 0, pdfcraft_fonts::INTER_REGULAR).unwrap();
     let codes = pdfcraft_fonts::embedding::embedded_codes(pdfcraft_fonts::INTER_REGULAR).unwrap();
-    let font = pdfcraft_ocr::UnicodeFont { resource: &resource, codes: &codes, width: pdfcraft_fonts::inter_width };
     // Every word Inter-coded (a Latin one too), at its natural width, on its line's baseline.
     let mut words = Vec::new();
     for (left, lines) in columns {
@@ -31,16 +30,31 @@ fn page_showing_columns(columns: &[(f64, &[&str])], height: f64) -> std::sync::A
             let mut x = *left;
             for w in text.split(' ') {
                 let width = pdfcraft_fonts::inter_width(w, 14.0);
-                words.push(pdfcraft_ocr::PlacedWord { text: w.into(), origin: [x, y], across: [width, 0.0], up: [0.0, 10.0] });
+                words.push((w.to_string(), x, y, 14.0));
                 x += width + 4.0;
             }
         }
     }
-    let mut layer = pdfcraft_ocr::text_layer_with(&words, Some(&font));
-    let at = layer.windows(4).position(|w| w == b"3 Tr").unwrap();
-    layer[at] = b'0';
+    let layer = shown_in(&words, &resource, &codes, None);
     pdfcraft_edit::stamp(&mut doc, 0, "T", layer).unwrap();
     std::sync::Arc::new(pdfcraft_cos::write_full(&doc, &pdfcraft_cos::SaveOptions::default()).unwrap())
+}
+
+/// Page content showing each `(text, x, y, size)` in the Inter font registered as `resource`
+/// (`codes`: its characters' two-byte codes), from its baseline at `(x, y)`, in black or in the
+/// grey `grey`.
+fn shown_in(words: &[(String, f64, f64, f64)], resource: &str, codes: &std::collections::HashMap<char, u16>, grey: Option<f64>) -> Vec<u8> {
+    let mut out = String::from("q\n");
+    if let Some(g) = grey {
+        out.push_str(&format!("{g} g\n"));
+    }
+    out.push_str(&format!("BT\n/{resource} 1 Tf\n"));
+    for (text, x, y, size) in words {
+        let hex: String = text.chars().map(|c| format!("{:04X}", codes[&c])).collect();
+        out.push_str(&format!("{size} 0 0 {size} {x} {y} Tm <{hex}> Tj\n"));
+    }
+    out.push_str("ET\nQ\n");
+    out.into_bytes()
 }
 
 /// What Recognize Text reads on a scan of [`page_showing`] `text`, rendered at 300 dpi, as offices scan.
@@ -56,7 +70,7 @@ fn read_back(text: &str, language: &str) -> Option<String> {
     let id = s.open("scan.pdf", None, scan, None).unwrap();
     let settings = OcrSettings { language: language.into(), ..Default::default() };
     let job = s.ocr_job(id, &[], settings).unwrap();
-    let pages = job.run(&engine().unwrap(), |_, _| true);
+    let pages = job.run(&recognizers(&OcrSettings::default()).unwrap(), |_, _| true);
     let page = pages.first().unwrap();
     assert_eq!(page.skipped, None);
     Some(page.text())
@@ -131,7 +145,7 @@ fn a_sheet_photographed_at_an_angle_is_read_straightened() {
     image::DynamicImage::ImageRgb8(photo).write_to(&mut std::io::Cursor::new(&mut encoded), image::ImageFormat::Png).unwrap();
     let id = s.open("photo.pdf", None, s.create_from_images(&[("photo.png".into(), encoded)]).unwrap(), None).unwrap();
     let job = s.ocr_job(id, &[], OcrSettings { language: "es".into(), ..Default::default() }).unwrap();
-    let pages = job.run(&engine().unwrap(), |_, _| true);
+    let pages = job.run(&recognizers(&OcrSettings::default()).unwrap(), |_, _| true);
     let page = pages.first().unwrap();
     let read = page.text();
     let expected: Vec<&str> = lines.iter().flat_map(|l| l.split(' ')).filter(|w| w.chars().count() >= 4).collect();
@@ -184,7 +198,7 @@ fn columns_side_by_side_are_read_one_after_the_other() {
     let png = export::Exporter::new(s.get(id).unwrap()).png(0, 300.0).unwrap();
     let id = s.open("scan.pdf", None, s.create_from_images(&[("scan.png".into(), png)]).unwrap(), None).unwrap();
     let job = s.ocr_job(id, &[], OcrSettings { language: "uk".into(), ..Default::default() }).unwrap();
-    let pages = job.run(&engine().unwrap(), |_, _| true);
+    let pages = job.run(&recognizers(&OcrSettings::default()).unwrap(), |_, _| true);
     let words: Vec<&str> = pages.first().unwrap().words.iter().map(|w| w.text.as_str()).collect();
     let read = words.join(" ");
     // Every word of four letters or more found, and the whole left column before the right
@@ -225,13 +239,9 @@ fn lines_under_a_light_stamp_are_read() {
     let mut doc = pdfcraft_cos::Document::open_with_password(page_showing_lines(&[], 300.0), None).unwrap();
     let resource = pdfcraft_edit::text::register_text_font(&mut doc, 0, pdfcraft_fonts::INTER_REGULAR).unwrap();
     let codes = pdfcraft_fonts::embedding::embedded_codes(pdfcraft_fonts::INTER_REGULAR).unwrap();
-    let font = pdfcraft_ocr::UnicodeFont { resource: &resource, codes: &codes, width: pdfcraft_fonts::inter_width };
-    let size = 60.0;
-    let width = pdfcraft_fonts::inter_width("DUPLICADO", size);
-    let word = pdfcraft_ocr::PlacedWord { text: "DUPLICADO".into(), origin: [80.0, 60.0], across: [width, 0.0], up: [0.0, size * 0.72] };
-    // The text layer's invisible text made visible, in 70% grey.
-    let layer = String::from_utf8(pdfcraft_ocr::text_layer_with(&[word], Some(&font))).unwrap().replace("q\nBT\n3 Tr", "q\n0.7 g\nBT\n0 Tr");
-    pdfcraft_edit::stamp(&mut doc, 0, "W", layer.into_bytes()).unwrap();
+    // In 70% grey.
+    let layer = shown_in(&[("DUPLICADO".into(), 80.0, 60.0, 60.0)], &resource, &codes, Some(0.7));
+    pdfcraft_edit::stamp(&mut doc, 0, "W", layer).unwrap();
     let bytes = std::sync::Arc::new(pdfcraft_cos::write_full(&doc, &pdfcraft_cos::SaveOptions::default()).unwrap());
     let mut s = Session::new();
     let id = s.open("text.pdf", None, bytes, None).unwrap();
@@ -245,7 +255,7 @@ fn lines_under_a_light_stamp_are_read() {
     image::DynamicImage::ImageRgb8(both).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let id = s.open("scan.pdf", None, s.create_from_images(&[("scan.png".into(), png)]).unwrap(), None).unwrap();
     let job = s.ocr_job(id, &[], OcrSettings { language: "es".into(), ..Default::default() }).unwrap();
-    let pages = job.run(&engine().unwrap(), |_, _| true);
+    let pages = job.run(&recognizers(&OcrSettings::default()).unwrap(), |_, _| true);
     let read = pages[0].text();
     let expected: Vec<&str> = lines.iter().flat_map(|l| l.split(' ')).collect();
     let found = expected.iter().filter(|w| read.split(' ').any(|r| r == **w)).count();

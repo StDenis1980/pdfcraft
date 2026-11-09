@@ -54,7 +54,7 @@ fn validate(root: &Path) -> Result<()> {
     let docs: Documents = toml::from_str(&text).context("parsing LICENSES.toml")?;
     let attribution = assets::load(root)?;
     let mut problems = check(root, &docs, &attribution);
-    let ocr_source = std::fs::read_to_string(root.join("crates/ocr/src/lib.rs")).context("reading OCR model filename constants")?;
+    let ocr_source = std::fs::read_to_string(root.join("crates/ocr/src/ocrs.rs")).context("reading OCR model filename constants")?;
     problems.extend(check_required_ocr_metadata(&ocr_source, &attribution)?);
     if !problems.is_empty() {
         bail!("source licensing errors:\n{}", problems.join("\n"));
@@ -72,7 +72,7 @@ fn check_required_ocr_metadata(source: &str, attribution: &assets::Manifest) -> 
         let file = declarations.first().and_then(|value| value.strip_suffix("\";"));
         let Some(file) = file.filter(|file| declarations.len() == 1 && safe_path(file) && !file.contains('/')) else {
             bail!(
-                "OCR constant {name}: expected one literal filename declaration in crates/ocr/src/lib.rs; update the source validator if its syntax changed"
+                "OCR constant {name}: expected one literal filename declaration in crates/ocr/src/ocrs.rs; update the source validator if its syntax changed"
             );
         };
         let entries: Vec<_> = attribution.fetched.iter().filter(|f| f.file == file).collect();
@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn required_ocr_models_cannot_be_missing() {
-        let source = include_str!("../../crates/ocr/src/lib.rs");
+        let source = include_str!("../../crates/ocr/src/ocrs.rs");
         let original = assets::load(&assets::root()).unwrap();
         // Tinta Office fork: the fork also ships its languages' recognition models; the two the
         // source names as DETECTION_MODEL and RECOGNITION_MODEL are the required ones.
@@ -424,7 +424,7 @@ mod tests {
 
     #[test]
     fn required_ocr_models_cannot_be_misclassified() {
-        let source = include_str!("../../crates/ocr/src/lib.rs");
+        let source = include_str!("../../crates/ocr/src/ocrs.rs");
         let original = assets::load(&assets::root()).unwrap();
         // Tinta Office fork: the fork also ships its languages' recognition models; the two the
         // source names as DETECTION_MODEL and RECOGNITION_MODEL are the required ones.

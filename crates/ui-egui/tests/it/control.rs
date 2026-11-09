@@ -665,13 +665,21 @@ fn moving_before_middle_button_release_keeps_scrolling_without_starting_page_too
     ok(&mut h, &c, "ui.drag", json!({ "from": [p.x, p.y], "to": [p.x, p.y + 60.0], "steps": 12, "button": "middle" }));
     h.run_steps(2);
     assert!(h.state().views[0].page_screen_rect(0).unwrap().top() < top - 20.0);
-    assert!(h.state().views[0].auto_scrolling(), "release keeps scrolling toggled on even after movement");
+    assert!(!h.state().views[0].auto_scrolling(), "releasing after holding and scrolling turns auto-scroll off");
     let released = h.state().views[0].page_screen_rect(0).unwrap().top();
     h.run_steps(8);
-    assert!(h.state().views[0].page_screen_rect(0).unwrap().top() < released - 30.0, "scrolling continues with no button held");
+    assert_eq!(h.state().views[0].page_screen_rect(0).unwrap().top(), released, "no drift after releasing a held middle drag");
     assert!(h.state().views[0].crop_drag.is_none(), "the Crop tool must not receive a wheel drag");
     assert!(h.state().dialog.is_none());
     assert!(!h.state().session.get(h.state().views[0].id).unwrap().dirty);
+
+    // Small movement within the dead zone before release still latches auto-scroll on.
+    ok(&mut h, &c, "ui.drag", json!({ "from": [p.x, p.y], "to": [p.x, p.y + 10.0], "steps": 4, "button": "middle" }));
+    assert!(h.state().views[0].auto_scrolling(), "release within the dead zone keeps scrolling toggled on");
+    ok(&mut h, &c, "ui.move", json!({ "x": p.x, "y": p.y + 60.0 }));
+    h.run_steps(8);
+    assert!(h.state().views[0].page_screen_rect(0).unwrap().top() < released - 30.0, "scrolling continues with no button held");
+    assert!(h.state().views[0].crop_drag.is_none(), "the Crop tool must not receive a wheel drag");
     ok(&mut h, &c, "ui.click", json!({ "x": p.x, "y": p.y + 60.0, "button": "middle" }));
     assert!(!h.state().views[0].auto_scrolling(), "the next middle click toggles scrolling off");
 }
@@ -886,7 +894,8 @@ fn organize_pages_supports_autoscroll_without_selecting_or_reordering_pages() {
     assert!(h.state().views[0].selected.is_empty());
     assert!(h.state().views[0].org_drag.is_none());
     assert!(!h.state().session.get(h.state().views[0].id).unwrap().dirty);
-    assert!(h.state().views[0].auto_scrolling(), "releasing the wheel leaves the grid scrolling on");
+    assert!(!h.state().views[0].auto_scrolling(), "releasing a held wheel stops the grid scrolling");
+    start_autoscroll(&mut h, &c);
     h.state_mut().views[0].organize = false;
     h.run_steps(2);
     assert!(!h.state().views[0].auto_scrolling(), "changing canvas mode cancels the gesture");
@@ -944,6 +953,8 @@ fn inverted_middle_drag_moves_the_view_the_way_the_pointer_goes() {
     assert!(!h.state().session.get(h.state().views[0].id).unwrap().dirty);
 }
 
+/// The control channel reports the open document, its page count and current page, and its
+/// view options can be set: the page, and a right-hand panel by name (an unknown one is refused).
 #[test]
 fn state_and_view_options() {
     let (mut h, c) = harness();
@@ -960,6 +971,9 @@ fn state_and_view_options() {
     assert!(call(&mut h, &c, "ui.set", json!({ "key": "panel", "value": "nonsense" })).is_err());
 }
 
+/// In a Japanese interface, the mode tabs and Preferences show Japanese labels, the command
+/// palette finds commands by their Japanese or English names or their ids, and switching back to
+/// English keeps the tabs working.
 #[test]
 fn japanese_controls_and_search_keep_command_ids() {
     if crate::support::skip_without_catalogs("japanese_controls_and_search_keep_command_ids") {
@@ -995,6 +1009,9 @@ fn japanese_controls_and_search_keep_command_ids() {
     assert_eq!(ok(&mut h, &c, "ui.state", json!({}))["mode"], "AllTools");
 }
 
+/// In a German interface, the mode tabs and Preferences show German labels, the language
+/// selector switches to English and back, and the command palette finds Split document by its
+/// German name, its English name or its command id.
 #[test]
 fn german_preferences_and_search_keep_command_ids() {
     if crate::support::skip_without_catalogs("german_preferences_and_search_keep_command_ids") {
@@ -1030,6 +1047,9 @@ fn german_preferences_and_search_keep_command_ids() {
     assert_eq!(ok(&mut h, &c, "ui.state", json!({}))["documents"][0]["name"], "doc.pdf");
 }
 
+/// In a Ukrainian interface, Preferences and dialogs show Ukrainian labels, the command palette
+/// finds Split document by its Ukrainian name, its English name or its command id, and a refused
+/// edit's notice names the command in Ukrainian.
 #[test]
 fn ukrainian_preferences_and_search_keep_command_ids() {
     if crate::support::skip_without_catalogs("ukrainian_preferences_and_search_keep_command_ids") {
@@ -1066,6 +1086,10 @@ fn ukrainian_preferences_and_search_keep_command_ids() {
     assert_eq!(state["documents"][0]["name"], "doc.pdf");
 }
 
+/// In a Japanese interface, Preferences opened from the menu bar switches the language to English,
+/// Ukrainian and back, and opens again with Cmd+,; the shortcuts list then reads in Japanese and
+/// the document stays open. Preferences is in Edit on Windows and Linux, and in the app menu (as
+/// Settings…) on macOS.
 #[test]
 fn preferences_menu_and_shortcut_allow_switching_interface_languages() {
     if crate::support::skip_without_catalogs("preferences_menu_and_shortcut_allow_switching_interface_languages") {
@@ -1076,16 +1100,24 @@ fn preferences_menu_and_shortcut_allow_switching_interface_languages() {
     }
     let (mut h, c) = harness();
     ok(&mut h, &c, "ui.set", json!({ "key": "language", "value": "ja" }));
-    // The menu bar's Edit menu holds Preferences. Titles and rows carry their mnemonic
-    // ("編集(E)", "環境設定(P)…"), so match by the start of the label.
+    // The menu bar's Edit menu holds Preferences on Windows and Linux. On macOS the in-window bar
+    // takes the Mac layout (`Target::current()`), which moves it to the app menu as Settings….
+    // Titles and rows carry their mnemonic ("編集(E)", "環境設定(P)…"), so match by the start of
+    // the label.
+    let (menu, preferences) = if cfg!(target_os = "macos") {
+        let ja = pdfcraft_ui_egui::i18n::Lang::from_code("ja").unwrap();
+        ("PdfCraft", pdfcraft_ui_egui::i18n::tr(ja, "Settings…").trim_end_matches('…'))
+    } else {
+        ("編集", "環境設定")
+    };
     let menu_row = |text: &'static str| {
         move |n: &egui_kittest::kittest::AccessKitNode<'_>| {
             n.role() == egui::accesskit::Role::MenuItem && n.label().is_some_and(|l| l.starts_with(text))
         }
     };
-    h.get_by(menu_row("編集")).click();
+    h.get_by(menu_row(menu)).click();
     h.run_steps(2);
-    h.get_by(menu_row("環境設定")).click();
+    h.get_by(menu_row(preferences)).click();
     h.run_steps(2);
     for (current, next, code) in [("日本語", "English", "en"), ("English", "Українська", "uk"), ("Українська", "日本語", "ja")]
     {
@@ -1426,6 +1458,10 @@ fn drawing_a_comment_by_drag_and_its_context_menu() {
 #[test]
 fn screenshots_of_window_and_region() {
     let (mut h, c) = harness();
+    // The harness makes its GPU renderer on the first render. The app has one before the control
+    // channel answers anything, so make it here, outside the screenshot's 5 s deadline: with 16
+    // tests at once on Windows, making it took up to 6 s and every copy of this test failed.
+    h.render().expect("the test renderer draws");
     let shot = ok(&mut h, &c, "ui.screenshot", json!({}));
     let ppp = shot["pixels_per_point"].as_f64().unwrap();
     assert_eq!(shot["width"].as_f64().unwrap(), (1400.0 * ppp).round());
