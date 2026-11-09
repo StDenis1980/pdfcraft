@@ -1599,7 +1599,14 @@ fn tinta_languages_translate_the_window_menu() {
 /// rebranded build never shows its Help menu in English inside a translated interface.
 #[test]
 fn every_offered_language_has_the_forks_support_rows() {
-    let sources = ["Help and support", "Get help, share feedback and follow development.", "Get help and support", "Original project (ArtCraft)", "Report a problem", "Support"];
+    let sources = [
+        "Help and support",
+        "Get help, share feedback and follow development.",
+        "Get help and support",
+        "Original project (ArtCraft)",
+        "Report a problem",
+        "Support",
+    ];
     for info in LANGUAGES.iter().filter(|l| l.code != "en") {
         for source in sources {
             let row = FORK_ROWS.get(&(info.code, source));

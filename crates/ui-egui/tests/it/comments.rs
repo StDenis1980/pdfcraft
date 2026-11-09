@@ -3562,11 +3562,13 @@ fn hotbar_picker_searches_translated_tool_labels() {
     let mut h = harness(|app| {
         app.set_option("language", "fr").unwrap();
     });
-    h.get_by_label("Hotbar settings").click();
+    // The craft-i18n pin this fork uses translates the button's label too.
+    let fr = pdfcraft_ui_egui::i18n::Lang::from_code("fr").unwrap();
+    h.get_by_label(pdfcraft_ui_egui::i18n::tr(fr, "Hotbar settings")).click();
     h.run_steps(3);
-    field(&h, "Search all tools…").click();
+    field(&h, pdfcraft_ui_egui::i18n::tr(fr, "Search all tools…")).click();
     h.run_steps(2);
-    field(&h, "Search all tools…").type_text("Dessiner");
+    field(&h, pdfcraft_ui_egui::i18n::tr(fr, "Search all tools…")).type_text("Dessiner");
     h.run_steps(3);
     h.get_by_role_and_label(Role::CheckBox, "Dessiner à main levée").click();
     h.run_steps(3);

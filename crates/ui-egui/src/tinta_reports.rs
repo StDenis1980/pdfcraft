@@ -229,28 +229,22 @@ mod tests {
         assert_eq!(bad, ReportsPrefs::default());
     }
 
-    /// Every string is translated in the Tinta Office languages.
+    /// Every string is translated in the Tinta Office languages: by this fork's own rows, or by
+    /// craft-i18n when the string is a common one (such as "No").
     #[test]
     fn every_string_is_translated() {
-        for (lang, rows) in [
-            ("es", include_str!("i18n/es.tsv")),
-            ("ca", include_str!("i18n/ca.tsv")),
-            ("gl", include_str!("i18n/gl.tsv")),
-            ("eu", include_str!("i18n/eu.tsv")),
-            ("uk", include_str!("i18n/uk.tsv")),
-            ("fr", include_str!("i18n/fr.tsv")),
-            ("de", include_str!("i18n/de.tsv")),
-            ("it", include_str!("i18n/it.tsv")),
-            ("pl", include_str!("i18n/pl.tsv")),
-            ("pt-br", include_str!("i18n/pt-br.tsv")),
-            ("ru", include_str!("i18n/ru.tsv")),
-        ] {
+        let rows = include_str!("i18n/tinta.tsv");
+        let has_row = |text: &str, lead: &str, s: &str| {
+            text.lines().any(|l| {
+                let mut c = l.split('\t');
+                c.next() == Some(lead) && c.next() == Some(s) && c.next().is_some_and(|t| !t.trim().is_empty())
+            })
+        };
+        for lang in ["es", "ca", "gl", "eu", "uk", "fr", "de", "it", "pl", "pt-br", "ru"] {
+            let catalogs = crate::i18n::Lang::from_code(lang).map(|l| l.catalog_texts().collect::<Vec<_>>()).unwrap_or_default();
             for s in STRINGS {
-                let found = rows.lines().any(|l| {
-                    let mut c = l.split('\t');
-                    c.next() == Some("") && c.next() == Some(s) && c.next().is_some_and(|t| !t.trim().is_empty())
-                });
-                assert!(found, "{lang}: {s:?}");
+                let found = has_row(rows, lang, s) || catalogs.iter().any(|text| has_row(text, "", s));
+                assert!(found || !crate::i18n::catalogs_embedded(), "{lang}: {s:?}");
             }
         }
     }

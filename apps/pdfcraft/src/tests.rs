@@ -667,7 +667,8 @@ fn the_desktop_entry_names_the_window_class() {
     assert!(script.contains(r#"-e "s|$UPSTREAM_ID|$BRAND_ID|g""#));
 }
 
-/// Both flatpak manifests build with the craft-i18n commit `craft-i18n.rev` pins: CI and
+/// Both flatpak manifests build with the craft-i18n commit `craft-i18n.rev` pins (from the Tinta Office
+/// fork StDenis1980/craft-i18n, which adds Galician and Basque): CI and
 /// releases read the file, and the manifests have to name the commit themselves. The pin may
 /// have a trailing newline or CRLF (a Windows checkout), so it is trimmed, as every reader does.
 #[test]
@@ -679,7 +680,7 @@ fn the_flatpak_manifests_pin_the_craft_i18n_rev() {
     for manifest in ["ai.storyteller.pdfcraft.yml", "ai.storyteller.pdfcraft.bundle.yml"] {
         let text = std::fs::read_to_string(root.join("packaging/linux/flatpak").join(manifest)).unwrap();
         let source =
-            text.split("url: https://github.com/storytold/craft-i18n").nth(1).unwrap_or_else(|| panic!("{manifest}: a craft-i18n git source"));
+            text.split("url: https://github.com/StDenis1980/craft-i18n").nth(1).unwrap_or_else(|| panic!("{manifest}: a craft-i18n git source"));
         let source = source.split("- type:").next().unwrap_or(source);
         let commit = source
             .lines()

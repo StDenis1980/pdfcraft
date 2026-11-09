@@ -11,6 +11,17 @@
 # Adobe-authored non-visual technical data allowed by AGENTS.md §1.1.
 
 [[asset]]
+path = "crates/ui-egui/src/i18n/tinta.tsv"
+title = "Tinta Office interface translations (the strings this fork adds)"
+author = "Tinta Office contributors"
+source = "Contributor-original: AI-assisted translations from English of the fork's own interface strings (help and support links, error reports, documents converted by Tinta Office), kept from the fork's former in-repo catalogs; not separately native-reviewed"
+licence = "MIT OR Apache-2.0"
+licence_file = "LICENSE-MIT"
+kind = "translation"
+usage = "Fork-only UI strings in languages other than English, looked up first by crates/ui-egui/src/i18n.rs"
+sha256 = "2830a3636d79c3e9220a6b8d250af8af41830bd05267b6c5adfcea86b582f2c7"
+
+[[asset]]
 path = "assets/icons/accessibility.svg"
 title = "Lucide icon \"accessibility\""
 author = "Lucide Contributors (portions Cole Bemis, Feather)"
