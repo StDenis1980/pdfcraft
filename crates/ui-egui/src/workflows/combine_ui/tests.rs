@@ -225,3 +225,26 @@ fn an_office_file_in_combine_asks_for_the_tinta_app_that_converts_it() {
     // Its bookmark is named without the extension, like an image's or a text file's.
     assert_eq!(parts::title_of("Carta.docx"), "Carta");
 }
+
+/// #2503 review: a PDF waiting for its password when Combine arrives opens behind the Combine
+/// files tab once unlocked, like one still opening; a prompt that a chosen tool waits on keeps
+/// its focus, since the tool runs on the document in front.
+#[test]
+#[cfg(not(target_arch = "wasm32"))]
+fn a_password_answered_after_combine_opens_behind_the_combine_tab() {
+    let mut app = PdfCraftApp::new();
+    app.open_bytes("locked.pdf", None, locked()).unwrap();
+    assert!(app.password_prompt.is_some() && app.views.is_empty());
+    app.combine_paths(&[]);
+    assert!(app.combine_showing());
+    app.submit_password(Some("pw".into()));
+    assert!(app.password_prompt.is_none());
+    assert_eq!(app.views.len(), 1, "the document is open");
+    assert!(app.combine_showing(), "and the Combine files tab still shows");
+
+    let mut app = PdfCraftApp::new();
+    app.open_bytes("locked.pdf", None, locked()).unwrap();
+    app.password_prompt.as_mut().unwrap().then = Some("export.text");
+    app.combine_paths(&[]);
+    assert!(app.password_prompt.as_ref().unwrap().activate, "a tool's open keeps its focus");
+}

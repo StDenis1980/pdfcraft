@@ -1,12 +1,11 @@
 # Tinta PDF — Preview 3
 
-> **Status:** 2026-11-03 · draft for the Preview 3 release (12 November 2026), to be
-> finished after the 9 November upstream sync · **Revision history:** 2026-11-03 created (changes
-> from Preview 2, 27 October, to #46).
+> **Status:** 2026-11-09 · for the Preview 3 release (12 November 2026), with the 9 November
+> upstream sync · **Revision history:** 2026-11-03 created (changes from Preview 2, 27 October, to
+> #46); 2026-11-09 the upstream sync (its new OCR options) and the feedback button.
 
 Release notes for the GitHub release and the site, in Spanish, Ukrainian and English. Changes since
-Preview 2 (27 October 2026). Before publishing: add what the 9 November upstream sync brings, set the
-version, build the Windows installers of all five apps with `packaging/windows/tinta-build-release.ps1`
+Preview 2 (27 October 2026). Before publishing: set the version, build the Windows installers of all five apps with `packaging/windows/tinta-build-release.ps1`
 (MSI, portable zip, SHA256SUMS.txt), and run the smoke test on the installers
 (`packaging/windows/tinta-smoke.ps1`, `packaging/linux/tinta-smoke.sh`).
 
@@ -23,13 +22,18 @@ Novedades:
 - **Reconocimiento de texto (OCR) en español, catalán, gallego, euskera, ucraniano y 8 idiomas
   más.** Lee bien fotos hechas con el móvil: páginas giradas o del revés, hojas fotografiadas
   torcidas o con sombra, dos columnas, sellos claros encima del texto. Corrige las confusiones
-  típicas de i y l en español y de і, ї, є en ucraniano.
+  típicas de i y l en español y de і, ї, є en ucraniano. Ahora también puede leer solo una zona
+  de la página, enderezar y limpiar la imagen antes de leerla, usar Tesseract si lo tiene
+  instalado y revisar las palabras dudosas antes de guardar.
 - **Firma con sello de tiempo.** Al firmar con su certificado (por ejemplo, de la ACCV) puede añadir un sello de
   tiempo de ACCV, DigiCert o FreeTSA; la ventana ya no se queda esperando al servidor. Las firmas
   de certificados emitidos en España se reconocen como válidas con los certificados raíz de Windows.
   La firma visible no muestra su NIF/DNI/NIE salvo que usted lo pida.
 - **Ayuda ▸ Informar de un problema**, y el envío opcional de informes de error (solo si usted lo
   acepta al primer inicio).
+- **Enviar comentarios:** el botón de la carita en la barra de título (también en Ayuda) para
+  decirnos qué le gusta, qué falla o qué idea tiene, con correo opcional, captura de pantalla y
+  datos técnicos; sin conexión se guarda y se envía después.
 - **Idiomas:** rumano, checo y lituano completos.
 - **Linux:** paquete Flatpak además de .deb y AppImage.
 - Del proyecto original (PdfCraft): barra de herramientas personalizable, resaltado a mano alzada,
@@ -53,13 +57,18 @@ fondos de guilloche; no hay firma con DNIe ni tarjeta todavía.
 - **Розпізнавання тексту (OCR) українською, іспанською, каталанською, галісійською, баскською і ще
   8 мовами.** Добре читає фото з телефона: сторінки боком чи догори дриґом, аркуші, зняті під
   кутом чи в тіні, дві колонки, світлі штампи поверх тексту. Виправляє типові плутанини і/и, ї, є в
-  українській та i/l в іспанській.
+  українській та i/l в іспанській. Тепер також можна читати лише частину сторінки, вирівняти й
+  очистити зображення перед читанням, використати Tesseract, якщо він у вас встановлений, і
+  переглянути сумнівні слова перед збереженням.
 - **Підпис із позначкою часу.** Підписуючи своїм сертифікатом (наприклад, ACCV), можна додати
   позначку часу від ACCV, DigiCert або FreeTSA; вікно більше не чекає на сервер. Підписи
   іспанськими сертифікатами визнаються дійсними через кореневі сертифікати Windows. Видимий підпис
   не показує ваш NIF/DNI/NIE, якщо ви цього не попросите.
 - **Довідка ▸ Повідомити про проблему** і необов'язкове надсилання звітів про помилки (лише якщо
   ви погодилися під час першого запуску).
+- **Надіслати відгук:** кнопка з усмішкою в заголовку вікна (а також у меню «Довідка»): що
+  подобається, що не працює або яка є ідея, з необов'язковою адресою пошти, знімком екрана й
+  технічними даними; без мережі відгук зберігається і надсилається пізніше.
 - **Мови:** румунська, чеська й литовська повністю.
 - **Linux:** пакет Flatpak на додачу до .deb і AppImage.
 - З основного проєкту (PdfCraft): налаштовувана панель інструментів, виділення від руки, порожня
@@ -83,12 +92,17 @@ What's new:
 - **Text recognition (OCR) in Spanish, Catalan, Galician, Basque, Ukrainian and 8 more
   languages.** Reads phone photos well: pages photographed sideways or upside down, sheets shot at
   an angle or in shadow, two columns, light stamps over the text. Corrects the usual i/l mix-ups in
-  Spanish and і, ї, є in Ukrainian.
+  Spanish and і, ї, є in Ukrainian. You can now also read just part of a page, straighten and
+  clean the image before it is read, use Tesseract if you have it installed, and check doubtful
+  words before saving.
 - **Signing with a timestamp.** When you sign with your certificate (an ACCV one, for example) you can add a
   timestamp from ACCV, DigiCert or FreeTSA; the window no longer waits for the server. Signatures
   from Spanish certificates validate through the Windows root certificates. A visible signature
   hides your NIF/DNI/NIE unless you ask for it.
 - **Help ▸ Report a problem**, and optional error reports (only if you agree at first start).
+- **Send feedback:** the smiley button in the title bar (also in Help) tells us what you like, what
+  went wrong or an idea, with an optional e-mail address, a screenshot and technical details;
+  offline, it is kept and sent later.
 - **Languages:** Romanian, Czech and Lithuanian complete.
 - **Linux:** a Flatpak bundle besides .deb and AppImage.
 - From the original project (PdfCraft): a customisable toolbar, freehand highlight, blank pages in

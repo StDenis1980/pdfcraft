@@ -15,3 +15,7 @@ PDFCRAFT_BRAND_SUPPORT = "https://tintaoffice.com/#contact"
 PDFCRAFT_BRAND_REPORT = "https://github.com/StDenis1980/pdfcraft/issues/new/choose"
 # Tinta Office: where error reports go once the person allowed them (apps/pdfcraft/src/tinta_report.rs).
 TINTA_REPORT_URL = "https://report.tintaoffice.com"
+# WebAssembly SIMD (every current browser has it; there's no runtime detection on wasm). The OCR
+# engine's kernels (rten-simd) and other vectorised code only use it when compiled in.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]
