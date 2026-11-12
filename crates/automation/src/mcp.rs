@@ -164,7 +164,7 @@ impl McpServer {
                 let args = params.get("arguments").cloned().unwrap_or(Value::Null);
                 if self.compact && name == TOOL_SEARCH {
                     check_keys(name, &args, &["query", "category", "name"]).map_err(|e| (INVALID_PARAMS, e))?;
-                    return Ok(match search_tools(&args) {
+                    return Ok(match search_tools(&args, self.automation.allowed_tools()) {
                         Ok(found) => call_result(vec![Content::Json(found)]),
                         Err(message) => tool_error(&message),
                     });
@@ -210,7 +210,11 @@ impl McpServer {
 impl McpServer {
     /// What `tools/list` returns: every tool, or in compact mode the core set and the meta tools.
     fn tool_list(&self) -> Vec<Value> {
-        let all = crate::tools();
+        let mut all = crate::tools();
+        // Under --allow-commands a client sees only the tools it may run.
+        if let Some(list) = self.automation.allowed_tools() {
+            all.retain(|t| list.allows(t.name));
+        }
         if !self.compact {
             return all.iter().map(tool_json).collect();
         }
@@ -289,7 +293,7 @@ fn check_keys(tool: &str, args: &Value, allowed: &[&str]) -> Result<(), String> 
 }
 
 /// `tool_search`: filter the tool table by query and category, or describe one tool in full.
-fn search_tools(args: &Value) -> Result<Value, String> {
+fn search_tools(args: &Value, allowed: Option<&crate::tool_access::ToolAllowlist>) -> Result<Value, String> {
     if !(args.is_object() || args.is_null()) {
         return Err(format!("{TOOL_SEARCH} takes an object with optional query, category and name"));
     }
@@ -300,13 +304,18 @@ fn search_tools(args: &Value) -> Result<Value, String> {
         Some(_) => Err(format!("{TOOL_SEARCH}: {key} must be a string")),
     };
     let (query, category, name) = (text("query")?, text("category")?, text("name")?);
-    let all = crate::tools();
+    let mut all = crate::tools();
+    // Under --allow-commands only the allowed tools are there to find.
+    if let Some(list) = allowed {
+        all.retain(|t| list.allows(t.name));
+    }
     if let Some(name) = name {
         let t =
             all.iter().find(|t| t.name == name).ok_or_else(|| format!("unknown tool {name:?}; call {TOOL_SEARCH} without name to list the tools"))?;
         return Ok(json!({ "tool": {
             "name": t.name, "title": t.title, "category": category_of(t.name), "description": t.description,
             "read_only": t.read_only, "destructive": t.destructive, "input_schema": t.input_schema,
+            "risk": crate::tool_risk::risk(t),
         } }));
     }
     let category = category.map(|c| c.trim_end_matches('_').to_lowercase()).filter(|c| !c.is_empty());
@@ -463,7 +472,7 @@ fn resource_templates() -> Value {
 
 impl McpServer {
     fn resource_list(&mut self) -> Vec<Value> {
-        let docs = self.automation.call("doc_list", &json!({})).ok().and_then(|c| match c.into_iter().next() {
+        let docs = self.automation.call_unchecked("doc_list", &json!({})).ok().and_then(|c| match c.into_iter().next() {
             Some(Content::Json(v)) => v["documents"].as_array().cloned(),
             _ => None,
         });
@@ -495,7 +504,7 @@ impl McpServer {
             "pdfcraft://commands" => Some("command_list"),
             _ => None,
         } {
-            let content = self.automation.call(tool, &json!({})).map_err(|e| (INVALID_PARAMS, e.to_string()))?;
+            let content = self.automation.call_unchecked(tool, &json!({})).map_err(|e| (INVALID_PARAMS, e.to_string()))?;
             let value = content
                 .into_iter()
                 .find_map(|c| match c {
@@ -506,7 +515,7 @@ impl McpServer {
             return Ok(json!({"uri":uri,"mimeType":"application/json","text":value.to_string()}));
         }
         let r = parse_uri(uri).ok_or((INVALID_PARAMS, format!("unknown resource {uri:?}")))?;
-        let call = |a: &mut Automation, tool: &str, args: Value| a.call(tool, &args).map_err(|e| (INVALID_PARAMS, e.to_string()));
+        let call = |a: &mut Automation, tool: &str, args: Value| a.call_unchecked(tool, &args).map_err(|e| (INVALID_PARAMS, e.to_string()));
         let json_of = |c: Vec<Content>| c.into_iter().find_map(|c| if let Content::Json(v) = c { Some(v) } else { None }).unwrap_or(Value::Null);
         let text_of = |v: &Value, headings: bool| {
             let pages = v["pages"].as_array().cloned().unwrap_or_default();
@@ -558,6 +567,8 @@ fn tool_json(t: &crate::ToolDef) -> Value {
         "description": t.description,
         "inputSchema": t.input_schema,
         "annotations": { "title": t.title, "readOnlyHint": t.read_only, "destructiveHint": t.destructive, "idempotentHint": t.read_only || matches!(t.name, "doc_save" | "doc_optimize" | "doc_export_data" | "measure_export" | "doc_export_images" | "doc_export_office" | "doc_export_all_images" | "doc_export_text" | "image_save" | "bookmark_export"), "openWorldHint": false },
+        // What the tool may do beyond the open documents, for permission layers (tool_risk.rs).
+        "_meta": { "risk": crate::tool_risk::risk(t) },
     })
 }
 

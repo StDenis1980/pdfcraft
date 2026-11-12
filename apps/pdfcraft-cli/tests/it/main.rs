@@ -1,5 +1,6 @@
 //! The crate's integration tests, linked into one test binary.
 
+mod allow_commands;
 mod audit;
 mod automation_roots;
 mod batch;

@@ -42,8 +42,23 @@ fn view_transform_to_user(info: &pdfcraft_render::PageInfo, m: [f64; 6]) -> Resu
 }
 
 impl Automation {
-    /// Run the tool `name` with JSON `args` (an object; `null` means no arguments).
+    /// Run the tool `name` with JSON `args` (an object; `null` means no arguments), as a client
+    /// asks: under `--allow-commands` the tool must be on the list.
     pub fn call(&mut self, name: &str, args: &Value) -> Result<Vec<Content>> {
+        if let Some(list) = &self.allowed
+            && !list.allows(name)
+        {
+            if tools::find(name).is_none() {
+                return Err(ToolError::UnknownTool(name.into()));
+            }
+            return Err(failed(format!("tool {name:?} is not allowed: it is not on this session's --allow-commands list")));
+        }
+        self.call_unchecked(name, args)
+    }
+
+    /// [`call`](Self::call) without the `--allow-commands` check: for a tool a tool runs itself,
+    /// which is part of the tool that was allowed, and for resource reads.
+    pub(crate) fn call_unchecked(&mut self, name: &str, args: &Value) -> Result<Vec<Content>> {
         let empty = json!({});
         let args = if args.is_null() { &empty } else { args };
         if !args.is_object() {
@@ -951,7 +966,7 @@ impl Automation {
         let (toggled, _) = toggle(&text, range.as_ref(), script)
             .ok_or_else(|| ToolError::InvalidArgs(format!("nothing to change: no character of the text has a {name} form")))?;
         let args = json!({ "doc": a.get("doc"), "page": a.get("page"), "paragraph": k, "text": toggled });
-        let mut out = match self.call("text_edit", &args)?.into_iter().next() {
+        let mut out = match self.call_unchecked("text_edit", &args)?.into_iter().next() {
             Some(Content::Json(out)) => out,
             _ => json!({}),
         };

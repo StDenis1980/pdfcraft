@@ -124,6 +124,43 @@ A path is checked, then opened: another program that swaps a link in between can
 race, so the roots keep an agent to the files it was given rather than guarding against other
 software on the computer.
 
+## Confining tools
+
+```sh
+pdfcraft-cli mcp --allow-commands "doc_open, doc_info, text_*, page.rotate, doc_save"
+pdfcraft-cli mcp --allow-commands @allowed.txt   # one entry per line, # comments
+```
+
+`--allow-commands` keeps the agent to the tools it was given, the way the roots above keep it to
+folders (the same flag as Tinta Texto, Calculo and Presenta). Use both together.
+
+- A list names tools (`page_rotate`), tool groups (`page_*`: every tool whose name starts with
+  `page_`), registry command ids (`page.rotate`: the tool that automates it) and command groups
+  (`page.*`), separated by commas, spaces or new lines. An unknown name, a group that matches
+  nothing and an empty list stop the server at startup, so a typo never leaves the agent with less,
+  or more, than meant. `@FILE` reads the list from a regular file of at most 256 KiB.
+- Every tool a client asks for must be on the list: `tools/call`, the tool behind `tool_call`
+  (`--compact`), and the tool behind each `command_run` and `command_batch` step, which also need
+  `command_run` / `command_batch` themselves. A tool off the list is an ordinary tool error:
+  `tool "doc_print" is not allowed: it is not on this session's --allow-commands list`.
+- A tool a tool runs itself is part of the tool that was allowed and isn't checked again.
+  `tools/list` and `tool_search` show only the allowed tools. Resources (`pdfcraft://…`) read the
+  open documents without a tool call and stay available.
+
+## What each tool may do (Tinta)
+
+Every tool carries a `risk` object (`_meta.risk` in `tools/list`; `risk` in `tool_search`,
+`command_list` and `pdfcraft-cli tools`), so a permission layer such as Vilna OS's Herkos can grade
+a call before it runs (tintaoffice-web#26): `reads_document` / `changes_document` (the open PDFs),
+`reads_disk` / `writes_disk` (files, still held to the roots), `network`, `print`, `sign`,
+`other_program` (Office files go to the suite's app that converts them), `runs_commands` and
+`ui_only`. The flags come from hand-reviewed tables in `crates/automation/src/tool_risk.rs`.
+
+Tool names are kept stable between versions: `docs/tinta-mcp-tools.tsv` lists every tool with its
+flags, and a test fails when a tool is added, renamed or removed, or a flag changes, until the
+snapshot is regenerated on purpose (`TINTA_UPDATE_SNAPSHOT=1 cargo test -p pdfcraft-automation --lib
+tool_risk`). A rename or removal is noted in the release notes.
+
 ## Tools
 
 | Tool | Arguments |

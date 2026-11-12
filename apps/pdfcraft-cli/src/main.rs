@@ -36,6 +36,7 @@ macro_rules! mcp_usage {
     () => {
         "\
 pdfcraft-cli mcp    [--root DIR] [--compact] [--automation-read-root DIR]... [--automation-write-root DIR]...
+                    [--allow-commands LIST|@FILE]
                                                            MCP server on stdin/stdout (opt-in)
                                                            --compact lists a core set of tools plus tool_search and tool_call
                                                            --automation-read-root / --automation-write-root confine the files the
@@ -44,6 +45,10 @@ pdfcraft-cli mcp    [--root DIR] [--compact] [--automation-read-root DIR]... [--
                                                            each may be repeated, a path then has to lie in one of them; a kind
                                                            with no root grants none of its access. --root, when also given,
                                                            applies as well
+                                                           --allow-commands holds the agent to the tools listed (names
+                                                           like page_rotate, groups like text_*, command ids like
+                                                           page.rotate or command groups like page.*, comma-separated,
+                                                           or @FILE with one per line); tools/list shows only those
 "
     };
 }

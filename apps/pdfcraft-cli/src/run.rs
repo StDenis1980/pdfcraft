@@ -18,7 +18,7 @@ pub(crate) fn automation(args: &[String]) -> Result<pdfcraft_automation::Automat
 pub(crate) fn tools() -> Result<(), CliError> {
     let list: Vec<serde_json::Value> = pdfcraft_automation::tools()
         .iter()
-        .map(|t| serde_json::json!({ "name": t.name, "description": t.description, "read_only": t.read_only, "command": t.command, "input_schema": t.input_schema }))
+        .map(|t| serde_json::json!({ "name": t.name, "description": t.description, "read_only": t.read_only, "command": t.command, "input_schema": t.input_schema, "risk": pdfcraft_automation::tool_risk::risk(t) }))
         .collect();
     stdout_line(format_args!("{}", serde_json::to_string_pretty(&list).unwrap_or_default()))?;
     Ok(())
@@ -160,9 +160,71 @@ fn automation_roots(command: &str, args: &[String]) -> Result<(Option<Arc<pdfcra
     Ok((roots, left))
 }
 
+/// Take `--allow-commands LIST|@FILE` (or `--allow-commands=…`, once) out of `args` and parse
+/// it. Returns the arguments that are left. A flag without its value, given twice or with a bad
+/// list is an error at startup, never a server that runs with every tool.
+#[cfg(feature = "mcp")]
+fn allow_commands(command: &str, args: Vec<String>) -> Result<(Option<pdfcraft_automation::tool_access::ToolAllowlist>, Vec<String>), String> {
+    let mut spec: Option<String> = None;
+    let mut left = Vec::new();
+    let mut it = args.into_iter();
+    while let Some(arg) = it.next() {
+        let value = if arg == "--allow-commands" {
+            // `--allow-commands --compact` would otherwise take `--compact` as the list.
+            match it.next() {
+                Some(v) if !v.starts_with("--") => v,
+                _ => return Err(format!("{command}: --allow-commands needs a value")),
+            }
+        } else if let Some(v) = arg.strip_prefix("--allow-commands=") {
+            v.to_string()
+        } else {
+            left.push(arg);
+            continue;
+        };
+        if spec.replace(value).is_some() {
+            return Err(format!("{command}: --allow-commands given twice"));
+        }
+    }
+    let Some(spec) = spec else { return Ok((None, left)) };
+    let text = match spec.strip_prefix('@') {
+        Some(path) => read_list_file(path, pdfcraft_automation::tool_access::MAX_LIST_BYTES)?,
+        None => spec,
+    };
+    let list = pdfcraft_automation::tool_access::ToolAllowlist::parse(&text).map_err(|e| format!("{command}: --allow-commands: {e}"))?;
+    Ok((Some(list), left))
+}
+
+/// The text of an `@FILE` command list, at most `max` bytes. Only a regular file (or a link to one)
+/// is read: a pipe, socket or device found at the first check is refused before it is opened,
+/// since opening or reading it could block startup forever. The check and the open are not
+/// atomic: another program that swaps a FIFO in between can still make the open wait for a
+/// writer. The read stops after `max + 1` bytes whatever the metadata says, and a longer file is
+/// refused, never cut short.
+#[cfg(feature = "mcp")]
+fn read_list_file(path: &str, max: usize) -> Result<String, String> {
+    use std::io::Read;
+    let not_regular = || format!("--allow-commands: {path} is not a regular file");
+    let cannot_read = |e: std::io::Error| format!("--allow-commands: {path}: {e}");
+    if !std::fs::metadata(path).map_err(cannot_read)?.is_file() {
+        return Err(not_regular());
+    }
+    let file = std::fs::File::open(path).map_err(cannot_read)?;
+    if !file.metadata().map_err(cannot_read)?.is_file() {
+        return Err(not_regular());
+    }
+    let limit = u64::try_from(max).unwrap_or(u64::MAX).saturating_add(1);
+    let mut bytes = Vec::new();
+    file.take(limit).read_to_end(&mut bytes).map_err(cannot_read)?;
+    if bytes.len() > max {
+        return Err(format!("--allow-commands: {path} is too long (more than {max} bytes)"));
+    }
+    String::from_utf8(bytes).map_err(|_| format!("--allow-commands: {path} is not UTF-8 text"))
+}
+
 #[cfg(feature = "mcp")]
 pub(crate) fn mcp(args: &[String]) -> Result<(), CliError> {
     let (roots, args) = automation_roots("mcp", args)?;
+    let (allowed, args) = allow_commands("mcp", args)?;
     let args = args.as_slice();
     validate_options("mcp", args, MCP_OPTIONS)?;
     let compact = args.iter().any(|a| a == "--compact");
@@ -178,6 +240,10 @@ pub(crate) fn mcp(args: &[String]) -> Result<(), CliError> {
             show(roots.write_roots().collect())
         );
         auto = auto.with_automation_roots(Some(roots));
+    }
+    if let Some(list) = allowed {
+        let _ = writeln!(std::io::stderr().lock(), "pdfcraft-cli: tools allowed: {}", list.describe().join(", "));
+        auto = auto.with_allowed_tools(Some(Arc::new(list)));
     }
     let mut server = pdfcraft_automation::mcp::McpServer::new(auto).with_compact(compact);
     let _ = writeln!(
