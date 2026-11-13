@@ -156,7 +156,7 @@ a call before it runs (tintaoffice-web#26): `reads_document` / `changes_document
 `other_program` (Office files go to the suite's app that converts them), `runs_commands` and
 `ui_only`. The flags come from hand-reviewed tables in `crates/automation/src/tool_risk.rs`.
 
-Tool names are kept stable between versions: `docs/tinta-mcp-tools.tsv` lists every tool with its
+Tool names are kept stable between versions: `docs/tinta-mcp-tools.txt` lists every tool with its
 flags, and a test fails when a tool is added, renamed or removed, or a flag changes, until the
 snapshot is regenerated on purpose (`TINTA_UPDATE_SNAPSHOT=1 cargo test -p pdfcraft-automation --lib
 tool_risk`). A rename or removal is noted in the release notes.

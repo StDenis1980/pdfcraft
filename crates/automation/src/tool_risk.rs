@@ -15,7 +15,7 @@
 //! - `runs_commands`: runs other tools, steps or scripts (each step through its own tool).
 //! - `ui_only`: only how a window would show the document.
 //!
-//! The tables are reviewed by hand: a new tool changes `docs/tinta-mcp-tools.tsv`, whose test
+//! The tables are reviewed by hand: a new tool changes `docs/tinta-mcp-tools.txt`, whose test
 //! fails until the snapshot is updated on purpose, which is the moment to add it here. An entry
 //! that names no tool fails the test too.
 
@@ -168,7 +168,7 @@ pub fn risk(def: &ToolDef) -> Value {
 }
 
 /// One line per tool, sorted by name: the name, then the risk flags that are set
-/// (`docs/tinta-mcp-tools.tsv`).
+/// (`docs/tinta-mcp-tools.txt`).
 pub fn snapshot(tools: &[ToolDef]) -> String {
     let mut lines: Vec<String> = tools
         .iter()
@@ -194,7 +194,7 @@ pub fn snapshot(tools: &[ToolDef]) -> String {
 mod tests {
     use super::*;
 
-    const SNAPSHOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/tinta-mcp-tools.tsv");
+    const SNAPSHOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/tinta-mcp-tools.txt");
 
     /// Tool names are what agents' permission manifests name (tintaoffice-web#33): a tool added,
     /// renamed or removed, or a risk flag changed, fails here until the snapshot is regenerated
@@ -206,6 +206,8 @@ mod tests {
             std::fs::write(SNAPSHOT, &now).unwrap();
             return;
         }
+        // `.txt`, not `.tsv`: `cargo xtask assets` counts every `.tsv` as an asset that needs an
+        // attribution entry with a hash, and this file changes with every new tool.
         let saved = std::fs::read_to_string(SNAPSHOT).unwrap_or_default();
         let old: std::collections::BTreeSet<&str> = saved.lines().collect();
         let new: std::collections::BTreeSet<&str> = now.lines().collect();
