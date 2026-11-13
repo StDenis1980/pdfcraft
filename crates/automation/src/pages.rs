@@ -374,6 +374,7 @@ impl Automation {
                     "enabled": commands::is_enabled(c, &self.session, active),
                     "tool": tools::tool_for_command(c.id),
                     "params": tools::tool_for_command(c.id).and_then(tools::find).map(|t| &t.input_schema),
+                    "risk": tools::tool_for_command(c.id).and_then(tools::find).map(crate::tool_risk::risk),
                 })
             })
             .collect();

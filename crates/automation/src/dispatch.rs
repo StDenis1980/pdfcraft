@@ -42,8 +42,23 @@ fn view_transform_to_user(info: &pdfcraft_render::PageInfo, m: [f64; 6]) -> Resu
 }
 
 impl Automation {
-    /// Run the tool `name` with JSON `args` (an object; `null` means no arguments).
+    /// Run the tool `name` with JSON `args` (an object; `null` means no arguments), as a client
+    /// asks: under `--allow-commands` the tool must be on the list.
     pub fn call(&mut self, name: &str, args: &Value) -> Result<Vec<Content>> {
+        if let Some(list) = &self.allowed
+            && !list.allows(name)
+        {
+            if tools::find(name).is_none() {
+                return Err(ToolError::UnknownTool(name.into()));
+            }
+            return Err(failed(format!("tool {name:?} is not allowed: it is not on this session's --allow-commands list")));
+        }
+        self.call_unchecked(name, args)
+    }
+
+    /// [`call`](Self::call) without the `--allow-commands` check: for a tool a tool runs itself,
+    /// which is part of the tool that was allowed, and for resource reads.
+    pub(crate) fn call_unchecked(&mut self, name: &str, args: &Value) -> Result<Vec<Content>> {
         let empty = json!({});
         let args = if args.is_null() { &empty } else { args };
         if !args.is_object() {
@@ -513,26 +528,7 @@ impl Automation {
                 json!({ "page": page + 1, "count": blocks.len(), "paragraphs": blocks })
             }
             "text_font_files" => {
-                let roots = if let Some(paths) = a.get("directories") {
-                    let paths = paths
-                        .as_array()
-                        .filter(|p| p.len() <= 16)
-                        .ok_or_else(|| ToolError::InvalidArgs("directories must be at most 16 paths".into()))?;
-                    paths
-                        .iter()
-                        .map(|p| self.resolve(p.as_str().ok_or_else(|| ToolError::InvalidArgs("directory must be a path".into()))?, false))
-                        .collect::<Result<Vec<_>>>()?
-                } else if let Some(roots) = &self.roots {
-                    // The installed fonts are outside the roots: look in the read root instead.
-                    let read = roots
-                        .read_root()
-                        .ok_or_else(|| failed("automation filesystem access is not granted: read authority is absent: installed fonts"))?;
-                    vec![self.resolve(&read.to_string_lossy(), false)?]
-                } else if let Some(root) = &self.root {
-                    vec![root.clone()]
-                } else {
-                    pdfcraft_engine::text_fonts::installed_directories()
-                };
+                let roots = self.font_directories(&a)?;
                 json!({"fonts": pdfcraft_engine::text_fonts::discover(&roots).into_iter().map(|f| json!({"path":f.path,"family":f.family,"font":f.face})).collect::<Vec<_>>()})
             }
             "text_font_import" => {
@@ -886,6 +882,50 @@ impl Automation {
         Ok(vec![Content::Json(out)])
     }
 
+    /// Resolve explicit font directories or the intersection of the configured read roots.
+    fn font_directories(&self, a: &Args) -> Result<Vec<std::path::PathBuf>> {
+        Ok(if let Some(paths) = a.get("directories") {
+            let paths =
+                paths.as_array().filter(|p| p.len() <= 16).ok_or_else(|| ToolError::InvalidArgs("directories must be at most 16 paths".into()))?;
+            paths
+                .iter()
+                .map(|p| self.resolve(p.as_str().ok_or_else(|| ToolError::InvalidArgs("directory must be a path".into()))?, false))
+                .collect::<Result<Vec<_>>>()?
+        } else if let Some(roots) = &self.roots {
+            // The installed fonts are outside the roots: look in the read roots instead. Each is
+            // searched where `--root` also allows it: whole when it lies inside `--root`, and as
+            // `--root` itself when it contains `--root` (`/work` with `--root /work/project`).
+            // One with no part inside `--root` is left out, not an error for the others.
+            let (mut read, mut refused) = (Vec::new(), None);
+            for r in roots.read_roots() {
+                match self.resolve(&r.to_string_lossy(), false) {
+                    Ok(path) => read.push(path),
+                    Err(e) => {
+                        refused.get_or_insert(e);
+                    }
+                }
+            }
+            // `--root` lies inside a read root exactly when it passes the read check, so it is
+            // held to the same check as any other path.
+            if let (Some(_), Some(root)) = (&refused, &self.root)
+                && !read.contains(root)
+                && let Ok(path) = self.resolve(&root.to_string_lossy(), false)
+            {
+                read.push(path);
+            }
+            if read.is_empty() {
+                return Err(
+                    refused.unwrap_or_else(|| failed("automation filesystem access is not granted: read authority is absent: installed fonts"))
+                );
+            }
+            read
+        } else if let Some(root) = &self.root {
+            vec![root.clone()]
+        } else {
+            pdfcraft_engine::text_fonts::installed_directories()
+        })
+    }
+
     /// `text_script`: Format text ▸ Superscript or Subscript on a paragraph, or on a byte range
     /// of its editor text, written as `text_edit` writes the paragraph.
     fn text_script(&mut self, a: &Args) -> Result<Value> {
@@ -926,7 +966,7 @@ impl Automation {
         let (toggled, _) = toggle(&text, range.as_ref(), script)
             .ok_or_else(|| ToolError::InvalidArgs(format!("nothing to change: no character of the text has a {name} form")))?;
         let args = json!({ "doc": a.get("doc"), "page": a.get("page"), "paragraph": k, "text": toggled });
-        let mut out = match self.call("text_edit", &args)?.into_iter().next() {
+        let mut out = match self.call_unchecked("text_edit", &args)?.into_iter().next() {
             Some(Content::Json(out)) => out,
             _ => json!({}),
         };

@@ -1,6 +1,6 @@
 # MCP conventions
 
-Start explicitly with `pdfcraft-cli mcp [--root DIR] [--compact] [--automation-read-root DIR] [--automation-write-root DIR]`. The server uses JSON lines on
+Start explicitly with `pdfcraft-cli mcp [--root DIR] [--compact] [--automation-read-root DIR]... [--automation-write-root DIR]...`. The server uses JSON lines on
 stdin/stdout, opens no port, and stops on EOF. `--root` confines all reads and writes, including
 commands invoked through the common tools. Logs stay on stderr.
 
@@ -69,13 +69,17 @@ pdfcraft-cli mcp --automation-read-root /work/project --automation-write-root /w
 The two flags (VectorCraft, PhotoCraft and the other Craft apps take the same ones, so one client
 config works across the suite) keep the agent to the folders you give it:
 
+- Each flag may be given more than once (`--automation-read-root /work/project --automation-read-root
+  /work/assets`): a path is allowed when it lies inside any root of its kind, and nothing else is.
+  More than 4096 roots of a kind are refused at startup.
+  The rest of this section says "the root" for the one that applies.
 - Every file a tool reads must lie inside the **read root**: `doc_open`, `page_insert_file`,
   `page_replace`, `doc_combine` and `doc_create_multiple` inputs, `doc_create` images, stamp,
   picture, attachment, signature and form-image files, `doc_watermark` and `doc_background` files,
   `doc_import_data`, `form_merge_data`, the files `action_run` and `ocr_recognize_files` process,
   digital ID, graphic and certificate files for signing and `sign_trust`, `text_font_import`, and
   the folders `text_font_files` searches. Without `directories`, `text_font_files` searches the read
-  root instead of the installed fonts.
+  roots instead of the installed fonts.
 - Every file a tool writes must lie inside the **write root**: `doc_save` (also saving in place),
   `page_extract`, `doc_combine`, `doc_create_multiple`, `doc_split`, `doc_reduce`, `doc_optimize`,
   `doc_print` to a file, the `doc_export_*` tools, `image_save`, `measure_export`,
@@ -98,10 +102,13 @@ config works across the suite) keep the agent to the folders you give it:
   `automation path rejected: outside the write root /work/project/out: /etc/x.pdf` or
   `automation filesystem access is not granted: write authority is absent: /work/project/out/x.pdf`.
   Tools that handle several files report a refused one in its own entry.
-- The roots must be existing folders; a missing one stops the server with an error. Each flag is
-  given once (`--flag <dir>` or `--flag=<dir>`).
+- The roots must be existing folders; a missing one stops the server with an error. Each folder is
+  given as `--flag <dir>` or `--flag=<dir>`.
 - `--root DIR` still works and can be combined with these flags. Both then apply: a path must be
-  inside `--root` and inside the matching automation root.
+  inside `--root` and inside the matching automation root. `text_font_files` without
+  `directories` then searches each read root where it meets `--root`: a read root inside `--root`
+  whole, and `--root` itself for a read root that contains it (`--automation-read-root /work` with
+  `--root /work/project` searches `/work/project`).
 
 `pdfcraft-cli mcp` always runs the session in its own process (there is no flag to connect it to a
 running app), so the roots cover every server it starts. The desktop app is not confined by them.
@@ -116,6 +123,43 @@ without it.
 A path is checked, then opened: another program that swaps a link in between can still win that
 race, so the roots keep an agent to the files it was given rather than guarding against other
 software on the computer.
+
+## Confining tools
+
+```sh
+pdfcraft-cli mcp --allow-commands "doc_open, doc_info, text_*, page.rotate, doc_save"
+pdfcraft-cli mcp --allow-commands @allowed.txt   # one entry per line, # comments
+```
+
+`--allow-commands` keeps the agent to the tools it was given, the way the roots above keep it to
+folders (the same flag as Tinta Texto, Calculo and Presenta). Use both together.
+
+- A list names tools (`page_rotate`), tool groups (`page_*`: every tool whose name starts with
+  `page_`), registry command ids (`page.rotate`: the tool that automates it) and command groups
+  (`page.*`), separated by commas, spaces or new lines. An unknown name, a group that matches
+  nothing and an empty list stop the server at startup, so a typo never leaves the agent with less,
+  or more, than meant. `@FILE` reads the list from a regular file of at most 256 KiB.
+- Every tool a client asks for must be on the list: `tools/call`, the tool behind `tool_call`
+  (`--compact`), and the tool behind each `command_run` and `command_batch` step, which also need
+  `command_run` / `command_batch` themselves. A tool off the list is an ordinary tool error:
+  `tool "doc_print" is not allowed: it is not on this session's --allow-commands list`.
+- A tool a tool runs itself is part of the tool that was allowed and isn't checked again.
+  `tools/list` and `tool_search` show only the allowed tools. Resources (`pdfcraft://…`) read the
+  open documents without a tool call and stay available.
+
+## What each tool may do (Tinta)
+
+Every tool carries a `risk` object (`_meta.risk` in `tools/list`; `risk` in `tool_search`,
+`command_list` and `pdfcraft-cli tools`), so a permission layer such as Vilna OS's Herkos can grade
+a call before it runs (tintaoffice-web#26): `reads_document` / `changes_document` (the open PDFs),
+`reads_disk` / `writes_disk` (files, still held to the roots), `network`, `print`, `sign`,
+`other_program` (Office files go to the suite's app that converts them), `runs_commands` and
+`ui_only`. The flags come from hand-reviewed tables in `crates/automation/src/tool_risk.rs`.
+
+Tool names are kept stable between versions: `docs/tinta-mcp-tools.txt` lists every tool with its
+flags, and a test fails when a tool is added, renamed or removed, or a flag changes, until the
+snapshot is regenerated on purpose (`TINTA_UPDATE_SNAPSHOT=1 cargo test -p pdfcraft-automation --lib
+tool_risk`). A rename or removal is noted in the release notes.
 
 ## Tools
 

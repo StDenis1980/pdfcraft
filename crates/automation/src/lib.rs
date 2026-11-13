@@ -9,8 +9,8 @@
 //!   with the origin at the top-left of the displayed page.
 //! - An optional root directory confines every path a tool reads or writes. Separately,
 //!   [`file_access::AutomationRoots`] (`pdfcraft-cli mcp --automation-read-root` and
-//!   `--automation-write-root`) holds a read folder and a write folder, each left out meaning no
-//!   access of its kind.
+//!   `--automation-write-root`, each may be repeated) holds read folders and write folders; a kind
+//!   with no folder grants none of its access.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -35,6 +35,8 @@ mod reading;
 mod redact;
 mod signing;
 mod text_cache;
+pub mod tool_access;
+pub mod tool_risk;
 mod tools;
 
 use std::collections::{HashMap, HashSet};
@@ -86,8 +88,10 @@ struct OcrReview {
 pub struct Automation {
     session: Session,
     root: Option<PathBuf>,
-    /// The read and write folders of `--automation-read-root` / `--automation-write-root`.
+    /// The read and write folders of `--automation-read-root` / `--automation-write-root` (each may be repeated).
     roots: Option<Arc<file_access::AutomationRoots>>,
+    /// `--allow-commands`: the tools a client may run (`None`: every tool).
+    allowed: Option<Arc<tool_access::ToolAllowlist>>,
     /// Synchronous renderers, rebuilt when a document's working bytes change.
     renderers: HashMap<DocId, (Arc<Vec<u8>>, PageRenderer)>,
     /// Extracted page text, under one memory budget across all open documents.
@@ -131,6 +135,7 @@ impl Automation {
             session,
             root: None,
             roots: None,
+            allowed: None,
             renderers: HashMap::new(),
             texts: TextCache::default(),
             listed: HashMap::new(),
@@ -157,6 +162,17 @@ impl Automation {
     pub fn with_automation_roots(mut self, roots: Option<Arc<file_access::AutomationRoots>>) -> Self {
         self.roots = roots;
         self
+    }
+
+    /// Hold clients to the tools on `list` (`None`: every tool). See [`tool_access`].
+    pub fn with_allowed_tools(mut self, list: Option<Arc<tool_access::ToolAllowlist>>) -> Self {
+        self.allowed = list;
+        self
+    }
+
+    /// The tools clients may run, when a list is in force.
+    pub fn allowed_tools(&self) -> Option<&tool_access::ToolAllowlist> {
+        self.allowed.as_deref()
     }
 
     /// Use a fixed clock for saves (deterministic output in tests).
