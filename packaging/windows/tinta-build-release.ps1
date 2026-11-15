@@ -7,6 +7,7 @@
   packaging\windows\package.ps1, and copy the MSI and portable zip into
   <DevDir>\tinta-release\<Tag>\. Then write, in that folder:
 
+    tinta-texto-dictionaries-extra.zip   Tinta Texto's extra dictionaries (when wordcraft is built)
     SHA256SUMS.txt          one "<sha256>  <file>" line per file (the site lists these)
     sbom\<repo>.cdx.json    CycloneDX SBOM of each app's Rust dependencies (needs cargo-cyclonedx:
                             cargo install cargo-cyclonedx; skipped with a warning without it)
@@ -77,6 +78,20 @@ foreach ($app in $Apps) {
     cmd.exe /d /c "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$(Join-Path $repo 'packaging\windows\package.ps1')`" -Arch x64 > `"$log`" 2>&1"
     if ($LASTEXITCODE -ne 0) { Get-Content $log -Tail 30; throw "${app}: package.ps1 failed (log: $log)" }
     Get-ChildItem $dist -Include '*.msi', '*-portable.zip' -Recurse | Copy-Item -Destination $Out
+    # Tinta Texto's extra dictionaries (fr, ro, lt, pl, it, cs, de, de-CH) are a release file of their
+    # own, unzipped into the program's dictionaries folder (wordcraft packaging/dictionaries/README.md).
+    $extraList = Join-Path $repo 'packaging\dictionaries\sources-extra.tsv'
+    if ($app -eq 'wordcraft' -and (Test-Path $extraList)) {
+      $extra = Join-Path $Logs 'dictionaries-extra'
+      Remove-Item -Recurse -Force $extra -ErrorAction SilentlyContinue
+      & (Join-Path $repo 'packaging\dictionaries\fetch.ps1') -Dest $extra -Manifest sources-extra.tsv
+      $zip = Join-Path $Out 'tinta-texto-dictionaries-extra.zip'
+      Remove-Item -Force $zip -ErrorAction SilentlyContinue
+      # ZipFile, not Compress-Archive: Windows PowerShell 5.1's Compress-Archive writes `licences\x`
+      # entry names, which unzip on Linux and macOS as one file with a backslash in its name.
+      Add-Type -AssemblyName System.IO.Compression.FileSystem
+      [IO.Compression.ZipFile]::CreateFromDirectory($extra, $zip)
+    }
     if ($HasCycloneDx) {
       cargo cyclonedx --format json --override-filename "$app.cdx" | Out-Null
       Get-ChildItem $repo -Recurse -Filter "$app.cdx.json" -Depth 3 | Select-Object -First 1 | Copy-Item -Destination (Join-Path $Out 'sbom')
