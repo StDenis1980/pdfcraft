@@ -276,6 +276,7 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("view.theme.system", "Use system setting", None, None, Nothing, "settings"),
     c("view.theme.light", "Light gray", None, None, Nothing, "sun"),
     c("view.theme.dark", "Dark gray", None, None, Nothing, "moon"),
+    c("view.tinta_look", "Tinta Office look", None, None, Nothing, "palette"),
     c("comment.list", "Comments panel", VIEW, None, Document, "message-square-text"),
     c("comment.note", "Add a sticky note", None, None, Annotate, "sticky-note"),
     c("comment.freetext", "Add a text box", None, None, Annotate, "type"),

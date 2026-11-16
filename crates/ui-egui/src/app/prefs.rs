@@ -37,6 +37,15 @@ fn rgb_triple(v: &serde_json::Value) -> Option<[f64; 3]> {
 }
 
 impl PdfCraftApp {
+    /// Tinta Office: turns the Tinta look on or off ([`crate::tinta_theme`]) and redraws the chrome.
+    pub fn set_tinta_look(&mut self, on: bool) {
+        if crate::tinta_theme::set(on)
+            && let Some(ctx) = self.ctx.clone()
+        {
+            theme::apply(&ctx, self.theme);
+        }
+    }
+
     /// Sets the user's interface theme preference (Light, Dark, or System).
     pub fn set_theme_preference(&mut self, preference: ThemePreference) {
         self.theme_preference = preference;
@@ -104,6 +113,7 @@ impl PdfCraftApp {
             "pinned_folders": self.pinned.folders,
             "pinned_folders_collapsed": self.pinned.collapsed,
             "theme": self.theme_preference,
+            "tinta_look": crate::tinta_theme::on(),
             "scroll_speed": self.scroll_speed,
             "invert_middle_drag": self.invert_middle_drag,
             "animation_effects": self.animation_effects,
@@ -290,6 +300,9 @@ impl PdfCraftApp {
                 }
             }
             self.pinned_tools = tools;
+        }
+        if let Some(on) = v["tinta_look"].as_bool() {
+            self.set_tinta_look(on);
         }
         if let Ok(preference) = serde_json::from_value::<ThemePreference>(v["theme"].clone()) {
             self.set_theme_preference(preference);

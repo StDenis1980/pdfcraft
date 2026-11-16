@@ -429,7 +429,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     // Our saved choice owns the palette; both egui branches receive it below.
     ctx.set_theme(egui::ThemePreference::System);
     let rtl = crate::i18n::current().rtl();
-    let t = Tokens::for_kind(kind);
+    let t = crate::tinta_theme::tokens(Tokens::for_kind(kind));
     ctx.data_mut(|d| d.insert_temp(egui::Id::unique("pdfcraft-theme"), t));
     let mut v = if t.dark() { Visuals::dark() } else { Visuals::light() };
     v.panel_fill = t.panel;
@@ -470,6 +470,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     if !t.dark() {
         v.text_options.color_transfer_function = egui::epaint::FontColorTransferFunction::Gamma(0.75);
     }
+    crate::tinta_theme::visuals(&mut v, &t);
     ctx.set_visuals(v);
     ctx.global_style_mut(|s| {
         // RTL languages mirror stock chrome (menus, combo boxes, scroll bars, headers).

@@ -365,6 +365,7 @@ impl PdfCraftApp {
             "view.theme.system" => self.set_theme_preference(ThemePreference::System),
             "view.theme.light" => self.set_theme_preference(ThemePreference::Light),
             "view.theme.dark" => self.set_theme_preference(ThemePreference::Dark),
+            "view.tinta_look" => self.set_tinta_look(!crate::tinta_theme::on()),
             "view.fit_visible" => {
                 if let Some(i) = self.active
                     && let Err(e) = self.fit_visible(i)
