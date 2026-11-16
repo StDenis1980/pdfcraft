@@ -15,6 +15,13 @@ PDFCRAFT_BRAND_SUPPORT = "https://tintaoffice.com/#contact"
 PDFCRAFT_BRAND_REPORT = "https://github.com/StDenis1980/pdfcraft/issues/new/choose"
 # Tinta Office: where error reports go once the person allowed them (apps/pdfcraft/src/tinta_report.rs).
 TINTA_REPORT_URL = "https://report.tintaoffice.com"
+# aws-lc (digital signatures and TLS, through aws-lc-rs) detects the CPU when `main` asks it to
+# (`pdfcraft_sign::init_crypto`), not in a static initializer before `main`. On x86 it reads
+# `OPENSSL_ia32cap` then, and aborts when that asks for a feature the processor lacks; each
+# executable first runs itself again without the variable (#2916, `pdfcraft_platform::crypto_env`),
+# which it can only do once `main` runs.
+AWS_LC_SYS_CFLAGS = "-DBORINGSSL_NO_STATIC_INITIALIZER"
+
 # WebAssembly SIMD (every current browser has it; there's no runtime detection on wasm). The OCR
 # engine's kernels (rten-simd) and other vectorised code only use it when compiled in.
 [target.wasm32-unknown-unknown]

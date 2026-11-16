@@ -30,6 +30,7 @@ pub mod mcp;
 mod measure;
 mod model3d;
 mod model_render;
+mod print_colour;
 mod printing;
 mod reading;
 mod redact;
@@ -127,7 +128,17 @@ impl Automation {
         pdfcraft_engine::set_document_converter(
             pdfcraft_engine::DocumentConverter {
                 extensions: pdfcraft_platform::office::ALL_EXTENSIONS,
-                convert: |name, bytes| pdfcraft_platform::office::convert(name, bytes).map_err(|e| e.to_string()),
+                // Without the suite's app, LibreOffice (upstream's converter) when it is installed.
+                convert: |name, bytes| {
+                    pdfcraft_platform::office::convert(name, bytes).or_else(|e| match e {
+                        pdfcraft_platform::office::OfficeError::NotInstalled(_) => {
+                            pdfcraft_engine::office_to_pdf(name, &std::sync::Arc::new(bytes.to_vec()))
+                                .map(|pdf| pdf.to_vec())
+                                .map_err(|_| e.to_string())
+                        }
+                        e => Err(e.to_string()),
+                    })
+                },
             },
             false,
         );

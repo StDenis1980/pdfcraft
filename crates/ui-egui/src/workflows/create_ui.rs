@@ -43,9 +43,6 @@ pub(crate) fn image_import_body(ui: &mut egui::Ui, app: &mut PdfCraftApp) -> (bo
     (go, cancel)
 }
 
-/// File types Open accepts besides PDF (converted on open).
-pub use pdfcraft_engine::CONVERTIBLE;
-
 /// What Create ▸ Clipboard found on the clipboard.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Clip {
@@ -90,14 +87,8 @@ pub(crate) fn png_from_rgba(width: usize, height: usize, rgba: &[u8]) -> Result<
     if w == 0 || h == 0 || width > MAX_IMAGE_SIDE || height > MAX_IMAGE_SIDE || expected != Some(rgba.len()) || rgba.len() > MAX_IMAGE_BYTES {
         return Err("the clipboard image is empty, malformed or exceeds size limits".into());
     }
-    let mut out = Vec::new();
-    let mut enc = png::Encoder::new(&mut out, w, h);
-    enc.set_color(png::ColorType::Rgba);
-    enc.set_depth(png::BitDepth::Eight);
-    let mut writer = enc.write_header().map_err(|e| e.to_string())?;
-    writer.write_image_data(rgba).map_err(|e| e.to_string())?;
-    writer.finish().map_err(|e| e.to_string())?;
-    Ok(out)
+    let img = craft_image_codecs::Image::from_u8(w, h, craft_image_codecs::ChannelLayout::Rgba, rgba.to_vec()).map_err(|e| e.to_string())?;
+    craft_image_codecs::encode(&img, craft_image_codecs::Format::Png, &craft_image_codecs::EncodeOptions::default()).map_err(|e| e.to_string())
 }
 
 /// Tinta Office fork: the PDF of an Office file (by its name, when its bytes are not a PDF, an
@@ -105,7 +96,8 @@ pub(crate) fn png_from_rgba(width: usize, height: usize, rgba: &[u8]) -> Result<
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn office_pdf(name: &str, bytes: &[u8]) -> Option<Result<Vec<u8>, String>> {
     pdfcraft_platform::office::OfficeApp::for_name(name)?;
-    if pdfcraft_engine::source_kind(name, bytes).is_some() {
+    use pdfcraft_engine::SourceKind;
+    if matches!(pdfcraft_engine::source_kind(name, bytes), Some(SourceKind::Pdf | SourceKind::Image | SourceKind::Text)) {
         return None;
     }
     Some(office_convert(name, bytes))
@@ -115,12 +107,14 @@ pub(crate) fn office_pdf(name: &str, bytes: &[u8]) -> Option<Result<Vec<u8>, Str
 #[cfg(not(target_arch = "wasm32"))]
 fn office_convert(name: &str, bytes: &[u8]) -> Result<Vec<u8>, String> {
     use pdfcraft_platform::office::{OfficeError, convert};
-    convert(name, bytes).map_err(|e| match e {
-        // The one most people meet: said in their language.
-        OfficeError::NotInstalled(app) => {
-            crate::i18n::fmt(tl!("this needs {app}, which is not installed; install it from tintaoffice.com"), &[("app", app.name())])
-        }
-        e => e.to_string(),
+    convert(name, bytes).or_else(|e| match e {
+        // Without the suite's app, LibreOffice (upstream's converter) when it is installed.
+        OfficeError::NotInstalled(app) => match pdfcraft_engine::office_to_pdf(name, &std::sync::Arc::new(bytes.to_vec())) {
+            Ok(pdf) => Ok(pdf.to_vec()),
+            // The one most people meet: said in their language.
+            Err(_) => Err(crate::i18n::fmt(tl!("this needs {app}, which is not installed; install it from tintaoffice.com"), &[("app", app.name())])),
+        },
+        e => Err(e.to_string()),
     })
 }
 
@@ -139,8 +133,10 @@ fn stem(name: &str) -> &str {
 }
 
 impl PdfCraftApp {
-    /// Convert a non-PDF file (image, text) into a new tab. Returns `None` when `bytes` is not
-    /// something Create understands (the caller then tries to open it as a PDF).
+    /// Convert a non-PDF file (image, text, Office document) into a new tab. Returns `None` when
+    /// `bytes` is not something Create understands (the caller then tries to open it as a PDF).
+    /// An Office document blocks while LibreOffice runs: File ▸ Open converts it on the open
+    /// worker instead ([`Self::open_converted_pdf`]), leaving this for startup and inline opens.
     pub(crate) fn open_converted(&mut self, name: &str, bytes: &[u8]) -> Option<Result<(), String>> {
         use pdfcraft_engine::SourceKind;
         // Tinta Office fork: Word, Excel and PowerPoint files are converted by the suite's app
@@ -150,11 +146,17 @@ impl PdfCraftApp {
         if let Some(pdf) = office_pdf(name, bytes) {
             return Some(self.open_office_pdf(name, pdf));
         }
-        if !matches!(pdfcraft_engine::source_kind(name, bytes), Some(SourceKind::Image | SourceKind::Text)) {
+        if !matches!(pdfcraft_engine::source_kind(name, bytes), Some(SourceKind::Image | SourceKind::Text | SourceKind::Office)) {
             return None;
         }
         let created = self.session.convert_to_pdf(name, &Arc::new(bytes.to_vec())).map(|(_, pdf)| pdf);
-        Some(self.open_created_bytes(&format!("{}.pdf", stem(name)), created.map_err(|e| e.to_string())))
+        Some(self.open_converted_pdf(name, created.map_err(|e| e.to_string())))
+    }
+
+    /// Open `created`, the PDF converted from the file `name`, as a new, unsaved tab named after
+    /// it (`Report.docx` → `Report.pdf`).
+    pub(crate) fn open_converted_pdf(&mut self, name: &str, created: Result<Arc<Vec<u8>>, String>) -> Result<(), String> {
+        self.open_created_bytes(&format!("{}.pdf", stem(name)), created)
     }
 
     /// Tinta Office fork: open the PDF an Office file `name` was converted to as a new, unsaved
