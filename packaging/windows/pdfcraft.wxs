@@ -90,6 +90,11 @@
     </Property>
     <SetProperty Id="INSTALLIMAGECONTEXTMENU" Value="1" After="AppSearch" Sequence="first"
         Condition="NOT INSTALLIMAGECONTEXTMENU AND (NOT IMAGECONTEXTMENURELEASE OR EXISTINGIMAGECONTEXTMENU)" />
+    <!-- The install folder can be chosen in the welcome dialog (upstream #1139). An update installs
+         into the folder the installed version recorded, unless one is given on the command line. -->
+    <Property Id="INSTALLFOLDER" Secure="yes">
+      <RegistrySearch Id="InstallDirSearch" Root="HKLM" Key="Software\Tinta Office\Tinta PDF" Name="InstallDir" Type="raw" />
+    </Property>
     <UIRef Id="PdfcraftInstallerUI" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
@@ -122,6 +127,9 @@
         <File Id="PdfcraftExe" Source="$(var.BinDir)\pdfcraft.exe" KeyPath="yes" />
 
         <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\pdfcraft.exe" Value="[#PdfcraftExe]" Type="string" />
+        <!-- The folder chosen in the welcome dialog, read back by the next update (INSTALLFOLDER's
+             RegistrySearch above) so it installs where this version is. -->
+        <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
 
         <!-- PDF files (#107): Tinta PDF is offered under "Open with" and in Settings ▸ Default
              apps, through Windows' Default Programs registration (a ProgID, OpenWithProgids,
@@ -158,14 +166,14 @@
            on uninstall; in this per-machine package both folders are the all-users ones. -->
       <Component Id="PdfcraftStartMenuShortcut" Directory="ProgramMenuFolder" Guid="CA07DC02-5F76-41E8-B4FC-646E79E88E01">
         <Shortcut Id="StartMenuShortcut" Name="Tinta PDF" Description="Open-source PDF workbench"
-            Target="[#PdfcraftExe]" WorkingDirectory="INSTALLFOLDER" Icon="PdfcraftIcon.ico" IconIndex="0" />
+            Target="[#PdfcraftExe]" WorkingDirectory="INSTALLFOLDER" />
         <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Shortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
       </Component>
 
       <Component Id="PdfcraftDesktopShortcut" Directory="DesktopFolder" Guid="0FC90F94-C01B-4BF3-9476-611C28F9218E"
           Condition="INSTALLDESKTOPSHORTCUT = 1">
         <Shortcut Id="DesktopShortcut" Name="Tinta PDF" Description="Open-source PDF workbench"
-            Target="[#PdfcraftExe]" WorkingDirectory="INSTALLFOLDER" Icon="PdfcraftIcon.ico" IconIndex="0" />
+            Target="[#PdfcraftExe]" WorkingDirectory="INSTALLFOLDER" />
         <RegistryValue Root="HKLM" Key="Software\Tinta Office\Tinta PDF\Shortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
       </Component>
 
@@ -182,6 +190,13 @@
         <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit" Name="Icon" Value="&quot;[#PdfcraftExe]&quot;,0" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit" Name="MultiSelectModel" Value="Document" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Edit\command" Value="&quot;[#PdfcraftExe]&quot; &quot;%1&quot;" Type="string" />
+        <!-- "Combine files in Tinta PDF" (upstream #585), on the same switch: each selected file starts
+             one launch with the combine option, and the running Tinta PDF collects them into its
+             Combine dialog. -->
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Combine" Value="Combine files in Tinta PDF" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Combine" Name="Icon" Value="&quot;[#PdfcraftExe]&quot;,0" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Combine" Name="MultiSelectModel" Value="Document" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Combine\command" Value="&quot;[#PdfcraftExe]&quot; --combine &quot;%1&quot;" Type="string" />
       </Component>
 
       <!-- Image context menu (#190): "Create PDF with Tinta PDF…" opens the DPI chooser, without

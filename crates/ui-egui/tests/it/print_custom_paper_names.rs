@@ -1,5 +1,5 @@
 //! A custom paper cannot take the name of a standard one: papers are looked up by name, so the
-//! standard size would be found first and a remembered custom paper would come back as it.
+//! standard size would be found first and a printer's custom paper (#2001) would come back as it.
 
 use egui::accesskit::Role;
 use egui_kittest::Harness;
@@ -53,7 +53,6 @@ fn a_custom_paper_cannot_take_a_standard_name() {
     let paper = |name: &str| serde_json::json!({ "name": name, "width": 288.0, "height": 432.0 });
     let settings = serde_json::json!({
         "print_custom_papers": [paper("A4"), paper("Label"), paper("us letter")],
-        "print_paper_by_printer": { "": "A4" },
     });
     let mut fresh = PdfCraftApp::new();
     fresh.restore(&settings.to_string());

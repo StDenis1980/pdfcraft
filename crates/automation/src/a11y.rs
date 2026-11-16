@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use crate::{Args, Automation, Result, ToolError, child, failed, write_atomic};
 
 mod documents;
-mod form_tools;
+pub(crate) mod form_tools;
 mod ocr;
 
 fn status_id(s: Status) -> &'static str {
@@ -217,7 +217,7 @@ impl Automation {
         let tags = self.accessibility_tags(a)?;
         let out = json!({
             "tags": tags["tags"], "count": tags["count"],
-            "note": "Text objects were tagged as paragraphs. Review heading roles, reading order and remaining accessibility findings manually.",
+            "note": "Text objects were tagged as headings (H1-H6, by size and weight against the body text) or paragraphs. Review heading roles, reading order and remaining accessibility findings manually.",
         });
         Ok(with_warnings(out, warnings))
     }
@@ -555,6 +555,20 @@ impl Automation {
         let warnings =
             self.apply_with_warnings(id, pdfcraft_engine::Edit::MarkTagArtifact { object: pdfcraft_cos::ObjRef::new(object, generation) })?;
         Ok(with_warnings(self.accessibility_tags(a)?, warnings))
+    }
+
+    pub(crate) fn accessibility_layout_table_to_blocks(&mut self, a: &Args) -> Result<Value> {
+        let object = u32::try_from(a.int("object")?).map_err(|_| ToolError::InvalidArgs("object must be a positive tag object number".into()))?;
+        if object == 0 {
+            return Err(ToolError::InvalidArgs("object must be a positive tag object number".into()));
+        }
+        let generation = u16::try_from(a.int("generation")?)
+            .map_err(|_| ToolError::InvalidArgs("generation must be a PDF object generation from accessibility_tags".into()))?;
+        let id = self.doc(a)?.id;
+        self.session
+            .apply(id, pdfcraft_engine::Edit::LayoutTableToBlocks { object: pdfcraft_cos::ObjRef::new(object, generation) })
+            .map_err(failed)?;
+        self.accessibility_tags(a)
     }
 
     pub(crate) fn accessibility_move_tag(&mut self, a: &Args) -> Result<Value> {

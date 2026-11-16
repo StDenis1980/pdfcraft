@@ -3,7 +3,8 @@
 
 use egui_kittest::Harness;
 use pdfcraft_engine::print::spool::Printer;
-use pdfcraft_ui_egui::PdfCraftApp;
+use pdfcraft_engine::print::{PAPERS, SizeMode};
+use pdfcraft_ui_egui::{PdfCraftApp, PrinterSetup};
 use std::sync::{Arc, Mutex};
 
 fn harness() -> Harness<'static, PdfCraftApp> {
@@ -41,26 +42,25 @@ fn a_late_list_keeps_the_paper_picked_meanwhile() {
     h.run_steps(4);
     assert_eq!(h.state().print_draft.printer.as_deref(), Some("Office"));
 
-    // "Office" is remembered with Tabloid (the third size).
-    h.state_mut().print_draft.remembered_paper.insert("Office".into(), "Tabloid".into());
+    // "Office" was last printed on Tabloid (#2001).
+    let tabloid = PAPERS.iter().position(|(name, _)| *name == "Tabloid").unwrap();
+    let setup = PrinterSetup { paper: "Tabloid".into(), size: SizeMode::Fit, custom_scale: 100.0, duplex: None };
+    h.state_mut().print_draft.setups.push(("Office".into(), setup));
+    h.state_mut().print_draft.apply_setup();
+    assert_eq!(h.state().print_draft.paper, tabloid);
     h.state_mut().dialog = None;
     let hold = gate.lock().unwrap();
     assert!(h.state_mut().execute("print.dialog"));
     h.run_steps(2);
     assert!(h.state().print_draft.printers_loading, "the fresh list is still being read");
     assert_eq!(h.state().print_draft.printer.as_deref(), Some("Office"), "last time's list shows at once");
-    assert_eq!((h.state().print_draft.paper_name().as_str(), h.state().print_draft.remember_paper), ("Tabloid", true));
 
-    // Meanwhile the person picks another paper and unticks Remember.
-    {
-        let d = &mut h.state_mut().print_draft;
-        d.paper = 0;
-        d.remember_paper = false;
-    }
+    // Meanwhile the person picks another paper.
+    h.state_mut().print_draft.paper = 0;
     drop(hold);
     wait_for_list(&mut h);
     h.run_steps(2);
     let d = &h.state().print_draft;
     assert_eq!(d.printer.as_deref(), Some("Office"), "the same printer");
-    assert_eq!((d.paper, d.remember_paper), (0, false), "the paper and the Remember box are as they were left");
+    assert_eq!(d.paper, 0, "the paper is as it was left, not the printer's setup again");
 }

@@ -373,18 +373,26 @@ impl Ocr {
         let source = ocrs::ImageSource::from_bytes(&rgb, (width, height)).map_err(|e| err(&e))?;
         let input = self.engine.prepare_input(source).map_err(|e| err(&e))?;
         let found = self.detect(&rgb, width, height)?;
-        let lines = self.engine.find_text_lines(&input, &found);
+        let mut lines = self.engine.find_text_lines(&input, &found);
+        // Upstream (2026-11): each line is widened before it is read, so its first and last
+        // letters are not cut off, and the words are clipped back to the line found.
+        let before: Vec<_> = lines.iter_mut().map(|l| crate::ocrs::pad_line(l)).collect();
         let read = self.engine.recognize_text(&input, &lines).map_err(|e| err(&e))?;
         use ocrs::TextItem;
         Ok(read
             .into_iter()
-            .flatten()
-            .map(|line| Line {
+            .zip(before)
+            .filter_map(|(line, before)| line.map(|l| (l, before)))
+            .map(|(line, before)| Line {
                 words: line
                     .words()
                     .map(|w| {
                         let r = w.bounding_rect();
-                        Word::new(w.to_string(), [r.left() as f32, r.top() as f32, r.right() as f32, r.bottom() as f32], "ocrs")
+                        Word::new(
+                            w.to_string(),
+                            crate::ocrs::clip([r.left() as f32, r.top() as f32, r.right() as f32, r.bottom() as f32], before),
+                            "ocrs",
+                        )
                     })
                     .filter(|w| !w.text.trim().is_empty())
                     .collect(),

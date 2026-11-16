@@ -139,7 +139,9 @@ foreach ($entry in @(@('StartMenuShortcut', 'ProgramMenuFolder', 'PdfcraftStartM
   $row = Read-Row ('SELECT `Directory_`, `Target`, `Icon_`, `WkDir`, `Component_` FROM `Shortcut` WHERE `Shortcut` = ''' + $entry[0] + '''') 5
   Assert-Equal $row[0] $entry[1] "$($entry[0]) directory"
   Assert-Equal $row[1] '[#PdfcraftExe]' "$($entry[0]) target"
-  Assert-Equal $row[2] 'PdfcraftIcon.ico' "$($entry[0]) icon"
+  # No Icon table entry: the shortcut takes pdfcraft.exe's own icon, so a pinned taskbar button
+  # keeps it (upstream).
+  Assert-Equal $row[2] '' "$($entry[0]) icon"
   Assert-Equal $row[3] 'INSTALLFOLDER' "$($entry[0]) working directory"
   Assert-Equal $row[4] $entry[2] "$($entry[0]) component"
   $component = Read-Row ('SELECT `Directory_`, `Condition` FROM `Component` WHERE `Component` = ''' + $entry[2] + '''') 2
@@ -292,10 +294,53 @@ if (($secure[0] -split ';') -notcontains 'INSTALLPDFCONTEXTMENU') { throw "INSTA
 $pdfCheckbox = Read-Row 'SELECT `Type`, `Property`, `Text` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''PdfContextMenu''' 3
 Assert-Equal $pdfCheckbox[0] 'CheckBox' 'Welcome PDF context-menu control'
 Assert-Equal $pdfCheckbox[1] 'INSTALLPDFCONTEXTMENU' 'Welcome PDF context-menu property'
-if ($pdfCheckbox[2] -notmatch 'Edit with Tinta PDF') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
+if ($pdfCheckbox[2] -notmatch '&Edit' -or $pdfCheckbox[2] -notmatch 'Combine files') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
 $pdfChecked = Read-Row 'SELECT `Value` FROM `CheckBox` WHERE `Property` = ''INSTALLPDFCONTEXTMENU''' 1
 Assert-Equal $pdfChecked[0] '1' 'Welcome PDF context-menu value'
 Assert-NoRow 'SELECT `Registry` FROM `Registry` WHERE `Key` = ''Software\Classes\.pdf'' AND `Name` IS NULL' '.pdf default app'
+
+# "Combine files in Tinta PDF" (upstream #585): in the PDF menu's component, so the one switch covers
+# both verbs. Each selected file starts `pdfcraft --combine "<file>"` (Document), and the running
+# Tinta PDF collects them into its Combine files tab.
+$combineKey = 'Software\Classes\SystemFileAssociations\.pdf\shell\TintaPDF.Combine'
+$combineMenu = Read-Row ('SELECT `Value`, `Component_`, `Root` FROM `Registry` WHERE `Key` = ''' + $combineKey + ''' AND `Name` IS NULL') 3
+Assert-Equal $combineMenu[0] 'Combine files in Tinta PDF' 'Combine verb label'
+Assert-Equal $combineMenu[1] 'PdfcraftPdfContextMenu' 'Combine verb component'
+Assert-Equal $combineMenu[2] '2' 'Combine verb HKLM root'
+foreach ($value in @(@('Icon', '"[#PdfcraftExe]",0'), @('MultiSelectModel', 'Document'))) {
+  $row = Read-Row ('SELECT `Value`, `Component_` FROM `Registry` WHERE `Key` = ''' + $combineKey + ''' AND `Name` = ''' + $value[0] + '''') 2
+  Assert-Equal $row[0] $value[1] "Combine verb $($value[0])"
+  Assert-Equal $row[1] 'PdfcraftPdfContextMenu' "Combine verb $($value[0]) component"
+}
+$combineCommand = Read-Row ('SELECT `Value`, `Component_` FROM `Registry` WHERE `Key` = ''' + $combineKey + '\command''') 2
+Assert-Equal $combineCommand[0] '"[#PdfcraftExe]" --combine "%1"' 'Combine verb command'
+Assert-Equal $combineCommand[1] 'PdfcraftPdfContextMenu' 'Combine verb command component'
+
+# Install folder (upstream #1139): the welcome dialog's "Install to" row (a PathEdit, and Browse…
+# into a native folder browser). An update reads back the folder the installed version recorded.
+$installTo = Read-Row 'SELECT `Type`, `Property` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''InstallTo''' 2
+Assert-Equal $installTo[0] 'PathEdit' 'Welcome install-folder control'
+Assert-Equal $installTo[1] 'INSTALLFOLDER' 'Welcome install-folder property'
+$browse = Read-Row 'SELECT `Event`, `Argument` FROM `ControlEvent` WHERE `Dialog_` = ''InstallWelcome'' AND `Control_` = ''Browse''' 2
+Assert-Equal $browse[0] 'SpawnDialog' 'Welcome Browse event'
+Assert-Equal $browse[1] 'BrowseFolder' 'Welcome Browse dialog'
+$setPath = Read-Row 'SELECT `Ordering` FROM `ControlEvent` WHERE `Dialog_` = ''InstallWelcome'' AND `Control_` = ''Install'' AND `Event` = ''SetTargetPath'' AND `Argument` = ''INSTALLFOLDER''' 1
+$endWelcome = Read-Row 'SELECT `Ordering` FROM `ControlEvent` WHERE `Dialog_` = ''InstallWelcome'' AND `Control_` = ''Install'' AND `Event` = ''EndDialog''' 1
+if ([int] $setPath[0] -ge [int] $endWelcome[0]) { throw 'Install must set the install folder before closing the welcome dialog' }
+foreach ($control in @('DirectoryCombo', 'DirectoryList', 'PathEdit')) {
+  $row = Read-Row ('SELECT `Type`, `Property` FROM `Control` WHERE `Dialog_` = ''BrowseFolder'' AND `Control` = ''' + $control + '''') 2
+  Assert-Equal $row[0] $control "Browse $control control"
+  Assert-Equal $row[1] 'INSTALLFOLDER' "Browse $control property"
+}
+$browseOk = Read-Row 'SELECT `Argument` FROM `ControlEvent` WHERE `Dialog_` = ''BrowseFolder'' AND `Control_` = ''OK'' AND `Event` = ''SetTargetPath''' 1
+Assert-Equal $browseOk[0] 'INSTALLFOLDER' 'Browse OK sets the folder'
+if (($secure[0] -split ';') -notcontains 'INSTALLFOLDER') { throw "INSTALLFOLDER is not secure: '$($secure[0])'" }
+$installDir = Read-Row 'SELECT `Value`, `Root` FROM `Registry` WHERE `Key` = ''Software\Tinta Office\Tinta PDF'' AND `Name` = ''InstallDir''' 2
+Assert-Equal $installDir[0] '[INSTALLFOLDER]' 'Recorded install folder'
+Assert-Equal $installDir[1] '2' 'Recorded install folder HKLM root'
+$installDirSearch = Read-Row 'SELECT `Root`, `Key`, `Name` FROM `RegLocator` WHERE `Signature_` = ''InstallDirSearch''' 3
+Assert-Equal $installDirSearch[1] 'Software\Tinta Office\Tinta PDF' 'Install folder search key'
+Assert-Equal $installDirSearch[2] 'InstallDir' 'Install folder search value'
 
 # Negative sequences are Windows Installer's success/user-exit/failure paths. Only full UI
 # shows these dialogs: an unattended /qn or /qb install must never wait for a Finish click.
@@ -330,4 +375,4 @@ $rm = Read-Row 'SELECT `Dialog` FROM `Dialog` WHERE `Dialog` = ''MsiRMFilesInUse
 Assert-Equal $rm[0] 'MsiRMFilesInUse' 'Files-in-use dialog'
 [void] [Runtime.InteropServices.Marshal]::FinalReleaseComObject($Database)
 [void] [Runtime.InteropServices.Marshal]::FinalReleaseComObject($Installer)
-Write-Output 'ok MSI: per-machine scope guard, Tinta PDF identity (name, publisher, folder, links, UpgradeCode, ProgID), persistent progress text, Start Menu shortcut, optional desktop shortcut and PDF and image context menus (on for a first install, kept on update only while present; checkboxes for the first two), icon/key path, full-UI success/cancel/error and Finish controls, files-in-use dialog, OCR models'
+Write-Output 'ok MSI: per-machine scope guard, Tinta PDF identity (name, publisher, folder, links, UpgradeCode, ProgID), persistent progress text, Start Menu shortcut, optional desktop shortcut and PDF and image context menus (on for a first install, kept on update only while present; checkboxes for the first two), install-folder chooser, Combine files verb, icon/key path, full-UI success/cancel/error and Finish controls, files-in-use dialog, OCR models'
