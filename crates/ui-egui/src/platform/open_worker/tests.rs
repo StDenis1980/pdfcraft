@@ -1036,7 +1036,11 @@ fn file_open_converts_an_office_document_on_the_worker() {
         assert!(doc.path.is_none(), "the converted PDF is new and unsaved, not the .docx on disk");
     } else {
         let message = app.toast.as_ref().map(|(message, _)| message.clone()).unwrap_or_default();
-        assert!(message.contains("LibreOffice, which isn't installed"), "the failure names the missing dependency: {message}");
+        // Tinta Office fork: Office files convert through the suite's app (Tinta Texto for Word).
+        assert!(
+            message.contains("LibreOffice, which isn't installed") || message.contains("Tinta Texto, which is not installed"),
+            "the failure names the missing dependency: {message}"
+        );
     }
 }
 

@@ -71,10 +71,11 @@ impl Automation {
             let inside = |path: &std::path::Path| self.resolve(&path.to_string_lossy(), false).is_ok();
             return Ok(colour::installed_profiles_where(std::slice::from_ref(root), &inside));
         };
-        let read = roots
-            .read_root()
-            .ok_or_else(|| failed("automation filesystem access is not granted: read authority is absent: installed colour profiles"))?;
-        let folders = vec![self.resolve(&read.to_string_lossy(), false)?];
+        // The fork takes repeated read roots (upstream PR #4064): each of them is searched.
+        let folders = roots.read_roots().map(|read| self.resolve(&read.to_string_lossy(), false)).collect::<Result<Vec<_>>>()?;
+        if folders.is_empty() {
+            return Err(failed("automation filesystem access is not granted: read authority is absent: installed colour profiles"));
+        }
         let inside = |path: &std::path::Path| roots.check(&path.to_string_lossy(), crate::file_access::Access::Read).is_ok();
         Ok(colour::installed_profiles_where(&folders, &inside))
     }

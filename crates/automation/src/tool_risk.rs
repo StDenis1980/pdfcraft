@@ -54,6 +54,8 @@ const READS_DISK: &[&str] = &[
     "ocr_dictionary",
     "link_open",
     "text_font_files",
+    // The installed colour profiles, or those in the read roots.
+    "print_color_profiles",
     "text_font_import",
 ];
 
@@ -99,7 +101,7 @@ const WRITES_DISK: &[&str] = &[
 const NETWORK: &[&str] = &["sign_timestamp"];
 
 /// Tools that print, or ask the system's print spooler.
-const PRINT: &[&str] = &["doc_print", "printers", "printer_options"];
+const PRINT: &[&str] = &["doc_print", "printers", "printer_options", "printer_papers"];
 
 /// Tools that sign, or change which certificates are trusted.
 const SIGN: &[&str] = &["sign_document", "sign_timestamp", "sign_id_create", "sign_trust"];
@@ -110,7 +112,21 @@ const OTHER_PROGRAM: &[&str] =
     &["doc_open", "doc_create", "doc_combine", "doc_create_multiple", "doc_batch", "page_insert_file", "sign_windows_ids", "sign_keychain_ids"];
 
 /// Tools that run other tools, steps or scripts.
-const RUNS_COMMANDS: &[&str] = &["command_run", "command_batch", "doc_batch", "action_run", "js_run", "form_set_script", "js_set_document_script"];
+// The document's own JavaScript runs too in js_event, js_page, js_advance (its timers) and
+// link_run_javascript.
+const RUNS_COMMANDS: &[&str] = &[
+    "command_run",
+    "command_batch",
+    "doc_batch",
+    "action_run",
+    "js_run",
+    "form_set_script",
+    "js_set_document_script",
+    "js_event",
+    "js_page",
+    "js_advance",
+    "link_run_javascript",
+];
 
 /// Tools that write a file from a document but leave the document as it was.
 const KEEPS_DOCUMENT: &[&str] = &[

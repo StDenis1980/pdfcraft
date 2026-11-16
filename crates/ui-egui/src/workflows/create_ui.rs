@@ -96,6 +96,7 @@ pub(crate) fn png_from_rgba(width: usize, height: usize, rgba: &[u8]) -> Result<
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn office_pdf(name: &str, bytes: &[u8]) -> Option<Result<Vec<u8>, String>> {
     pdfcraft_platform::office::OfficeApp::for_name(name)?;
+    use pdfcraft_engine::SourceKind;
     if matches!(pdfcraft_engine::source_kind(name, bytes), Some(SourceKind::Pdf | SourceKind::Image | SourceKind::Text)) {
         return None;
     }

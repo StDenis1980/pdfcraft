@@ -203,8 +203,9 @@ fn office_files() -> Option<(tempfile::TempDir, Automation)> {
     std::fs::write(dir.path().join("notes.rtf"), rtf("Pangolin notes")).unwrap();
     let mut a = auto(dir.path());
     match a.call("doc_create_multiple", &json!({ "paths": ["notes.rtf"] })) {
-        Err(ToolError::Failed(e)) if e.contains("needs LibreOffice") => {
-            eprintln!("skipped: LibreOffice isn't installed");
+        // Tinta Office fork: Office files convert through the suite's own apps (Tinta Texto…).
+        Err(ToolError::Failed(e)) if e.contains("needs LibreOffice") || e.contains("which is not installed") => {
+            eprintln!("skipped: the converting app isn't installed");
             None
         }
         _ => Some((dir, a)),

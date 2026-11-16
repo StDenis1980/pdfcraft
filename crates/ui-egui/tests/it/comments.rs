@@ -4633,7 +4633,7 @@ fn hotbar_picker_adds_and_runs_freehand_highlight() {
     let mut h = harness(|_| {});
     h.get_by_label("Hotbar settings").click();
     h.run_steps(3);
-    field(&h, pdfcraft_ui_egui::i18n::tr(fr, "Search all tools…")).click();
+    field(&h, "Search all tools…").click();
     h.run_steps(2);
     field(&h, "Search all tools…").type_text("freehand");
     h.run_steps(3);

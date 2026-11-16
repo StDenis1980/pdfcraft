@@ -6,6 +6,7 @@ accessibility_check	reads_document
 accessibility_figures	reads_document
 accessibility_find_untagged	reads_document
 accessibility_fix	changes_document,reads_document
+accessibility_layout_table_to_blocks	changes_document,reads_document
 accessibility_mark_tag_artifact	changes_document,reads_document
 accessibility_move_tag	changes_document,reads_document
 accessibility_report	reads_document,writes_disk
@@ -21,6 +22,7 @@ action_list
 action_run	reads_disk,runs_commands,writes_disk
 attachment_add	changes_document,reads_disk,reads_document
 attachment_delete	changes_document,reads_document
+attachment_edit	changes_document,reads_document
 bookmark_add	changes_document,reads_document
 bookmark_copy	changes_document,reads_document
 bookmark_delete	changes_document,reads_document
@@ -43,6 +45,7 @@ comment_image_preview	reads_document
 comment_list	reads_document
 comment_lock	changes_document,reads_document
 comment_mark	changes_document,reads_document
+comment_popup	changes_document,reads_document
 comment_reply	changes_document,reads_document
 comment_set_status	changes_document,reads_document
 comments_copy	reads_document
@@ -64,6 +67,7 @@ doc_combine	other_program,reads_disk,writes_disk
 doc_compare	reads_document
 doc_compare_mark	changes_document,reads_document
 doc_compare_report	reads_document,writes_disk
+doc_convert_colours	changes_document,reads_document
 doc_create	other_program,reads_disk
 doc_create_multiple	other_program,reads_disk,writes_disk
 doc_export_all_images	reads_document,writes_disk
@@ -84,6 +88,7 @@ doc_open	other_program,reads_disk
 doc_open_revision	changes_document,reads_document
 doc_optimize	reads_document,writes_disk
 doc_print	print,reads_document,writes_disk
+doc_printer_marks	changes_document,reads_document
 doc_protect	changes_document,reads_document
 doc_reduce	reads_document,writes_disk
 doc_remove_hidden	changes_document,reads_document
@@ -106,6 +111,7 @@ form_delete_field	changes_document,reads_document
 form_detect_fields	changes_document,reads_document
 form_fields	reads_document
 form_fill	changes_document,reads_document
+form_focus	changes_document,reads_document
 form_merge_data	reads_disk,writes_disk
 form_reset	changes_document,reads_document
 form_set_actions	changes_document,reads_document
@@ -116,8 +122,11 @@ form_tab_order	changes_document,reads_document
 image_edit	changes_document,reads_document
 image_hit	reads_document
 image_save	reads_document,writes_disk
+js_advance	changes_document,reads_document,runs_commands
 js_document_scripts	reads_document
 js_enabled	
+js_event	changes_document,reads_document,runs_commands
+js_page	changes_document,reads_document,runs_commands
 js_run	changes_document,reads_document,runs_commands
 js_set_document_script	changes_document,reads_document,runs_commands
 layer_set	changes_document,reads_document
@@ -126,6 +135,7 @@ link_delete	changes_document,reads_document
 link_edit	changes_document,reads_document
 link_list	reads_document
 link_open	changes_document,reads_disk,reads_document
+link_run_javascript	changes_document,reads_document,runs_commands
 links_from_urls	changes_document,reads_document
 links_remove	changes_document,reads_document
 measure_area	changes_document,reads_document
@@ -168,8 +178,10 @@ page_set_box	changes_document,reads_document
 page_transition_set	changes_document,reads_document
 pdfa_convert	changes_document,reads_document
 pdfa_verify	reads_document
+print_color_profiles	reads_disk
 print_readiness	reads_document
 printer_options	print
+printer_papers	print
 printers	print
 redact_apply	changes_document,reads_document
 redact_clear	changes_document,reads_document
@@ -194,6 +206,7 @@ text_fonts	reads_document
 text_lines	reads_document
 text_paragraphs	reads_document
 text_prepare	changes_document,reads_document
+text_replace	changes_document,reads_document
 text_script	changes_document,reads_document
 text_styles	reads_document
 text_word_count	reads_document

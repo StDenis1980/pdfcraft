@@ -401,14 +401,9 @@ pub fn encode_png(image: &ColorImage) -> Option<Vec<u8>> {
     if rgb.len() != w.checked_mul(h)?.checked_mul(3)? {
         return None;
     }
-    let mut out = Vec::new();
-    let mut encoder = png::Encoder::new(&mut out, u32::try_from(w).ok()?, u32::try_from(h).ok()?);
-    encoder.set_color(png::ColorType::Rgb);
-    encoder.set_depth(png::BitDepth::Eight);
-    let mut writer = encoder.write_header().ok()?;
-    writer.write_image_data(&rgb).ok()?;
-    writer.finish().ok()?;
-    Some(out)
+    // Upstream dropped the `png` crate for craft-image-codecs (as `create_ui` encodes its PNGs).
+    let img = craft_image_codecs::Image::from_u8(u32::try_from(w).ok()?, u32::try_from(h).ok()?, craft_image_codecs::ChannelLayout::Rgb, rgb).ok()?;
+    craft_image_codecs::encode(&img, craft_image_codecs::Format::Png, &craft_image_codecs::EncodeOptions::default()).ok()
 }
 
 /// The screenshot as sent: scaled to [`MAX_SHOT_SIDE`], then halved until it fits
