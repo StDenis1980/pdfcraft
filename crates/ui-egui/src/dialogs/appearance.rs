@@ -29,7 +29,7 @@ fn mode_command(preference: ThemePreference) -> &'static str {
 /// A miniature PdfCraft window in `kind`'s colours: title bar and tabs, the tool bar, the page
 /// thumbnails, a page on the pasteboard and the right-hand panel.
 fn preview(ui: &mut egui::Ui, kind: ThemeKind, width: f32) {
-    let p = Tokens::for_kind(kind);
+    let p = crate::tinta_theme::tokens(Tokens::for_kind(kind));
     let (rect, _) = ui.allocate_exact_size(vec2(width, 118.0), egui::Sense::hover());
     let painter = ui.painter_at(rect);
     painter.rect_filled(rect, 3.0, p.chrome);
@@ -179,6 +179,11 @@ pub(crate) fn preferences_section_with_context(
         ctx.scroll_if_first_match(&dark_resp, dark_matches);
     });
     ui.add_space(4.0);
+    // Tinta Office: the Tinta look, under the themes it colours.
+    let mut tinta = crate::tinta_theme::on();
+    if ctx.checkbox(ui, &mut tinta, tl!(crate::tinta_theme::LABEL), t).changed() {
+        app.execute("view.tinta_look");
+    }
     // Acrobat's "Highlight existing fields": shared with the toggle in the form bar.
     ctx.checkbox(ui, &mut app.view_defaults.highlight_fields, tl!("Highlight fields"), t);
 }

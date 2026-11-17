@@ -206,6 +206,8 @@ fn rejoin_split_paths(args: Vec<String>, exists: impl Fn(&str) -> bool) -> Vec<S
 }
 
 fn main() -> eframe::Result {
+    // Tinta Office: this app shows the Tinta look (tests and examples keep the classic one).
+    pdfcraft_ui_egui::tinta_theme::allow();
     // Before anything uses aws-lc: an `OPENSSL_ia32cap` naming a CPU feature this processor lacks
     // would stop it, so PdfCraft runs again without it (#2916, `crypto_env`).
     if let Some(code) = pdfcraft_platform::crypto_env::run_without_cpu_override() {
