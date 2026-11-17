@@ -1,8 +1,8 @@
 # Tinta PDF — Preview 4
 
-> **Status:** 2026-11-16 · draft for the Preview 4 release (10 December 2026), version 0.21.1, with
+> **Status:** 2026-11-17 · draft for the Preview 4 release (10 December 2026), version 0.21.1, with
 > the 16 November upstream sync · **Revision history:** 2026-11-16 created (changes from Preview 3,
-> 12 November, to #58). Updated at each weekly sync until the freeze on 7 December.
+> 12 November, to #58); 2026-11-17 added the Tinta Office look (#60). Updated at each weekly sync until the freeze on 7 December.
 
 Release notes for the GitHub release and the site, in Spanish, Ukrainian and English. Changes since
 Preview 3 (v0.18.1, 12 November 2026). Before publishing: build the Windows installers of all five
@@ -27,6 +27,8 @@ Novedades:
 - **Asistentes y automatización:** cada herramienta indica qué puede hacer (leer o cambiar el
   documento, leer o escribir en el disco, imprimir, firmar…), una sesión puede limitarse a ciertos
   comandos y admite varias carpetas permitidas.
+- **Aspecto de Tinta Office:** los colores y la forma de los controles de Tinta Correo (gris suave
+  con un toque rojo, esquinas más redondas), en claro y oscuro; una opción en Preferencias › Apariencia vuelve al aspecto clásico.
 - Del proyecto original (PdfCraft): muchas correcciones de formularios, firmas, impresión y modelos 3D.
 
 Limitaciones conocidas: la conversión de Word, Excel y PowerPoint depende de Tinta Texto, Calculo y
@@ -51,6 +53,8 @@ fondos de guilloche; no hay firma con DNIe ni tarjeta todavía.
 - **Асистенти й автоматизація:** кожен інструмент повідомляє, що він може робити (читати чи змінювати
   документ, читати чи писати на диск, друкувати, підписувати…); сеанс можна обмежити певними
   командами, і він приймає кілька дозволених папок.
+- **Вигляд Tinta Office:** кольори й форма елементів як у Tinta Correo (м'який сірий з червоним
+  відтінком, заокругленіші кути), у світлій і темній темі; перемикач у налаштуваннях (Вигляд) повертає класичний вигляд.
 - З основного проєкту (PdfCraft): багато виправлень форм, підписів, друку і 3D-моделей.
 
 Відомі обмеження: перетворення Word, Excel і PowerPoint залежить від Tinta Texto, Calculo й
@@ -75,6 +79,8 @@ What's new:
 - **Assistants and automation:** every tool says what it may do (read or change the document, read
   or write files, print, sign…); a session can be limited to some commands and takes several
   allowed folders.
+- **Tinta Office look:** Tinta Correo's colours and control shapes (soft grey with a touch of red,
+  rounder corners), light and dark; an option in Preferences › Appearance switches back to the classic look.
 - From the original project (PdfCraft): many fixes to forms, signatures, printing and 3D models.
 
 Known limits: Word, Excel and PowerPoint conversion depends on Tinta Texto, Calculo and Presenta
