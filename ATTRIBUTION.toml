@@ -19,7 +19,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Fork-only UI strings in languages other than English, looked up first by crates/ui-egui/src/i18n.rs"
-sha256 = "2830a3636d79c3e9220a6b8d250af8af41830bd05267b6c5adfcea86b582f2c7"
+sha256 = "be6cfb94e6cab672135fcb04b2b2b16453268bf62c24446b97505ba6fd8f2bb2"
 
 [[asset]]
 path = "docs/images/pdfcraft-ocr-verify.png"
