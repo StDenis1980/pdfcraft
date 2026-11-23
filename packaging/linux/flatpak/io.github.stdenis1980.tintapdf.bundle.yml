@@ -21,6 +21,8 @@ runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: pdfcraft
 finish-args:
+  # The shared updater inspects and updates this installation via flatpak-spawn --host.
+  - --talk-name=org.freedesktop.Flatpak
   # Display: Wayland first; X11 only when no Wayland compositor is running.
   - --socket=wayland
   - --socket=fallback-x11
@@ -127,5 +129,5 @@ modules:
         path: stage
       - type: git
         url: https://github.com/StDenis1980/craft-i18n
-        commit: 41f1949250a032de0f29f3d24f11988a765d74aa
+        commit: 40916365b525be0f71b0335fc3d59d5cea40beec
         dest: craft-i18n

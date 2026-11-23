@@ -200,7 +200,10 @@ impl Automation {
         // The move is made below the write folder where the system allows it (Linux: no link on the
         // way is followed, so a folder swapped for a link after the checks above can't carry the
         // file out). macOS and Windows keep the check-then-rename model.
-        let root = match (self.roots.as_ref().and_then(|r| r.write_root()), self.root.as_deref()) {
+        // Tinta Office: the fork keeps repeatable write roots (upstream #4022); the one that holds
+        // the document's own folder wins, else the first.
+        let writes: Vec<&Path> = self.roots.as_ref().map(|r| r.write_roots().collect()).unwrap_or_default();
+        let root = match (writes.iter().copied().find(|w| own_path.starts_with(w)).or_else(|| writes.first().copied()), self.root.as_deref()) {
             (Some(w), Some(r)) => Some(if r.starts_with(w) { r } else { w }),
             (w, r) => w.or(r),
         }

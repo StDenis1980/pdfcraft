@@ -62,6 +62,8 @@ const READS_DISK: &[&str] = &[
 /// Tools that write files.
 const WRITES_DISK: &[&str] = &[
     "doc_save",
+    // Renames the document's own file on disk (inside the write roots).
+    "doc_rename",
     "doc_combine",
     "doc_create_multiple",
     "doc_split",

@@ -93,6 +93,7 @@ doc_protect	changes_document,reads_document
 doc_reduce	reads_document,writes_disk
 doc_remove_hidden	changes_document,reads_document
 doc_remove_marks	changes_document,reads_document
+doc_rename	changes_document,reads_document,writes_disk
 doc_revisions	changes_document,reads_document
 doc_save	reads_document,writes_disk
 doc_set_info	changes_document,reads_document
@@ -175,6 +176,9 @@ page_replace	changes_document,reads_disk,reads_document
 page_reverse	changes_document,reads_document
 page_rotate	changes_document,reads_document
 page_set_box	changes_document,reads_document
+page_template_set_hidden	changes_document,reads_document
+page_template_spawn	changes_document,reads_document
+page_templates	reads_document
 page_transition_set	changes_document,reads_document
 pdfa_convert	changes_document,reads_document
 pdfa_verify	reads_document
