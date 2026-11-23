@@ -133,6 +133,9 @@ pub struct Ocr {
     pub(crate) engine: ocrs::OcrEngine,
     /// Tinta Office fork: the PaddleOCR models and word lists beside the ocrs ones.
     pub(crate) tinta: crate::tinta::Extras,
+    /// The detection model's fixed input size, (width, height) pixels, when it declares one: a
+    /// larger image is also searched in tiles of twice that size (Tinta Office fork, `tinta.rs`).
+    pub(crate) detector_input: Option<(u32, u32)>,
 }
 
 impl Ocr {
@@ -156,6 +159,7 @@ impl Ocr {
     }
 
     fn with_models(detection: rten::Model, recognition: rten::Model) -> Result<Ocr, OcrError> {
+        let detector_input = detector_input(&detection);
         let params = ocrs::OcrEngineParams {
             detection_model: Some(detection),
             recognition_model: Some(recognition),
@@ -163,12 +167,23 @@ impl Ocr {
             ..Default::default()
         };
         let engine = ocrs::OcrEngine::new(params).map_err(|e| OcrError::Load("ocr engine".into(), e.to_string()))?;
-        Ok(Ocr { engine, tinta: Default::default() })
+        Ok(Ocr { engine, tinta: Default::default(), detector_input })
     }
 
     /// Load the models found by [`Models::find`].
     pub fn find() -> Result<Ocr, OcrError> {
         Self::load(&Models::find().ok_or(OcrError::NoModels)?)
+    }
+}
+
+/// The detection model's input size, (width, height) pixels, if its input is an NCHW image of a
+/// fixed size.
+fn detector_input(model: &rten::Model) -> Option<(u32, u32)> {
+    let id = *model.input_ids().first()?;
+    let shape = model.node_info(id)?.shape()?;
+    match shape.as_slice() {
+        [_, _, rten::Dimension::Fixed(h), rten::Dimension::Fixed(w)] => Some((u32::try_from(*w).ok()?, u32::try_from(*h).ok()?)),
+        _ => None,
     }
 }
 
