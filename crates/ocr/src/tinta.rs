@@ -316,22 +316,23 @@ impl Ocr {
     /// of boxes merged ([`merge_detections`]).
     fn detect(&self, rgb: &[u8], width: u32, height: u32) -> Result<Vec<RotatedRect>, OcrError> {
         let whole = self.detect_in(rgb, width, height)?;
-        if width <= TILE.0 && height <= TILE.1 {
+        let tile = self.tile();
+        if width <= tile.0 && height <= tile.1 {
             return Ok(whole);
         }
         let channels = rgb.len() / (width as usize).saturating_mul(height as usize).max(1);
         let mut tiled = Vec::new();
-        let (xs, ys) = (tile_starts(width, TILE.0), tile_starts(height, TILE.1));
+        let (xs, ys) = (tile_starts(width, tile.0), tile_starts(height, tile.1));
         for (row, &y) in ys.iter().enumerate() {
             for (col, &x) in xs.iter().enumerate() {
-                let (tw, th) = (TILE.0.min(width.saturating_sub(x)), TILE.1.min(height.saturating_sub(y)));
-                let Some(tile) = crop(rgb, width, channels, [x, y, tw, th]) else { continue };
+                let (tw, th) = (tile.0.min(width.saturating_sub(x)), tile.1.min(height.saturating_sub(y)));
+                let Some(piece) = crop(rgb, width, channels, [x, y, tw, th]) else { continue };
                 // Each tile keeps the words centred in its own share of the overlaps: the other
                 // half belongs to its neighbour, which sees those words further from its edge.
-                let (left, right) = owned(&xs, col, TILE.0, width);
-                let (top, bottom) = owned(&ys, row, TILE.1, height);
+                let (left, right) = owned(&xs, col, tile.0, width);
+                let (top, bottom) = owned(&ys, row, tile.1, height);
                 tiled.extend(
-                    self.detect_in(&tile, tw, th)?
+                    self.detect_in(&piece, tw, th)?
                         .into_iter()
                         .map(|r| RotatedRect::new(r.center().translate(y as f32, x as f32), r.up_axis(), r.width(), r.height()))
                         .filter(|r| {
@@ -342,6 +343,12 @@ impl Ocr {
             }
         }
         Ok(merge_detections(whole, tiled))
+    }
+
+    /// The size of the tiles [`Ocr::detect`] searches: twice the detection model's input when it
+    /// declares one, else [`TILE`].
+    fn tile(&self) -> (u32, u32) {
+        self.detector_input.map(|(w, h)| (w.saturating_mul(2).max(1), h.saturating_mul(2).max(1))).unwrap_or(TILE)
     }
 
     /// The words the detection model finds in one image, shrunk to its input size if larger.
