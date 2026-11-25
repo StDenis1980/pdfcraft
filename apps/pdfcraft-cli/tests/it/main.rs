@@ -24,6 +24,7 @@ mod stderr;
 mod stdout;
 mod text;
 mod tinta_office;
+mod tinta_store_text;
 mod ui_control;
 mod version_resource;
 mod xfa;
