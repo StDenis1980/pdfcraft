@@ -39,6 +39,8 @@ BRAND_HOMEPAGE="https://tintaoffice.com"
 BRAND_DEVELOPER_ID="${BRAND_ID%.*}"
 export BRAND_NAME BRAND_SLUG BRAND_ID BRAND_REPO BRAND_HOMEPAGE BRAND_PUBLISHER
 
+TINTA_BRAND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Rewrite one text file from the release's identity to this build's.
 brand_rewrite() {
   sed -i \
@@ -61,6 +63,9 @@ tinta_stage() {
   mv "$share/applications/$UPSTREAM_ID.desktop" "$share/applications/$BRAND_ID.desktop"
   mv "$share/mime/packages/$UPSTREAM_ID.xml" "$share/mime/packages/$BRAND_ID.xml"
   mv "$share/metainfo/$UPSTREAM_ID.metainfo.xml" "$share/metainfo/$BRAND_ID.metainfo.xml"
+  # Translations (tinta-l10n.txt) are keyed by the release's English, so they go in first.
+  python3 "$TINTA_BRAND_DIR/tinta-l10n.py" apply \
+    "$share/applications/$BRAND_ID.desktop" "$share/metainfo/$BRAND_ID.metainfo.xml"
   brand_rewrite "$share/applications/$BRAND_ID.desktop"
   brand_rewrite "$share/mime/packages/$BRAND_ID.xml"
   brand_rewrite "$share/metainfo/$BRAND_ID.metainfo.xml"

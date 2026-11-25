@@ -1,0 +1,87 @@
+# Tinta Office: translations of the desktop entry and AppStream metadata (packaging/linux/tinta-l10n.py).
+# language<TAB>release's English, exactly as in the files<TAB>translation. AI-made (Claude), not reviewed by native speakers.
+
+uk	PDF Editor	Редактор PDF
+es	PDF Editor	Editor de PDF
+pl	PDF Editor	Edytor PDF
+de	PDF Editor	PDF-Editor
+fr	PDF Editor	Éditeur PDF
+it	PDF Editor	Editor PDF
+ro	PDF Editor	Editor PDF
+cs	PDF Editor	Editor PDF
+lt	PDF Editor	PDF redaktorius
+ca	PDF Editor	Editor de PDF
+ca@valencia	PDF Editor	Editor de PDF
+gl	PDF Editor	Editor de PDF
+eu	PDF Editor	PDF editorea
+pt	PDF Editor	Editor de PDF
+uk	Read, organize, combine, split and secure PDFs	Читайте, упорядковуйте, об'єднуйте, розділяйте й захищайте PDF
+es	Read, organize, combine, split and secure PDFs	Lee, organiza, combina, divide y protege archivos PDF
+pl	Read, organize, combine, split and secure PDFs	Czytaj, porządkuj, łącz, dziel i zabezpieczaj pliki PDF
+de	Read, organize, combine, split and secure PDFs	PDFs lesen, ordnen, zusammenfügen, teilen und schützen
+fr	Read, organize, combine, split and secure PDFs	Lire, organiser, combiner, diviser et protéger des PDF
+it	Read, organize, combine, split and secure PDFs	Leggi, organizza, unisci, dividi e proteggi i PDF
+ro	Read, organize, combine, split and secure PDFs	Citiți, organizați, combinați, împărțiți și protejați fișiere PDF
+cs	Read, organize, combine, split and secure PDFs	Čtěte, uspořádejte, spojujte, rozdělujte a zabezpečte PDF
+lt	Read, organize, combine, split and secure PDFs	Skaitykite, tvarkykite, sujunkite, skaidykite ir apsaugokite PDF
+ca	Read, organize, combine, split and secure PDFs	Llegiu, organitzeu, combineu, dividiu i protegiu PDF
+ca@valencia	Read, organize, combine, split and secure PDFs	Llegiu, organitzeu, combineu, dividiu i protegiu documents PDF
+gl	Read, organize, combine, split and secure PDFs	Le, organiza, combina, divide e protexe PDF
+eu	Read, organize, combine, split and secure PDFs	Irakurri, antolatu, konbinatu, zatitu eta babestu PDFak
+pt	Read, organize, combine, split and secure PDFs	Leia, organize, combine, divida e proteja PDF
+uk	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;переглядач;редактор;примітки;підпис;форми;об'єднати;розділити;документ;
+es	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;visor;editor;anotar;firmar;formularios;combinar;dividir;documento;
+pl	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;przeglądarka;edytor;adnotacje;podpis;formularze;scalanie;dzielenie;dokument;
+de	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;betrachter;editor;anmerkungen;unterschreiben;formulare;zusammenfügen;teilen;dokument;
+fr	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;visionneuse;éditeur;annoter;signer;formulaires;fusionner;diviser;document;
+it	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;visualizzatore;editor;annotare;firmare;moduli;unire;dividere;documento;
+ro	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;vizualizator;editor;adnotări;semnare;formulare;combinare;împărțire;document;
+cs	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;prohlížeč;editor;poznámky;podpis;formuláře;spojit;rozdělit;dokument;
+lt	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;peržiūra;redaktorius;pastabos;parašas;formos;sujungti;skaidyti;dokumentas;
+ca	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;visualitzador;editor;anotar;signar;formularis;combinar;dividir;document;
+ca@valencia	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;visualitzador;editor;anotar;signar;formularis;combinar;dividir;document;
+gl	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;visor;editor;anotar;asinar;formularios;combinar;dividir;documento;
+eu	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;ikustailea;editorea;oharrak;sinatu;inprimakiak;konbinatu;zatitu;dokumentua;
+pt	pdf;viewer;editor;annotate;sign;forms;merge;split;	pdf;visualizador;editor;anotar;assinar;formulários;combinar;dividir;documento;
+uk	A PDF open with its threaded comments	Відкритий PDF з обговореннями в коментарях
+es	A PDF open with its threaded comments	Un PDF abierto con sus hilos de comentarios
+pl	A PDF open with its threaded comments	Otwarty plik PDF z wątkami komentarzy
+de	A PDF open with its threaded comments	Ein geöffnetes PDF mit Kommentarverläufen
+fr	A PDF open with its threaded comments	Un PDF ouvert avec ses fils de commentaires
+it	A PDF open with its threaded comments	Un PDF aperto con le sue discussioni nei commenti
+ro	A PDF open with its threaded comments	Un PDF deschis, cu firele sale de comentarii
+cs	A PDF open with its threaded comments	Otevřené PDF s vlákny komentářů
+lt	A PDF open with its threaded comments	Atvertas PDF su komentarų gijomis
+ca	A PDF open with its threaded comments	Un PDF obert amb els seus fils de comentaris
+ca@valencia	A PDF open with its threaded comments	Un PDF obert amb els seus fils de comentaris
+gl	A PDF open with its threaded comments	Un PDF aberto cos seus fíos de comentarios
+eu	A PDF open with its threaded comments	PDF bat irekita, bere iruzkin-hariekin
+pt	A PDF open with its threaded comments	Um PDF aberto com os seus tópicos de comentários
+uk	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF — відкрита програма для роботи з PDF. Читайте, коментуйте, заповнюйте й підписуйте PDF; упорядковуйте, об'єднуйте й розділяйте сторінки; редагуйте, приховуйте конфіденційне, захищайте й експортуйте документи.
+es	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF es un programa de código abierto para trabajar con PDF. Lee, comenta, rellena y firma PDF; organiza, combina y divide páginas; edita, oculta información confidencial, protege y exporta documentos.
+pl	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF to otwarty program do pracy z plikami PDF. Czytaj, komentuj, wypełniaj i podpisuj pliki PDF; porządkuj, łącz i dziel strony; edytuj, zaczerniaj poufne treści, zabezpieczaj i eksportuj dokumenty.
+de	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF ist ein quelloffenes Programm für PDFs. Lesen, kommentieren, ausfüllen und unterschreiben Sie PDFs; ordnen, kombinieren und teilen Sie Seiten; bearbeiten, schwärzen, schützen und exportieren Sie Dokumente.
+fr	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF est un atelier PDF libre. Lisez, commentez, remplissez et signez des PDF ; organisez, combinez et divisez des pages ; modifiez, caviardez, protégez et exportez des documents.
+it	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF è un programma open source per lavorare con i PDF. Leggi, commenta, compila e firma i PDF; organizza, unisci e dividi le pagine; modifica, oscura, proteggi ed esporta i documenti.
+ro	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF este un program open source pentru lucrul cu PDF-uri. Citiți, comentați, completați și semnați PDF-uri; organizați, combinați și împărțiți pagini; editați, ascundeți informațiile confidențiale, protejați și exportați documente.
+cs	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF je otevřený program pro práci s PDF. Čtěte, komentujte, vyplňujte a podepisujte PDF; uspořádejte, spojujte a rozdělujte stránky; upravujte, začerňujte citlivé údaje, zabezpečte a exportujte dokumenty.
+lt	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF – atvirojo kodo programa darbui su PDF. Skaitykite, komentuokite, pildykite ir pasirašykite PDF; tvarkykite, sujunkite ir skaidykite puslapius; redaguokite, paslėpkite konfidencialią informaciją, apsaugokite ir eksportuokite dokumentus.
+ca	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF és un programa de codi obert per treballar amb PDF. Llegiu, comenteu, empleneu i signeu PDF; organitzeu, combineu i dividiu pàgines; editeu, oculteu informació confidencial, protegiu i exporteu documents.
+ca@valencia	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF és un programa de codi obert per a treballar amb PDF. Llegiu, comenteu, ompliu i signeu PDF; organitzeu, combineu i dividiu pàgines; editeu, oculteu informació confidencial, protegiu i exporteu documents.
+gl	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF é un programa de código aberto para traballar con PDF. Le, comenta, enche e asina PDF; organiza, combina e divide páxinas; edita, oculta información confidencial, protexe e exporta documentos.
+eu	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	Tinta PDF PDFekin lan egiteko kode irekiko programa da. Irakurri, iruzkindu, bete eta sinatu PDFak; antolatu, konbinatu eta zatitu orriak; editatu, ezkutatu informazio konfidentziala, babestu eta esportatu dokumentuak.
+pt	PdfCraft is an open-source PDF workbench. Read, comment on, fill in and sign PDFs; organize, combine and split pages; edit, redact, protect and export documents.	O Tinta PDF é um programa de código aberto para trabalhar com PDF. Leia, comente, preencha e assine PDF; organize, combine e divida páginas; edite, oculte informação confidencial, proteja e exporte documentos.
+uk	pdf;viewer;annotate;forms;	pdf;переглядач;примітки;форми;
+es	pdf;viewer;annotate;forms;	pdf;visor;anotar;formularios;
+pl	pdf;viewer;annotate;forms;	pdf;przeglądarka;adnotacje;formularze;
+de	pdf;viewer;annotate;forms;	pdf;betrachter;anmerkungen;formulare;
+fr	pdf;viewer;annotate;forms;	pdf;visionneuse;annoter;formulaires;
+it	pdf;viewer;annotate;forms;	pdf;visualizzatore;annotare;moduli;
+ro	pdf;viewer;annotate;forms;	pdf;vizualizator;adnotări;formulare;
+cs	pdf;viewer;annotate;forms;	pdf;prohlížeč;poznámky;formuláře;
+lt	pdf;viewer;annotate;forms;	pdf;peržiūra;pastabos;formos;
+ca	pdf;viewer;annotate;forms;	pdf;visualitzador;anotar;formularis;
+ca@valencia	pdf;viewer;annotate;forms;	pdf;visualitzador;anotar;formularis;
+gl	pdf;viewer;annotate;forms;	pdf;visor;anotar;formularios;
+eu	pdf;viewer;annotate;forms;	pdf;ikustailea;oharrak;inprimakiak;
+pt	pdf;viewer;annotate;forms;	pdf;visualizador;anotar;formulários;
