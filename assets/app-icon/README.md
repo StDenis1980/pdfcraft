@@ -18,9 +18,10 @@ colours.
 
 The other apps use `#2D4BA0` (Tinta Texto), `#4F7A28` (Tinta Calculo) and `#C7780F` (Tinta Presenta).
 
-**Tile:** `viewBox="0 0 512 512"`, a rounded square with `rx=112`, full bleed. Windows and Linux icons use
-the full-bleed tile. macOS icons put it on Apple's grid (an 824 px body centred on a transparent 1024 px
-canvas). At 32 px and below the simplified tile (`pdfcraft-small.svg`) is used: smaller corners and a
+**Tile:** `viewBox="0 0 512 512"`, a rounded square with `rx=112`, full bleed. Windows icons use
+the full-bleed tile. The Linux icon theme (`hicolor/`, PNGs and scalable SVG) puts it on a transparent
+margin, the body 13/16 of the canvas (1 px at 16 px), so it is as large as other apps' icons. macOS
+icons put it on Apple's grid (an 824 px body centred on a transparent 1024 px canvas). At 32 px and below the simplified tile (`pdfcraft-small.svg`) is used: smaller corners and a
 bolder glyph without the fold, so it stays legible at 16 px.
 
 **Provenance:** original artwork for Tinta Office, drawn in code by
@@ -38,8 +39,8 @@ Licence: [LICENSE.txt](LICENSE.txt) (`MIT OR Apache-2.0`, like the repo).
 | `pdfcraft.ico` | Windows icon (16–256 px), embedded in `pdfcraft.exe` by `apps/pdfcraft/build.rs` |
 | `pdfcraft-document.svg` | Windows PDF file icon master: a Lucide document outline, green badge and outlined PDF lettering; no font dependency |
 | `pdfcraft-document.ico` | Windows PDF file icon (16–256 px), embedded as resource 2 in `pdfcraft.exe` |
-| `hicolor/<n>x<n>/apps/ai.storyteller.pdfcraft.png` | Linux hicolor theme, 16–512 px; the 256 px one is the runtime icon on Windows and Linux |
-| `hicolor/scalable/apps/ai.storyteller.pdfcraft.svg` | Linux scalable icon (copy of the master) |
+| `hicolor/<n>x<n>/apps/ai.storyteller.pdfcraft.png` | Linux hicolor theme, 16–512 px, with the Linux margin; the 256 px one is the runtime icon on Windows and Linux |
+| `hicolor/scalable/apps/ai.storyteller.pdfcraft.svg` | Linux scalable icon: the master with the Linux margin |
 
 Where it shows: `apps/pdfcraft/src/main.rs` sets the window icon (Dock, taskbar, Alt-Tab, launcher) and the
 Wayland app id `ai.storyteller.pdfcraft`; `packaging/linux/ai.storyteller.pdfcraft.desktop` names the
