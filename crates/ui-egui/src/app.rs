@@ -845,6 +845,7 @@ impl PdfCraftApp {
         }
         tinta_reports::first_start(self, &ctx);
         self.tinta_feedback.show(&ctx, i18n::current().code());
+        crate::tinta_whats_new::show(&ctx, i18n::current().code());
         // Before any widget reads this frame's wheel input or draws.
         self.motion.begin_pass(&ctx, self.animation_effects);
         // One-time 0.36 -> 0.37 panel persistence migration, before any panel stores or reads state.

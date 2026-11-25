@@ -273,6 +273,8 @@ fn main() -> eframe::Result {
     }
     // Tinta Office: error reports, after the logger's panic hook so the log already holds the panic.
     let data = pdfcraft_ui_egui::portable::data_dir().map(std::path::Path::to_path_buf).or_else(|| eframe::storage_dir(pdfcraft_engine::brand::NAME));
+    // Tinta Office: the What's new window opens once after an update (it remembers in `data`).
+    pdfcraft_ui_egui::tinta_whats_new::enable(data.clone());
     if let Some(dir) = tinta_report::dir(data.clone()) {
         let log_file = data.map(|d| d.join("logs").join(logging::LOG_FILE));
         tinta_report::install(dir, log_file, pdfcraft_engine::build_info::LABEL.unwrap_or("dev"));

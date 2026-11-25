@@ -100,6 +100,8 @@ impl PdfCraftApp {
             && match spec.id {
                 "comment.copy" => self.active.and_then(|i| self.views.get(i)).is_some_and(|v| v.comments.selected.is_some()),
                 "comment.paste" => self.comment_clipboard.is_some(),
+                // Tinta Office: only the desktop app has the What's new window.
+                "help.whats_new" => crate::tinta_whats_new::available(),
                 "view.previous_view" => self.active.and_then(|i| self.views.get(i)).is_some_and(|v| !v.back.is_empty()),
                 "view.next_view" => self.active.and_then(|i| self.views.get(i)).is_some_and(|v| !v.forward.is_empty()),
                 _ => true,
@@ -231,6 +233,10 @@ impl PdfCraftApp {
             }
             // Tinta Office: Help › Report a problem opens the feedback dialog where it can send.
             "help.report" if self.tinta_feedback.available => self.tinta_feedback.request(),
+            // Tinta Office: the What's new window opens on the next frame.
+            "help.whats_new" => {
+                let _ = crate::tinta_whats_new::request();
+            }
             link if pdfcraft_engine::links::for_command(link).is_some() => {
                 if let Some(l) = pdfcraft_engine::links::for_command(link) {
                     self.open_url(l.url);

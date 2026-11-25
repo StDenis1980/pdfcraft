@@ -449,6 +449,8 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("help.github", "PdfCraft on GitHub", HELP, None, Nothing, "code-xml"),
     c("help.website", if pdfcraft_brand::REBRANDED { crate::links::ORIGIN_LABEL } else { "ArtCraft website" }, HELP, None, Nothing, "external-link"),
     c("help.report", crate::links::REPORT_LABEL, HELP, None, Nothing, "triangle-alert"),
+    // Tinta Office: the What's new window (`pdfcraft_ui_egui::tinta_whats_new`).
+    c("help.whats_new", "What's new in Preview 4", HELP, None, Nothing, "sparkles"),
     c("help.check_updates", "Check for updates…", HELP, None, Nothing, "cloud"),
     c("help.about", "About PdfCraft", HELP, None, Nothing, "info"),
 ];
