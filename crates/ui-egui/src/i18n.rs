@@ -710,6 +710,10 @@ pub fn edit_label(label: &pdfcraft_engine::Label) -> String {
 /// shared catalog has "Undo {action}" without "Redo {action}" in some languages, where one phrase
 /// alone would word Undo and Redo differently.)
 pub fn command_label(text: &str) -> String {
+    // Tinta Office: translated in its own module, not in the shared catalogues.
+    if text == crate::tinta_share::MENU {
+        return crate::tinta_share::tr(current().code(), crate::tinta_share::MENU).to_owned();
+    }
     for (prefix, template) in [("Undo", "Undo {action}"), ("Redo", "Redo {action}")] {
         if let Some(action) = text.strip_prefix(prefix).and_then(|tail| tail.strip_prefix(' ')) {
             let action = action_label(action);
