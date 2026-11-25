@@ -231,6 +231,14 @@ impl PdfCraftApp {
             }
             // Tinta Office: Help › Report a problem opens the feedback dialog where it can send.
             "help.report" if self.tinta_feedback.available => self.tinta_feedback.request(),
+            // Tinta Office: Help › Share Tinta Office copies the website's link.
+            "help.share" => match self.ctx.clone() {
+                Some(ctx) => {
+                    let said = crate::tinta_share::copy(&ctx, crate::i18n::current().code());
+                    self.notify(said);
+                }
+                None => self.notify(crate::tinta_share::URL),
+            },
             link if pdfcraft_engine::links::for_command(link).is_some() => {
                 if let Some(l) = pdfcraft_engine::links::for_command(link) {
                     self.open_url(l.url);

@@ -235,6 +235,7 @@ const HELP: &[&str] = &[
     "help.website",
     "help.discord",
     "help.report",
+    "help.share",
     SEP,
     "help.check_updates",
     SEP,

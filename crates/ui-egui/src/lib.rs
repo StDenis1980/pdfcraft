@@ -45,6 +45,7 @@ mod menus;
 mod properties_session;
 pub mod tinta_feedback;
 pub mod tinta_reports;
+pub mod tinta_share;
 pub mod tinta_theme;
 /// Header & footer / watermark / background dialog types (tests and automation).
 pub mod marks {

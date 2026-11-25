@@ -449,6 +449,8 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("help.github", "PdfCraft on GitHub", HELP, None, Nothing, "code-xml"),
     c("help.website", if pdfcraft_brand::REBRANDED { crate::links::ORIGIN_LABEL } else { "ArtCraft website" }, HELP, None, Nothing, "external-link"),
     c("help.report", crate::links::REPORT_LABEL, HELP, None, Nothing, "triangle-alert"),
+    // Tinta Office: copies the link to tintaoffice.com (the UI's `tinta_share`).
+    c("help.share", "Share Tinta Office", HELP, None, Nothing, "share-2"),
     c("help.check_updates", "Check for updates…", HELP, None, Nothing, "cloud"),
     c("help.about", "About PdfCraft", HELP, None, Nothing, "info"),
 ];
