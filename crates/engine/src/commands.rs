@@ -451,6 +451,8 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("help.report", crate::links::REPORT_LABEL, HELP, None, Nothing, "triangle-alert"),
     // Tinta Office: copies the link to tintaoffice.com (the UI's `tinta_share`).
     c("help.share", "Share Tinta Office", HELP, None, Nothing, "share-2"),
+    // Tinta Office: the What's new window (`pdfcraft_ui_egui::tinta_whats_new`).
+    c("help.whats_new", "What's new in Preview 4", HELP, None, Nothing, "sparkles"),
     c("help.check_updates", "Check for updates…", HELP, None, Nothing, "cloud"),
     c("help.about", "About PdfCraft", HELP, None, Nothing, "info"),
 ];

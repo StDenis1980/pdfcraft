@@ -239,6 +239,12 @@ impl PdfCraftApp {
                 }
                 None => self.notify(crate::tinta_share::URL),
             },
+            // Tinta Office: the What's new window opens on the next frame.
+            "help.whats_new" => {
+                if !crate::tinta_whats_new::request() {
+                    self.notify_tr("What's new is only in the Tinta Office desktop app");
+                }
+            }
             link if pdfcraft_engine::links::for_command(link).is_some() => {
                 if let Some(l) = pdfcraft_engine::links::for_command(link) {
                     self.open_url(l.url);
